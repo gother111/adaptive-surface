@@ -1,0 +1,12 @@
+node_modules
+.npm-cache
+dist
+dist-ssr
+target
+.DS_Store
+*.local
+.env
+.env.*
+!.env.example
+src-tauri/target
+src-tauri/gen

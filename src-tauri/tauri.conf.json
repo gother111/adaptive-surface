@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Adaptive Surface",
+  "version": "0.1.0",
+  "identifier": "com.adaptivesurface.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "macOSPrivateApi": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Adaptive Surface",
+        "width": 1440,
+        "height": 920,
+        "minWidth": 1040,
+        "minHeight": 700,
+        "resizable": true,
+        "fullscreen": false,
+        "maximized": true,
+        "decorations": true,
+        "transparent": false,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": {
+          "x": 18,
+          "y": 18
+        }
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["dmg", "app"],
+    "category": "Productivity",
+    "copyright": "Copyright Adaptive Surface",
+    "shortDescription": "Adaptive AI work surface for macOS.",
+    "longDescription": "A macOS-first adaptive AI work surface built with Tauri 2, React, TypeScript, Tailwind, shadcn-style components, and tldraw.",
+    "macOS": {
+      "minimumSystemVersion": "13.0",
+      "infoPlist": "Info.plist"
+    }
+  }
+}
