@@ -6,11 +6,20 @@ import { useSurfaceStore } from "@/stores/useSurfaceStore";
 const SHORTCUT = "CommandOrControl+Shift+Space";
 
 export function useGlobalShortcut() {
-  const setCommandOpen = useSurfaceStore((state) => state.setCommandOpen);
+  const toggleListeningRequested = useSurfaceStore((state) => state.toggleListeningRequested);
 
   useEffect(() => {
+    function handleLocalShortcut(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.code === "Space") {
+        event.preventDefault();
+        toggleListeningRequested();
+      }
+    }
+
+    window.addEventListener("keydown", handleLocalShortcut);
+
     if (!isTauriRuntime()) {
-      return;
+      return () => window.removeEventListener("keydown", handleLocalShortcut);
     }
 
     let disposed = false;
@@ -31,7 +40,7 @@ export function useGlobalShortcut() {
         await appWindow.show();
         await appWindow.unminimize();
         await appWindow.setFocus();
-        setCommandOpen(true);
+        toggleListeningRequested();
       });
 
       return async () => {
@@ -46,8 +55,9 @@ export function useGlobalShortcut() {
     });
 
     return () => {
+      window.removeEventListener("keydown", handleLocalShortcut);
       disposed = true;
       void cleanup.then((unregister) => unregister?.());
     };
-  }, [setCommandOpen]);
+  }, [toggleListeningRequested]);
 }

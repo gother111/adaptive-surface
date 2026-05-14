@@ -1,4 +1,5 @@
 import type { SurfaceConfig } from "@/types/surface";
+import { AdaptiveSurface } from "@/surfaces/adaptive/AdaptiveSurface";
 import { ApprovalSurface } from "@/surfaces/approval/ApprovalSurface";
 import { BriefSurface } from "@/surfaces/brief/BriefSurface";
 import { CanvasSurface } from "@/surfaces/canvas/CanvasSurface";
@@ -21,6 +22,12 @@ export function SurfaceRenderer({ config }: SurfaceRendererProps) {
       return <ApprovalSurface config={config} />;
     case "settings":
       return <SettingsSurface config={config} />;
+    case "summary":
+    case "note":
+    case "research":
+    case "catch_up":
+    case "comparison":
+      return <AdaptiveSurface config={config} />;
     default:
       return null;
   }

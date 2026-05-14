@@ -54,7 +54,7 @@ npm run tauri:dev
 ```
 
 The app opens as a native macOS desktop window. Use `Cmd + Shift + Space` to
-focus the app and open the command palette.
+toggle live dictation.
 
 If you only want the web frontend during UI work:
 
@@ -63,6 +63,44 @@ npm run dev
 ```
 
 Then open `http://localhost:1420`.
+
+## Test the real-time voice flow
+
+No new npm dependencies are required for the current implementation.
+
+1. Start the native app:
+
+```bash
+source "$HOME/.cargo/env"
+npm run tauri:dev
+```
+
+2. Click the large floating `Speak surface` microphone button, or press
+   `Cmd + Shift + Space`.
+
+3. Try short phrases first:
+
+```text
+Prepare a brief about the product launch
+Compare Notion and Linear in a table
+Help me decide between hiring now or waiting
+Catch me up on what changed since yesterday
+No, change it to a comparison table
+```
+
+4. Watch for three things:
+
+- live transcript text appears while you are still speaking
+- the center surface morphs before the final transcript arrives
+- the mic panel shows the detected intent and first-partial latency
+
+The current provider uses Web Speech interim results when available. The intent
+classifier is synchronous and local, so the app can show the first useful
+surface skeleton immediately after the first partial transcript arrives.
+
+Native macOS dictation is the next provider: add a Tauri plugin around
+`SFSpeechRecognizer` and `AVAudioEngine`, then emit partial/final dictation
+events into the same Zustand actions. See `src/voice/README.md`.
 
 ## Build a macOS app and DMG
 

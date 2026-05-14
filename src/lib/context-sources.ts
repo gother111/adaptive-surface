@@ -1,0 +1,103 @@
+import type { ContextSourceConfig } from "@/types/surface";
+
+export const defaultTrustedFileRoots = [
+  "/Users/pavlosamoshko/Downloads",
+  "/Users/pavlosamoshko/Desktop",
+  "/Users/pavlosamoshko/Documents",
+];
+
+export const defaultPersonalFileIndexPath =
+  "/Users/pavlosamoshko/Organizing /PERSONAL_FILE_DIRECTORY.md";
+
+export const defaultContextSources: ContextSourceConfig[] = [
+  {
+    id: "local-files",
+    label: "Local files",
+    description: "Read trusted folders and local reference files for durable context.",
+    accessMode: "read",
+    bridge: "tauri-fs",
+    status: "ready",
+    writePolicy: "full-write",
+    detail: "Approved roots are Downloads, Desktop, and Documents, with the personal directory file as a priority context map.",
+  },
+  {
+    id: "apple-calendar",
+    label: "Apple Calendar",
+    description: "Read upcoming events and availability from the macOS Calendar app.",
+    accessMode: "read",
+    bridge: "applescript-read",
+    status: "needs-permission",
+    writePolicy: "full-write",
+    detail: "Reads can be implemented locally now, but macOS Automation approval is still required before the app can talk to Calendar.",
+  },
+  {
+    id: "apple-reminders",
+    label: "Apple Reminders",
+    description: "Read task lists, due dates, and flagged items from Reminders.",
+    accessMode: "read",
+    bridge: "applescript-read",
+    status: "needs-permission",
+    writePolicy: "full-write",
+    detail: "Good early context source because the data is structured, but automation permission is still required.",
+  },
+  {
+    id: "apple-notes",
+    label: "Apple Notes",
+    description: "Read selected notes or notebooks to enrich project and personal context.",
+    accessMode: "read",
+    bridge: "applescript-read",
+    status: "needs-permission",
+    writePolicy: "full-write",
+    detail: "We can start with narrow note previews before enabling broader note creation or edits.",
+  },
+  {
+    id: "apple-mail",
+    label: "Apple Mail",
+    description: "Read mailbox summaries and draft context from the local Mail app.",
+    accessMode: "approval",
+    bridge: "applescript-read",
+    status: "needs-permission",
+    writePolicy: "full-write",
+    detail: "Mail stays approval-gated even with full write permission because it can create highly visible side effects.",
+  },
+  {
+    id: "email-account",
+    label: "Gmail account",
+    description: "Connect a mailbox provider directly for search and thread retrieval.",
+    accessMode: "disabled",
+    bridge: "mail-connector",
+    status: "needs-oauth-config",
+    writePolicy: "full-write",
+    detail: "Gmail OAuth is the preferred path, but this repo does not yet have a Google client configuration or callback flow.",
+  },
+  {
+    id: "github",
+    label: "GitHub",
+    description: "Read repositories, issues, pull requests, and recent engineering activity.",
+    accessMode: "disabled",
+    bridge: "oauth-api",
+    status: "needs-oauth-config",
+    writePolicy: "read-only",
+    detail: "GitHub is approved as read-only and should use OAuth rather than a broad personal token by default.",
+  },
+  {
+    id: "slack",
+    label: "Slack",
+    description: "Read channels, DMs, and team signals for operational context.",
+    accessMode: "disabled",
+    bridge: "oauth-api",
+    status: "needs-oauth-config",
+    writePolicy: "full-write",
+    detail: "Slack is approved for full write, but a workspace OAuth app and callback flow still need to be registered.",
+  },
+  {
+    id: "chatgpt-history",
+    label: "ChatGPT history",
+    description: "Reference prior ChatGPT conversations or exported history when available.",
+    accessMode: "disabled",
+    bridge: "manual-import",
+    status: "planned",
+    writePolicy: "read-only",
+    detail: "Skipped for now, so the app should not expect this source during context sync.",
+  },
+];

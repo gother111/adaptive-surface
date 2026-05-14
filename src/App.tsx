@@ -4,6 +4,7 @@ import { CommandPalette } from "@/components/command/CommandPalette";
 import { FloatingMicButton } from "@/components/voice/FloatingMicButton";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useGlobalShortcut } from "@/hooks/useGlobalShortcut";
+import { VoiceController } from "@/voice/VoiceController";
 
 export function App() {
   useGlobalShortcut();
@@ -11,6 +12,7 @@ export function App() {
   return (
     <TooltipProvider>
       <div className="dark h-screen overflow-hidden bg-background text-foreground">
+        <VoiceController />
         <AppShell />
         <CommandPalette />
         <FloatingMicButton />

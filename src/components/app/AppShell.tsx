@@ -12,7 +12,11 @@ export function AppShell() {
   const setActiveSurface = useSurfaceStore((state) => state.setActiveSurface);
   const setCommandOpen = useSurfaceStore((state) => state.setCommandOpen);
   const surfaces = useSurfaceStore((state) => state.surfaces);
-  const activeSurface = surfaces.find((surface) => surface.id === activeSurfaceId) ?? surfaces[0];
+  const draftSurface = useSurfaceStore((state) => state.draftSurface);
+  const activeSurface =
+    draftSurface && activeSurfaceId === draftSurface.id
+      ? draftSurface
+      : surfaces.find((surface) => surface.id === activeSurfaceId) ?? surfaces[0];
 
   return (
     <main className="grid h-screen grid-cols-[280px_minmax(0,1fr)] overflow-hidden bg-[radial-gradient(circle_at_68%_18%,var(--surface-glow),transparent_30%),linear-gradient(135deg,oklch(0.11_0.02_255),oklch(0.14_0.023_255)_44%,oklch(0.1_0.018_255))]">
