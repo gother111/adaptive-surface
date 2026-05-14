@@ -1,4 +1,5 @@
 import type { SurfaceConfig } from "@/types/surface";
+import { SurfaceRuntime } from "@/surface-engine/surface-runtime";
 import { AdaptiveSurface } from "@/surfaces/adaptive/AdaptiveSurface";
 import { ApprovalSurface } from "@/surfaces/approval/ApprovalSurface";
 import { BriefSurface } from "@/surfaces/brief/BriefSurface";
@@ -11,6 +12,10 @@ interface SurfaceRendererProps {
 }
 
 export function SurfaceRenderer({ config }: SurfaceRendererProps) {
+  if (config.blueprint) {
+    return <SurfaceRuntime blueprint={config.blueprint} />;
+  }
+
   switch (config.kind) {
     case "brief":
       return <BriefSurface config={config} />;

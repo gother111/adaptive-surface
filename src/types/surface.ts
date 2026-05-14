@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import type { SurfaceBlueprint } from "@/surface-engine/blueprint";
 
 export type SurfaceKind =
   | "brief"
@@ -90,6 +91,7 @@ export interface SurfaceConfig {
   kind: SurfaceKind;
   title: string;
   subtitle: string;
+  blueprint?: SurfaceBlueprint;
   streamStatus?: StreamStatus;
   liveTranscript?: string;
   topic?: string;

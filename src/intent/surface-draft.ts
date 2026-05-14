@@ -1,4 +1,12 @@
 import type { IntentDetection } from "@/intent/types";
+import {
+  createApprovalFlowBlueprint,
+  createCatchUpBlueprint,
+  createComparisonBlueprint,
+  createDecisionBriefBlueprint,
+  createNoteBlueprint,
+  createResearchWorkspaceBlueprint,
+} from "@/surface-engine/surface-presets";
 import type { SurfaceConfig } from "@/types/surface";
 
 export function buildSurfaceDraft(intent: IntentDetection, transcript: string): SurfaceConfig {
@@ -6,6 +14,15 @@ export function buildSurfaceDraft(intent: IntentDetection, transcript: string): 
   const subtitle = intent.slots.correction
     ? "Correction detected. Morphing the surface without waiting for a final transcript."
     : `Building from live speech: "${trimForDisplay(transcript)}"`;
+  const presetInput = {
+    transcript,
+    topic,
+    subtitle,
+    intent: intent.intent,
+    confidence: intent.confidence,
+    entities: intent.slots.entities,
+    correction: intent.slots.correction,
+  };
 
   switch (intent.surfaceKind) {
     case "brief":
@@ -14,6 +31,11 @@ export function buildSurfaceDraft(intent: IntentDetection, transcript: string): 
         kind: "brief",
         title: topic.includes("Brief") ? topic : `${topic} Brief`,
         subtitle,
+        blueprint: createDecisionBriefBlueprint({
+          ...presetInput,
+          id: "voice-brief",
+          title: topic.includes("Brief") ? topic : `${topic} Brief`,
+        }),
         streamStatus: "streaming",
         briefBlocks: [
           { id: "context", title: "Context", body: sentenceOrSkeleton(transcript), status: "fresh" },
@@ -35,6 +57,12 @@ export function buildSurfaceDraft(intent: IntentDetection, transcript: string): 
         kind: "decision",
         title: topic.includes("Decision") ? topic : `${topic} Decision`,
         subtitle,
+        blueprint: createDecisionBriefBlueprint({
+          ...presetInput,
+          id: "voice-decision",
+          kind: "decision",
+          title: topic.includes("Decision") ? topic : `${topic} Decision`,
+        }),
         streamStatus: "streaming",
         decisionOptions: [
           { id: "option-a", label: "Option A", confidence: 64, tradeoff: "Waiting for the first option from your speech." },
@@ -48,22 +76,81 @@ export function buildSurfaceDraft(intent: IntentDetection, transcript: string): 
         kind: "approval",
         title: "Approval Flow",
         subtitle,
+        blueprint: createApprovalFlowBlueprint({
+          ...presetInput,
+          id: "voice-approval",
+          title: "Approval Flow",
+        }),
         streamStatus: "streaming",
         approvalActions: [
           { id: "review", label: "Review proposed action", target: sentenceOrSkeleton(transcript), risk: "medium" },
           { id: "confirm", label: "Wait for explicit confirmation", target: "No external action runs until approved.", risk: "low" },
         ],
       };
-    case "summary":
     case "note":
+    case "summary":
+      return {
+        id: `voice-${intent.surfaceKind}`,
+        kind: intent.surfaceKind,
+        title: intent.title,
+        subtitle,
+        blueprint: createNoteBlueprint({
+          ...presetInput,
+          id: `voice-${intent.surfaceKind}`,
+          kind: intent.surfaceKind,
+          title: intent.title,
+        }),
+        streamStatus: "streaming",
+        liveTranscript: transcript,
+        topic,
+        confidence: intent.confidence,
+        sections: buildSections(intent, transcript),
+      };
     case "research":
+      return {
+        id: "voice-research",
+        kind: "research",
+        title: intent.title,
+        subtitle,
+        blueprint: createResearchWorkspaceBlueprint({
+          ...presetInput,
+          id: "voice-research",
+          title: intent.title,
+        }),
+        streamStatus: "streaming",
+        liveTranscript: transcript,
+        topic,
+        confidence: intent.confidence,
+        sections: buildSections(intent, transcript),
+      };
     case "catch_up":
+      return {
+        id: "voice-catch_up",
+        kind: "catch_up",
+        title: intent.title,
+        subtitle,
+        blueprint: createCatchUpBlueprint({
+          ...presetInput,
+          id: "voice-catch_up",
+          title: intent.title,
+        }),
+        streamStatus: "streaming",
+        liveTranscript: transcript,
+        topic,
+        confidence: intent.confidence,
+        sections: buildSections(intent, transcript),
+      };
     case "comparison":
       return {
         id: `voice-${intent.surfaceKind}`,
         kind: intent.surfaceKind,
         title: intent.title,
         subtitle,
+        blueprint: createComparisonBlueprint({
+          ...presetInput,
+          id: "voice-comparison",
+          title: intent.title,
+        }),
         streamStatus: "streaming",
         liveTranscript: transcript,
         topic,
