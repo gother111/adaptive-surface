@@ -2,13 +2,16 @@ import { memo, type ReactNode } from "react";
 import {
   AlertTriangle,
   ArrowRight,
+  CalendarDays,
   Check,
   ChevronRight,
   CircleDashed,
   ClipboardCheck,
   FileQuestion,
   Gauge,
+  Link2,
   LockKeyhole,
+  Mail,
   Search,
   ShieldAlert,
   Sparkles,
@@ -21,8 +24,12 @@ import type {
   ApprovalGateProps,
   ComparisonTableProps,
   ConfidenceBadgeProps,
+  CalendarContextProps,
+  DataBindingChipProps,
   DecisionMatrixProps,
   DecisionOptionCardProps,
+  EmailBodyProps,
+  EmailDraftSurfaceProps,
   EmptyStateProps,
   EvidenceBlockProps,
   InsightCardProps,
@@ -69,6 +76,11 @@ export const surfaceComponentRegistry: ComponentRegistry = {
   loading_skeleton: LoadingSkeleton,
   empty_state: EmptyState,
   voice_correction_chip: VoiceCorrectionChip,
+  data_binding_chip: DataBindingChip,
+  context_source_chip: DataBindingChip,
+  email_draft_surface: EmailDraftSurface,
+  email_body: EmailBody,
+  calendar_context: CalendarContext,
 };
 
 export function getSurfaceComponent(type: SurfaceComponentType) {
@@ -117,14 +129,14 @@ function Panel({ node, children }: SurfaceComponentRenderProps) {
   const props = node.props as PanelProps;
 
   return (
-    <section className={cn("rounded-lg border p-5", panelToneClass(props.tone), node.streaming && "shadow-[0_0_30px_var(--surface-glow)]")}>
+    <section className={cn("h-full overflow-hidden rounded-lg border p-5", panelToneClass(props.tone), node.streaming && "shadow-[0_0_30px_var(--surface-glow)]")}>
       {(props.title || props.subtitle) && (
         <div className="mb-4">
           {props.title ? <h3 className="text-sm font-semibold text-foreground">{props.title}</h3> : null}
           {props.subtitle ? <p className="mt-1 text-sm leading-6 text-muted-foreground">{props.subtitle}</p> : null}
         </div>
       )}
-      <div className="space-y-4">{children}</div>
+      <div className="space-y-4 overflow-hidden">{children}</div>
     </section>
   );
 }
@@ -266,6 +278,87 @@ function SourceChip({ node }: SurfaceComponentRenderProps) {
       <span className={cn("size-1.5 rounded-full", props.status === "available" ? "bg-primary" : "bg-muted-foreground")} />
       {props.label}
     </span>
+  );
+}
+
+function DataBindingChip({ node }: SurfaceComponentRenderProps) {
+  const props = node.props as DataBindingChipProps;
+  const binding = props.bindingId ? node.bindings?.find((item) => item.id === props.bindingId) : node.bindings?.[0];
+  const source = props.source ?? binding?.source ?? "manual";
+  const status = props.status ?? binding?.status ?? "planned";
+  const label = props.label ?? binding?.label ?? source.replace(/_/g, " ");
+  const preview = props.preview ?? binding?.preview;
+
+  return (
+    <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-xs text-muted-foreground">
+      <Link2 className="size-3.5 shrink-0 text-primary" />
+      <span className="truncate font-medium text-foreground">{label}</span>
+      <span className={cn("shrink-0 rounded-full px-2 py-0.5", bindingStatusClass(status))}>
+        {status.replace(/_/g, " ")}
+      </span>
+      {preview ? <span className="hidden max-w-[220px] truncate sm:inline">{preview}</span> : null}
+    </div>
+  );
+}
+
+function EmailDraftSurface({ node, children }: SurfaceComponentRenderProps) {
+  const props = node.props as EmailDraftSurfaceProps;
+
+  return (
+    <section className="flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-card/80 shadow-[0_28px_90px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+      <div className="border-b border-white/10 px-5 py-4">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <Mail className="size-4 text-primary" />
+          Email draft
+        </div>
+        <div className="mt-4 grid gap-2 text-sm">
+          <div className="grid grid-cols-[64px_minmax(0,1fr)] gap-3">
+            <span className="text-muted-foreground">To</span>
+            <span className="truncate text-foreground">{props.to || "Recipient forming..."}</span>
+          </div>
+          <div className="grid grid-cols-[64px_minmax(0,1fr)] gap-3">
+            <span className="text-muted-foreground">Subject</span>
+            <span className="truncate text-foreground">{props.subject || "Available Friday"}</span>
+          </div>
+        </div>
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto p-5">{children}</div>
+    </section>
+  );
+}
+
+function EmailBody({ node }: SurfaceComponentRenderProps) {
+  const props = node.props as EmailBodyProps;
+  const body = props.body || props.placeholder || "Start speaking and the email will form here.";
+
+  return (
+    <div className="min-h-[260px] whitespace-pre-wrap rounded-lg border border-white/[0.08] bg-white/[0.035] p-5 text-[15px] leading-7 text-foreground">
+      {body}
+    </div>
+  );
+}
+
+function CalendarContext({ node }: SurfaceComponentRenderProps) {
+  const props = node.props as CalendarContextProps;
+
+  return (
+    <aside className="h-full overflow-hidden rounded-xl border border-primary/20 bg-primary/[0.065] p-4 shadow-[0_0_36px_var(--surface-glow)]">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <CalendarDays className="size-4 text-primary" />
+          {props.title}
+        </div>
+        <Badge variant="secondary">{props.status ?? "mock"}</Badge>
+      </div>
+      <div className="mt-4 space-y-3">
+        {props.items.map((item) => (
+          <div key={item.id} className="rounded-md border border-white/10 bg-background/35 p-3 text-sm">
+            <div className="font-medium">{item.label}</div>
+            {item.detail ? <div className="mt-1 text-xs leading-5 text-muted-foreground">{item.detail}</div> : null}
+          </div>
+        ))}
+      </div>
+    </aside>
   );
 }
 
@@ -446,4 +539,12 @@ function pillToneClass(tone: StatusPillProps["tone"]) {
   if (tone === "warning") return "bg-amber-400/15 text-amber-100";
   if (tone === "danger") return "bg-destructive/20 text-red-100";
   return "";
+}
+
+function bindingStatusClass(status: NonNullable<DataBindingChipProps["status"]>) {
+  if (status === "available") return "bg-primary/20 text-primary";
+  if (status === "needs_permission") return "bg-amber-400/15 text-amber-100";
+  if (status === "error") return "bg-destructive/20 text-red-100";
+  if (status === "loading") return "bg-white/10 text-foreground";
+  return "bg-white/[0.06] text-muted-foreground";
 }

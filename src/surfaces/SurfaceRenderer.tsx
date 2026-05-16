@@ -1,5 +1,6 @@
 import type { SurfaceConfig } from "@/types/surface";
 import { SurfaceRuntime } from "@/surface-engine/surface-runtime";
+import { useSurfaceStore } from "@/stores/useSurfaceStore";
 import { AdaptiveSurface } from "@/surfaces/adaptive/AdaptiveSurface";
 import { ApprovalSurface } from "@/surfaces/approval/ApprovalSurface";
 import { BriefSurface } from "@/surfaces/brief/BriefSurface";
@@ -12,8 +13,18 @@ interface SurfaceRendererProps {
 }
 
 export function SurfaceRenderer({ config }: SurfaceRendererProps) {
+  const setFocusedNode = useSurfaceStore((state) => state.setFocusedNode);
+  const setSelectedNode = useSurfaceStore((state) => state.setSelectedNode);
+
   if (config.blueprint) {
-    return <SurfaceRuntime blueprint={config.blueprint} />;
+    return (
+      <SurfaceRuntime
+        blueprint={config.blueprint}
+        surfaceId={config.id}
+        onFocusNode={setFocusedNode}
+        onSelectNode={setSelectedNode}
+      />
+    );
   }
 
   switch (config.kind) {
@@ -32,6 +43,7 @@ export function SurfaceRenderer({ config }: SurfaceRendererProps) {
     case "research":
     case "catch_up":
     case "comparison":
+    case "email_draft":
       return <AdaptiveSurface config={config} />;
     default:
       return null;

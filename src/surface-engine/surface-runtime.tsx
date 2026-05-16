@@ -1,14 +1,18 @@
-import { Component, memo, useMemo, type ReactNode } from "react";
+import { Component, memo, useMemo, type CSSProperties, type ReactNode } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import { getSurfaceComponent, SafeFallback } from "@/surface-engine/component-registry";
 import type { SurfaceBlueprint, SurfaceNode } from "@/surface-engine/blueprint";
 import { isKnownComponentType, isSurfaceBlueprint } from "@/surface-engine/validation";
 
 interface SurfaceRuntimeProps {
   blueprint: SurfaceBlueprint;
+  surfaceId?: string;
+  onSelectNode?: (surfaceId: string, nodeId: string) => void;
+  onFocusNode?: (surfaceId: string, nodeId: string) => void;
 }
 
-export function SurfaceRuntime({ blueprint }: SurfaceRuntimeProps) {
+export function SurfaceRuntime({ blueprint, surfaceId, onSelectNode, onFocusNode }: SurfaceRuntimeProps) {
   const validBlueprint = useMemo(() => isSurfaceBlueprint(blueprint), [blueprint]);
 
   if (!validBlueprint) {
@@ -26,33 +30,117 @@ export function SurfaceRuntime({ blueprint }: SurfaceRuntimeProps) {
     );
   }
 
+  if (blueprint.layout.type === "spatial_canvas") {
+    return (
+      <div className="h-full min-h-0 overflow-hidden">
+        <div className="relative h-full min-h-[calc(100vh-3.5rem)] overflow-hidden">
+          {blueprint.components.map((node) => (
+            <SurfaceRuntimeNode
+              key={node.id}
+              node={node}
+              blueprint={blueprint}
+              spatial
+              surfaceId={surfaceId}
+              onSelectNode={onSelectNode}
+              onFocusNode={onFocusNode}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ScrollArea className="h-[calc(100vh-3.5rem)]">
       <div className="min-h-[calc(100vh-3.5rem)]">
         <RuntimeHeader blueprint={blueprint} />
         {blueprint.components.map((node) => (
-          <SurfaceRuntimeNode key={node.id} node={node} />
+          <SurfaceRuntimeNode
+            key={node.id}
+            node={node}
+            blueprint={blueprint}
+            surfaceId={surfaceId}
+            onSelectNode={onSelectNode}
+            onFocusNode={onFocusNode}
+          />
         ))}
       </div>
     </ScrollArea>
   );
 }
 
-const SurfaceRuntimeNode = memo(function SurfaceRuntimeNode({ node }: { node: SurfaceNode }) {
+const SurfaceRuntimeNode = memo(function SurfaceRuntimeNode({
+  node,
+  blueprint,
+  spatial = false,
+  surfaceId,
+  onSelectNode,
+  onFocusNode,
+}: {
+  node: SurfaceNode;
+  blueprint: SurfaceBlueprint;
+  spatial?: boolean;
+  surfaceId?: string;
+  onSelectNode?: (surfaceId: string, nodeId: string) => void;
+  onFocusNode?: (surfaceId: string, nodeId: string) => void;
+}) {
+  if (node.visibility?.state === "hidden" || node.visibility?.state === "collapsed") {
+    return null;
+  }
+
   if (!isKnownComponentType(node.type)) {
     return <SafeFallback node={node} />;
   }
 
   const Component = getSurfaceComponent(node.type);
+  const children = node.children?.map((child) => (
+    <SurfaceRuntimeNode
+      key={child.id}
+      node={child}
+      blueprint={blueprint}
+      surfaceId={surfaceId}
+      onSelectNode={onSelectNode}
+      onFocusNode={onFocusNode}
+    />
+  ));
+  const focused = blueprint.context?.metadata?.focusedNodeId === node.id;
+  const selected = blueprint.context?.metadata?.selectedNodeId === node.id;
+  const minimized = node.visibility?.state === "minimized";
+  const nodeContent = (
+    <NodeErrorBoundary node={node}>
+      {minimized ? (
+        <button
+          type="button"
+          className="rounded-lg border border-white/10 bg-card/80 px-4 py-3 text-left text-sm text-muted-foreground"
+          onClick={() => surfaceId && onSelectNode?.(surfaceId, node.id)}
+        >
+          {node.name ?? node.semanticText ?? "Minimized surface object"}
+        </button>
+      ) : (
+        <Component node={node}>{children}</Component>
+      )}
+    </NodeErrorBoundary>
+  );
+
+  if (!spatial || !node.geometry) {
+    return nodeContent;
+  }
 
   return (
-    <NodeErrorBoundary node={node}>
-      <Component node={node}>
-        {node.children?.map((child) => (
-          <SurfaceRuntimeNode key={child.id} node={child} />
-        ))}
-      </Component>
-    </NodeErrorBoundary>
+    <div
+      className={cn(
+        "absolute transition-[left,top,width,height,box-shadow,opacity,transform] duration-200 ease-out",
+        selected && "rounded-xl ring-1 ring-primary/55",
+        focused && "rounded-xl shadow-[0_0_0_1px_var(--primary),0_0_42px_var(--surface-glow)]",
+      )}
+      style={geometryStyle(node)}
+      role={node.interaction?.selectable ? "button" : undefined}
+      tabIndex={node.interaction?.focusable ? 0 : undefined}
+      onMouseDown={() => surfaceId && onSelectNode?.(surfaceId, node.id)}
+      onFocus={() => surfaceId && onFocusNode?.(surfaceId, node.id)}
+    >
+      {nodeContent}
+    </div>
   );
 });
 
@@ -94,4 +182,23 @@ function RuntimeHeader({ blueprint }: SurfaceRuntimeProps) {
       </div>
     </div>
   );
+}
+
+function geometryStyle(node: SurfaceNode): CSSProperties {
+  const geometry = node.geometry;
+  if (!geometry) {
+    return {};
+  }
+
+  return {
+    left: geometry.x,
+    top: geometry.y,
+    width: geometry.width,
+    height: node.visibility?.state === "minimized" ? undefined : geometry.height,
+    minWidth: geometry.minWidth,
+    minHeight: geometry.minHeight,
+    maxWidth: geometry.maxWidth,
+    maxHeight: geometry.maxHeight,
+    zIndex: geometry.zIndex,
+  };
 }

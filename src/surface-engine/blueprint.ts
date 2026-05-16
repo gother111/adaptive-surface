@@ -5,7 +5,8 @@ export type SurfaceLayout =
   | { type: "two_pane"; split?: "balanced" | "main_aside" | "aside_main" }
   | { type: "grid"; columns?: 2 | 3 | 4 }
   | { type: "table"; stickyHeader?: boolean }
-  | { type: "approval"; emphasis?: "standard" | "high_risk" };
+  | { type: "approval"; emphasis?: "standard" | "high_risk" }
+  | { type: "spatial_canvas"; width?: number; height?: number };
 
 export type SurfaceComponentType =
   | "surface_frame"
@@ -26,11 +27,78 @@ export type SurfaceComponentType =
   | "approval_gate"
   | "loading_skeleton"
   | "empty_state"
-  | "voice_correction_chip";
+  | "voice_correction_chip"
+  | "data_binding_chip"
+  | "context_source_chip"
+  | "email_draft_surface"
+  | "email_body"
+  | "calendar_context";
 
 export type SurfaceNodeStatus = "idle" | "forming" | "streaming" | "ready" | "blocked" | "error";
 
 export type SurfaceNodePriority = "low" | "normal" | "high" | "critical";
+
+export type SurfaceNodeRole =
+  | "primary_work_object"
+  | "supporting_context"
+  | "source_preview"
+  | "control"
+  | "annotation"
+  | "approval"
+  | "ambient_status";
+
+export interface SurfaceGeometry {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  minWidth?: number;
+  minHeight?: number;
+  maxWidth?: number;
+  maxHeight?: number;
+  zIndex?: number;
+  anchor?: "free" | "top_left" | "top_right" | "bottom_left" | "bottom_right" | "center";
+}
+
+export interface SurfaceVisibility {
+  state: "visible" | "hidden" | "collapsed" | "minimized";
+  reason?: string;
+}
+
+export interface SurfaceInteraction {
+  draggable?: boolean;
+  resizable?: boolean;
+  selectable?: boolean;
+  focusable?: boolean;
+  editable?: boolean;
+}
+
+export type ContextSourceKind =
+  | "local_files"
+  | "apple_mail"
+  | "apple_notes"
+  | "apple_calendar"
+  | "apple_reminders"
+  | "browser"
+  | "web_search"
+  | "github"
+  | "slack"
+  | "manual"
+  | "memory";
+
+export interface SurfaceDataBinding {
+  id: string;
+  source: ContextSourceKind;
+  label?: string;
+  query?: string;
+  selector?: string;
+  fields?: string[];
+  status: "idle" | "planned" | "loading" | "available" | "needs_permission" | "error";
+  refreshPolicy?: "manual" | "on_surface_open" | "live";
+  lastUpdatedAt?: number;
+  preview?: string;
+  error?: string;
+}
 
 export interface SurfaceContext {
   transcript?: string;
@@ -172,6 +240,35 @@ export interface VoiceCorrectionChipProps {
   text: string;
 }
 
+export interface DataBindingChipProps {
+  bindingId?: string;
+  source?: ContextSourceKind;
+  label?: string;
+  status?: SurfaceDataBinding["status"];
+  preview?: string;
+}
+
+export interface EmailDraftSurfaceProps {
+  to?: string;
+  subject?: string;
+  tone?: "warm" | "direct" | "formal";
+}
+
+export interface EmailBodyProps {
+  body: string;
+  placeholder?: string;
+}
+
+export interface CalendarContextProps {
+  title: string;
+  items: Array<{
+    id: string;
+    label: string;
+    detail?: string;
+  }>;
+  status?: "mock" | "planned" | "available";
+}
+
 export interface SurfaceComponentPropsMap {
   surface_frame: SurfaceFrameProps;
   panel: PanelProps;
@@ -192,12 +289,26 @@ export interface SurfaceComponentPropsMap {
   loading_skeleton: LoadingSkeletonProps;
   empty_state: EmptyStateProps;
   voice_correction_chip: VoiceCorrectionChipProps;
+  data_binding_chip: DataBindingChipProps;
+  context_source_chip: DataBindingChipProps;
+  email_draft_surface: EmailDraftSurfaceProps;
+  email_body: EmailBodyProps;
+  calendar_context: CalendarContextProps;
 }
 
 export interface SurfaceNode<TType extends SurfaceComponentType = SurfaceComponentType> {
   id: string;
   type: TType;
   props: SurfaceComponentPropsMap[TType];
+  name?: string;
+  description?: string;
+  role?: SurfaceNodeRole;
+  tags?: string[];
+  semanticText?: string;
+  geometry?: SurfaceGeometry;
+  visibility?: SurfaceVisibility;
+  interaction?: SurfaceInteraction;
+  bindings?: SurfaceDataBinding[];
   children?: SurfaceNode[];
   streaming?: boolean;
   status?: SurfaceNodeStatus;

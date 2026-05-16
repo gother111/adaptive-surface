@@ -1,0 +1,456 @@
+import type {
+  CalendarPanelProps,
+  ChartFrameProps,
+  EmailDraftSurfaceProps,
+  NotesPanelProps,
+  RoutedVoiceAction,
+  SurfaceInstance,
+  SurfaceKind,
+  TableFrameProps,
+  WorkspacePatch,
+  WorkspaceSession,
+} from "@/workspace/types";
+
+const EMAIL_SURFACE_ID = "workspace-email-draft";
+const SUPPORTING_SURFACE_IDS: Partial<Record<SurfaceKind, string>> = {
+  calendar: "workspace-calendar",
+  notes: "workspace-notes",
+  table: "workspace-table",
+  chart: "workspace-chart",
+};
+
+export function routeVoiceAction(session: WorkspaceSession, utterance: string): RoutedVoiceAction {
+  const text = normalize(utterance);
+  const primary = getPrimarySurface(session);
+
+  if (/\b(show|open|turn on)\s+(the\s+)?debug\b/.test(text)) {
+    return { kind: "debug", instruction: "show_debug" };
+  }
+
+  if (/\b(hide|close|turn off)\s+(the\s+)?debug\b/.test(text)) {
+    return { kind: "debug", instruction: "hide_debug" };
+  }
+
+  const closeTarget = getCloseTarget(session, text);
+  if (closeTarget) {
+    return { kind: "update_existing_surface", targetSurfaceId: closeTarget.id, instruction: "collapse" };
+  }
+
+  if (isSupportingRequest(text, "calendar")) {
+    return { kind: "add_supporting_surface", surfaceKind: "calendar", instruction: utterance };
+  }
+
+  if (isSupportingRequest(text, "notes")) {
+    return { kind: "add_supporting_surface", surfaceKind: "notes", instruction: utterance };
+  }
+
+  if (isSupportingRequest(text, "chart")) {
+    return { kind: "add_supporting_surface", surfaceKind: "chart", instruction: utterance };
+  }
+
+  if (isSupportingRequest(text, "table")) {
+    return { kind: "add_supporting_surface", surfaceKind: "table", instruction: utterance };
+  }
+
+  if (isCreateEmailDraft(text) && (!primary || primary.kind !== "email_draft")) {
+    return { kind: "create_new_primary_surface", surfaceKind: "email_draft", instruction: utterance };
+  }
+
+  if (primary?.kind === "email_draft") {
+    if (isCompletion(text)) {
+      return { kind: "complete_task", targetSurfaceId: primary.id, action: completionAction(text) };
+    }
+
+    if (isTransformation(text)) {
+      return {
+        kind: "transform_existing_content",
+        targetSurfaceId: primary.id,
+        transformation: utterance,
+      };
+    }
+
+    return {
+      kind: "continue_current_surface",
+      targetSurfaceId: primary.id,
+      instruction: utterance,
+    };
+  }
+
+  if (isCreateEmailDraft(text)) {
+    return { kind: "create_new_primary_surface", surfaceKind: "email_draft", instruction: utterance };
+  }
+
+  return { kind: "unknown", instruction: utterance };
+}
+
+export function routedActionToPatches(
+  session: WorkspaceSession,
+  action: RoutedVoiceAction,
+  utteranceText: string,
+): WorkspacePatch[] {
+  const now = Date.now();
+  const patches: WorkspacePatch[] = [
+    {
+      type: "APPEND_UTTERANCE",
+      utterance: { id: crypto.randomUUID(), text: utteranceText, createdAt: now },
+    },
+  ];
+
+  switch (action.kind) {
+    case "create_new_primary_surface": {
+      if (action.surfaceKind !== "email_draft") {
+        return patches;
+      }
+
+      const surface = createEmailSurface(now, createEmailProps(action.instruction));
+      return [
+        ...patches,
+        { type: "CREATE_SURFACE", surface },
+        { type: "SET_PRIMARY_SURFACE", surfaceId: surface.id },
+      ];
+    }
+    case "continue_current_surface":
+    case "update_existing_surface": {
+      if (action.instruction === "collapse") {
+        return [...patches, { type: "COLLAPSE_SURFACE", surfaceId: action.targetSurfaceId }];
+      }
+
+      const surface = session.surfaces.find((item) => item.id === action.targetSurfaceId);
+      if (surface?.kind !== "email_draft") {
+        return patches;
+      }
+
+      return [
+        ...patches,
+        {
+          type: "UPDATE_SURFACE",
+          surfaceId: action.targetSurfaceId,
+          props: { ...updateEmailProps(surface.props, action.instruction) },
+        },
+      ];
+    }
+    case "transform_existing_content": {
+      const surface = session.surfaces.find((item) => item.id === action.targetSurfaceId);
+      if (surface?.kind !== "email_draft") {
+        return patches;
+      }
+
+      return [
+        ...patches,
+        {
+          type: "UPDATE_SURFACE",
+          surfaceId: action.targetSurfaceId,
+          props: { ...transformEmailProps(surface.props, action.transformation) },
+        },
+      ];
+    }
+    case "add_supporting_surface": {
+      const surface = createSupportingSurface(action.surfaceKind, now);
+      if (!surface) {
+        return patches;
+      }
+
+      return [
+        ...patches,
+        { type: "CREATE_SURFACE", surface },
+        { type: "STORE_CONTEXT_RESULT", key: action.surfaceKind, value: surface.props },
+      ];
+    }
+    case "complete_task":
+      return [
+        ...patches,
+        {
+          type: "UPDATE_SURFACE",
+          surfaceId: action.targetSurfaceId,
+          props: { statusLabel: `${action.action} ready for approval` },
+        },
+      ];
+    case "debug":
+      return [
+        ...patches,
+        { type: "SET_DEBUG_VISIBLE", visible: action.instruction !== "hide_debug" },
+      ];
+    case "unknown":
+      return patches;
+  }
+}
+
+function createEmailSurface(now: number, props: EmailDraftSurfaceProps): SurfaceInstance {
+  return {
+    id: EMAIL_SURFACE_ID,
+    kind: "email_draft",
+    role: "primary",
+    zone: "main",
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+    props: { ...props },
+  };
+}
+
+function createSupportingSurface(kind: SurfaceKind, now: number): SurfaceInstance | null {
+  const id = SUPPORTING_SURFACE_IDS[kind];
+
+  if (!id) {
+    return null;
+  }
+
+  return {
+    id,
+    kind,
+    role: "supporting",
+    zone: preferredZone(kind),
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+    props: { ...supportingProps(kind) },
+  };
+}
+
+function createEmailProps(instruction: string): EmailDraftSurfaceProps {
+  return updateEmailProps(
+    {
+      to: extractRecipient(instruction) ?? "",
+      subject: "Friday availability",
+      body: "Hi,\n\nTell me what this email should say.\n\nBest,",
+      tone: "warm",
+      sourceChips: [],
+    },
+    instruction,
+  );
+}
+
+function updateEmailProps(current: Record<string, unknown>, instruction: string): EmailDraftSurfaceProps {
+  const existing = readEmailProps(current);
+  const recipient = extractRecipient(instruction) ?? existing.to;
+  const sentence = sentenceFromInstruction(instruction);
+  const body = buildBody(existing.body, sentence, recipient);
+  const sourceChips = new Set(existing.sourceChips);
+
+  if (mentionsCalendar(instruction)) {
+    sourceChips.add("Calendar");
+  }
+
+  if (mentionsNotes(instruction)) {
+    sourceChips.add("Notes");
+  }
+
+  return {
+    to: recipient,
+    subject: subjectFromInstruction(instruction, existing.subject),
+    body,
+    tone: existing.tone,
+    sourceChips: Array.from(sourceChips),
+  };
+}
+
+function transformEmailProps(current: Record<string, unknown>, transformation: string): Partial<EmailDraftSurfaceProps> {
+  const existing = readEmailProps(current);
+  const text = normalize(transformation);
+
+  if (/\b(professional|formal)\b/.test(text)) {
+    return {
+      tone: "formal",
+      subject: existing.subject || "Friday availability",
+      body: existing.body.replace("Hi,", "Hello,"),
+    };
+  }
+
+  if (/\b(warmer|friendly|softer)\b/.test(text)) {
+    const body = existing.body.includes("I hope you are doing well.")
+      ? existing.body
+      : existing.body.replace(/\n\n/, "\n\nI hope you are doing well.\n\n");
+
+    return { tone: "warm", body };
+  }
+
+  return updateEmailProps(current, transformation);
+}
+
+function readEmailProps(props: Record<string, unknown>): EmailDraftSurfaceProps {
+  return {
+    to: typeof props.to === "string" ? props.to : "",
+    subject: typeof props.subject === "string" ? props.subject : "Friday availability",
+    body: typeof props.body === "string" ? props.body : "Hi,\n\nTell me what this email should say.\n\nBest,",
+    tone: props.tone === "formal" || props.tone === "direct" || props.tone === "warm" ? props.tone : "warm",
+    sourceChips: Array.isArray(props.sourceChips)
+      ? props.sourceChips.filter((item): item is string => typeof item === "string")
+      : [],
+  };
+}
+
+function buildBody(currentBody: string, sentence: string | null, recipient: string) {
+  if (!sentence) {
+    return currentBody;
+  }
+
+  const greeting = recipient ? `Hi ${recipient},` : "Hi,";
+  const usableCurrent = currentBody.includes("Tell me what this email should say.") ? "" : currentBody;
+  const withoutSignoff = usableCurrent
+    .replace(/^Hi(?: [A-Za-z]+)?,\n\n/, "")
+    .replace(/\n\nBest,$/, "")
+    .trim();
+  const nextBody = [withoutSignoff, sentence].filter(Boolean).join("\n\n");
+
+  return `${greeting}\n\n${nextBody}\n\nBest,`;
+}
+
+function sentenceFromInstruction(instruction: string) {
+  const text = normalize(instruction);
+
+  if (/\b(draft|compose|start).*\b(email|mail|message)\b/.test(text) && !/\b(that|say|write|tell|mention|include)\b/.test(text)) {
+    return null;
+  }
+
+  if (/\b(after 3|after three)\b/.test(text)) {
+    return "I am available after 3.";
+  }
+
+  if (/\b(free|available).*\bfriday\b/.test(text) || /\bfriday\b.*\b(free|available)\b/.test(text)) {
+    return /\bafter\b/.test(text) ? "I am available on Friday after 3." : "I am free on Friday.";
+  }
+
+  const cleaned = instruction
+    .replace(/\b(write|draft|compose|email|mail|message|to|for|that|tell|include|add|say|mention|also|insert|this|into|the)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return cleaned ? `${capitalize(cleaned)}.` : null;
+}
+
+function subjectFromInstruction(instruction: string, current: string) {
+  const text = normalize(instruction);
+  if (/\bfriday|available|availability|free\b/.test(text)) {
+    return "Friday availability";
+  }
+
+  return current || "Follow-up";
+}
+
+function supportingProps(kind: SurfaceKind): CalendarPanelProps | NotesPanelProps | TableFrameProps | ChartFrameProps {
+  if (kind === "calendar") {
+    return {
+      title: "Calendar",
+      status: "mock",
+      items: [
+        { id: "fri-morning", label: "Friday morning", detail: "Tentatively busy" },
+        { id: "fri-after-3", label: "Friday after 3 PM", detail: "Open availability window" },
+        { id: "mon-checkin", label: "Monday 10:00", detail: "Internal planning hold" },
+      ],
+    };
+  }
+
+  if (kind === "notes") {
+    return {
+      title: "Recent notes",
+      status: "mock",
+      notes: [
+        { id: "anna-pref", title: "Anna follow-up", excerpt: "Keep tone concise, warm, and specific about availability." },
+        { id: "meeting-window", title: "Scheduling", excerpt: "Friday afternoon is the cleanest window this week." },
+      ],
+    };
+  }
+
+  if (kind === "table") {
+    return {
+      title: "Sample table",
+      columns: ["Item", "Signal", "Use"],
+      rows: [
+        { Item: "Calendar", Signal: "Friday after 3 PM", Use: "Availability" },
+        { Item: "Notes", Signal: "Warm tone", Use: "Email style" },
+      ],
+    };
+  }
+
+  return {
+    title: "Sample chart",
+    series: [
+      { label: "Mon", value: 34 },
+      { label: "Tue", value: 52 },
+      { label: "Wed", value: 43 },
+      { label: "Thu", value: 65 },
+      { label: "Fri", value: 82 },
+    ],
+  };
+}
+
+function preferredZone(kind: SurfaceKind) {
+  if (kind === "calendar") return "top_left";
+  if (kind === "notes" || kind === "table") return "bottom_left";
+  if (kind === "chart") return "top_left";
+  return "left";
+}
+
+function getPrimarySurface(session: WorkspaceSession) {
+  return session.surfaces.find((surface) => surface.id === session.primarySurfaceId) ?? null;
+}
+
+function getCloseTarget(session: WorkspaceSession, text: string) {
+  if (!/\b(close|hide|collapse|dismiss|remove)\b/.test(text)) {
+    return null;
+  }
+
+  if (/\bcalendar\b/.test(text)) return findSurfaceByKind(session, "calendar");
+  if (/\bnotes?\b/.test(text)) return findSurfaceByKind(session, "notes");
+  if (/\b(chart|graph)\b/.test(text)) return findSurfaceByKind(session, "chart");
+  if (/\b(table|spreadsheet)\b/.test(text)) return findSurfaceByKind(session, "table");
+  if (/\bemail|draft|message\b/.test(text)) return getPrimarySurface(session);
+
+  return null;
+}
+
+function findSurfaceByKind(session: WorkspaceSession, kind: SurfaceKind) {
+  return session.surfaces.find((surface) => surface.kind === kind && surface.status !== "hidden") ?? null;
+}
+
+function isCreateEmailDraft(text: string) {
+  return /\b(draft|write|compose|start).*\b(email|mail|message)\b/.test(text) || /^draft an email\b/.test(text);
+}
+
+function isSupportingRequest(text: string, kind: SurfaceKind) {
+  if (kind === "calendar") return /\b(show|open|check|pull up|fetch|look at).*\b(calendar|availability|schedule)\b/.test(text);
+  if (kind === "notes") return /\b(show|open|fetch|pull up|get).*\b(notes?|recent notes?)\b/.test(text);
+  if (kind === "chart") return /\b(draw|show|create|make).*\b(graph|chart)\b/.test(text);
+  if (kind === "table") return /\b(show|create|make|draw).*\b(table|spreadsheet)\b/.test(text);
+  return false;
+}
+
+function isTransformation(text: string) {
+  return /\b(make it|make this|warmer|friendlier|more professional|formal|shorter|clearer)\b/.test(text);
+}
+
+function isCompletion(text: string) {
+  return /\b(send|export|save|copy)\b/.test(text) && /\b(email|draft|this|it)\b/.test(text);
+}
+
+function completionAction(text: string): "send" | "export" | "save" | "copy" {
+  if (/\bexport\b/.test(text)) return "export";
+  if (/\bsave\b/.test(text)) return "save";
+  if (/\bcopy\b/.test(text)) return "copy";
+  return "send";
+}
+
+function extractRecipient(instruction: string) {
+  const match = instruction.match(/\b(?:to|for)\s+([A-Z][a-z]+|[a-z]+)/);
+  return match?.[1] ? titleCase(match[1]) : null;
+}
+
+function mentionsCalendar(instruction: string) {
+  return /\bcalendar|availability|schedule|friday|after 3|after three\b/i.test(instruction);
+}
+
+function mentionsNotes(instruction: string) {
+  return /\bnotes?|recent notes?\b/i.test(instruction);
+}
+
+function normalize(value: string) {
+  return value.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function titleCase(value: string) {
+  return `${value.charAt(0).toUpperCase()}${value.slice(1).toLowerCase()}`;
+}
+
+function capitalize(value: string) {
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+}

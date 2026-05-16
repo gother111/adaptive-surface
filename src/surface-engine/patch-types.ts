@@ -1,8 +1,11 @@
 import type {
+  SurfaceDataBinding,
+  SurfaceGeometry,
   SurfaceComponentType,
   SurfaceMode,
   SurfaceNode,
   SurfaceNodeStatus,
+  SurfaceVisibility,
 } from "@/surface-engine/blueprint";
 
 export type SurfacePatch =
@@ -59,6 +62,84 @@ export type SurfacePatch =
       op: "set_node_status";
       targetNodeId: string;
       status: SurfaceNodeStatus;
+    }
+  | {
+      op: "focus_node";
+      targetNodeId: string;
+    }
+  | {
+      op: "blur_node";
+      targetNodeId: string;
+    }
+  | {
+      op: "select_node";
+      targetNodeId: string;
+    }
+  | {
+      op: "set_node_geometry";
+      targetNodeId: string;
+      geometry: Partial<SurfaceGeometry> & Pick<SurfaceGeometry, "x" | "y" | "width" | "height">;
+    }
+  | {
+      op: "move_node";
+      targetNodeId: string;
+      xDelta: number;
+      yDelta: number;
+    }
+  | {
+      op: "resize_node";
+      targetNodeId: string;
+      widthDelta: number;
+      heightDelta: number;
+    }
+  | {
+      op: "bring_node_forward";
+      targetNodeId: string;
+    }
+  | {
+      op: "send_node_backward";
+      targetNodeId: string;
+    }
+  | {
+      op: "set_node_visibility";
+      targetNodeId: string;
+      visibility: SurfaceVisibility;
+    }
+  | {
+      op: "set_node_name";
+      targetNodeId: string;
+      name: string;
+    }
+  | {
+      op: "set_node_semantic_text";
+      targetNodeId: string;
+      semanticText: string;
+    }
+  | {
+      op: "add_node_tag";
+      targetNodeId: string;
+      tag: string;
+    }
+  | {
+      op: "remove_node_tag";
+      targetNodeId: string;
+      tag: string;
+    }
+  | {
+      op: "add_data_binding";
+      targetNodeId: string;
+      binding: SurfaceDataBinding;
+    }
+  | {
+      op: "update_data_binding";
+      targetNodeId: string;
+      bindingId: string;
+      binding: Partial<SurfaceDataBinding>;
+    }
+  | {
+      op: "remove_data_binding";
+      targetNodeId: string;
+      bindingId: string;
     };
 
 export interface SurfacePatchEnvelope {

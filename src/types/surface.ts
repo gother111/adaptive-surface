@@ -11,7 +11,8 @@ export type SurfaceKind =
   | "note"
   | "research"
   | "catch_up"
-  | "comparison";
+  | "comparison"
+  | "email_draft";
 
 export type StreamStatus = "idle" | "thinking" | "streaming" | "complete" | "error";
 

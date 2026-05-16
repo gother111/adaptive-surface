@@ -58,24 +58,31 @@ export function createComparisonBlueprint(input: SurfacePresetInput): SurfaceBlu
     kind: "comparison",
     title: input.title ?? "Comparison Table",
     subtitle: input.subtitle,
+    layout: { type: "spatial_canvas", width: 1280, height: 820 },
     components: [
-      frame(id, "Comparison skeleton ready", [
-        panel(`${id}-table-panel`, "Comparison matrix", "Deterministic structure now, enriched cells next", [
-          comparisonTable(`${id}-table`, ["Cost", "Speed", "Risk", "Fit"], options),
-        ], "accent"),
-        sectionGrid(`${id}-supporting-grid`, [
-          panel(`${id}-criteria`, "Criteria placeholder", "Refine what matters before ranking", [
-            actionList(`${id}-criteria-actions`, "Refinement actions", [
-              { id: "add-criteria", label: "Add missing criteria", detail: "Visual only for this milestone" },
-              { id: "normalize", label: "Normalize option names" },
-              { id: "ask", label: "Ask one follow-up question" },
-            ]),
-          ]),
-          panel(`${id}-loading`, "LLM enrichment queue", "Patches can fill evidence, cells, and recommendation", [
-            loading(`${id}-cell-loader`, "Waiting for typed comparison patches", 4),
-          ]),
+      comparisonTable(`${id}-table`, ["Cost", "Speed", "Risk", "Fit"], options),
+      panel(`${id}-sources`, "Sources", "Context that can be attached later", [
+        dataBindingChip(`${id}-mail-binding`, "apple_mail", "Mail", "planned", "Project emails can attach here after permission."),
+        dataBindingChip(`${id}-browser-binding`, "browser", "Browser", "needs_permission", "Browser context is metadata only for now."),
+        evidence(`${id}-source-placeholder`, "Source preview", "No external app is read in this milestone."),
+      ], "muted", {
+        role: "source_preview",
+        tags: ["sources", "evidence", "context"],
+        semanticText: "sources evidence context panel",
+        geometry: { x: 880, y: 118, width: 320, height: 360, minWidth: 260, minHeight: 220, zIndex: 2 },
+      }),
+      panel(`${id}-notes`, "Notes", "Quick refinements and missing criteria", [
+        actionList(`${id}-criteria-actions`, "Refinement actions", [
+          { id: "add-criteria", label: "Add missing criteria", detail: "Visual only" },
+          { id: "normalize", label: "Normalize option names" },
+          { id: "ask", label: "Ask one follow-up question" },
         ]),
-      ]),
+      ], "default", {
+        role: "annotation",
+        tags: ["notes", "criteria", "refinement"],
+        semanticText: "notes criteria refinement panel",
+        geometry: { x: 80, y: 548, width: 520, height: 210, minWidth: 320, minHeight: 160, zIndex: 3 },
+      }),
     ],
   });
 }
@@ -244,8 +251,23 @@ function panel(
   subtitle: string | undefined,
   children: SurfaceNode[],
   tone: "default" | "muted" | "accent" | "danger" = "default",
+  meta: NodeMeta = {},
 ): SurfaceNode<"panel"> {
-  return { id, type: "panel", props: { title, subtitle, tone }, children, priority: "normal" };
+  return {
+    id,
+    type: "panel",
+    name: meta.name ?? title,
+    role: meta.role ?? "supporting_context",
+    tags: meta.tags ?? titleTags(title),
+    semanticText: meta.semanticText ?? `${title} ${subtitle ?? ""}`.trim(),
+    geometry: meta.geometry,
+    visibility: { state: "visible" },
+    interaction: { selectable: true, focusable: true, draggable: true, resizable: true, ...meta.interaction },
+    bindings: meta.bindings,
+    props: { title, subtitle, tone },
+    children,
+    priority: meta.priority ?? "normal",
+  };
 }
 
 function sectionGrid(id: string, children: SurfaceNode[]): SurfaceNode<"section_grid"> {
@@ -274,7 +296,31 @@ function decisionOption(id: string, label: string, tradeoff: string, confidenceV
 }
 
 function comparisonTable(id: string, criteria: string[], options: string[]): SurfaceNode<"comparison_table"> {
-  return { id, type: "comparison_table", props: { criteria, options }, streaming: true, priority: "high" };
+  return {
+    id,
+    type: "comparison_table",
+    name: "Main comparison table",
+    description: "Primary spatial work object for comparing options.",
+    role: "primary_work_object",
+    tags: ["comparison", "table", "main", "matrix"],
+    semanticText: "comparison matrix table main options criteria",
+    geometry: { x: 80, y: 118, width: 760, height: 390, minWidth: 480, minHeight: 260, maxWidth: 1500, zIndex: 5 },
+    visibility: { state: "visible" },
+    interaction: { selectable: true, focusable: true, draggable: true, resizable: true },
+    bindings: [
+      {
+        id: `${id}-manual-context`,
+        source: "manual",
+        label: "Manual comparison context",
+        status: "available",
+        refreshPolicy: "manual",
+        preview: "Built from live speech.",
+      },
+    ],
+    props: { criteria, options },
+    streaming: true,
+    priority: "critical",
+  };
 }
 
 function confidence(id: string, value = 0.22): SurfaceNode<"confidence_badge"> {
@@ -316,7 +362,18 @@ function approvalGate(
   gateRisk: "low" | "medium" | "high",
   requiredPermission: string,
 ): SurfaceNode<"approval_gate"> {
-  return { id, type: "approval_gate", props: { proposedAction, target, risk: gateRisk, requiredPermission } };
+  return {
+    id,
+    type: "approval_gate",
+    name: "Approval card",
+    role: "approval",
+    tags: ["approval", "permission", "action"],
+    semanticText: "approval card permission action",
+    geometry: { x: 140, y: 140, width: 560, height: 320, minWidth: 360, minHeight: 220, zIndex: 8 },
+    visibility: { state: "visible" },
+    interaction: { selectable: true, focusable: true, draggable: true, resizable: true },
+    props: { proposedAction, target, risk: gateRisk, requiredPermission },
+  };
 }
 
 function loading(id: string, label: string, rows: number): SurfaceNode<"loading_skeleton"> {
@@ -333,6 +390,48 @@ function status(
 
 function correction(id: string, text: string): SurfaceNode<"voice_correction_chip"> {
   return { id, type: "voice_correction_chip", props: { text } };
+}
+
+function dataBindingChip(
+  id: string,
+  source: "local_files" | "apple_mail" | "apple_notes" | "apple_calendar" | "apple_reminders" | "browser" | "web_search" | "github" | "slack" | "manual" | "memory",
+  label: string,
+  bindingStatus: "idle" | "planned" | "loading" | "available" | "needs_permission" | "error",
+  preview?: string,
+): SurfaceNode<"data_binding_chip"> {
+  return {
+    id,
+    type: "data_binding_chip",
+    name: `${label} binding`,
+    role: "ambient_status",
+    tags: ["binding", source],
+    semanticText: `${label} ${source} context binding`,
+    bindings: [{ id, source, label, status: bindingStatus, refreshPolicy: "manual", preview }],
+    props: { bindingId: id, source, label, status: bindingStatus, preview },
+  };
+}
+
+type NodeMeta = Partial<
+  Pick<
+    SurfaceNode,
+    | "name"
+    | "role"
+    | "tags"
+    | "semanticText"
+    | "geometry"
+    | "interaction"
+    | "bindings"
+    | "priority"
+  >
+>;
+
+function titleTags(title: string) {
+  return title
+    .toLowerCase()
+    .split(/\s+/)
+    .map((tag) => tag.replace(/[^a-z0-9_-]/g, ""))
+    .filter(Boolean)
+    .slice(0, 4);
 }
 
 function detectOptions(input: SurfacePresetInput) {
