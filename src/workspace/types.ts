@@ -1,6 +1,7 @@
 export type SurfaceKind =
   | "email_draft"
   | "calendar"
+  | "mail"
   | "notes"
   | "document"
   | "table"
@@ -102,6 +103,11 @@ export type RoutedVoiceAction =
       instruction: string;
     }
   | {
+      kind: "add_multiple_supporting_surfaces";
+      surfaceKinds: SurfaceKind[];
+      instruction: string;
+    }
+  | {
       kind: "update_existing_surface";
       targetSurfaceId: string;
       instruction: string;
@@ -135,14 +141,43 @@ export interface EmailDraftSurfaceProps {
 
 export interface CalendarPanelProps {
   title: string;
-  status: "mock" | "planned" | "available";
-  items: Array<{ id: string; label: string; detail: string }>;
+  status: "loading" | "available" | "empty" | "warning";
+  items: Array<{
+    id: string;
+    label: string;
+    detail: string;
+    calendarName?: string;
+    location?: string | null;
+  }>;
+  warnings?: string[];
+}
+
+export interface MailPanelProps {
+  title: string;
+  status: "loading" | "available" | "empty" | "warning";
+  messages: Array<{
+    id: string;
+    subject: string;
+    sender: string;
+    mailbox: string;
+    receivedAt?: string | null;
+    isRead: boolean;
+    preview?: string | null;
+  }>;
+  warnings?: string[];
 }
 
 export interface NotesPanelProps {
   title: string;
-  status: "mock" | "planned" | "available";
-  notes: Array<{ id: string; title: string; excerpt: string }>;
+  status: "loading" | "available" | "empty" | "warning";
+  notes: Array<{
+    id: string;
+    title: string;
+    folder: string;
+    modifiedAt?: string | null;
+    excerpt: string;
+  }>;
+  warnings?: string[];
 }
 
 export interface TableFrameProps {

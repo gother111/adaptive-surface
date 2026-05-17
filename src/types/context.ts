@@ -22,12 +22,60 @@ export interface LocalContextPreview {
   indexPreview: string[];
 }
 
-export interface AppleContextPreview {
-  calendarEvents: string[];
-  reminders: string[];
-  notes: string[];
-  mailMessages: string[];
-  warnings: string[];
+export interface CalendarQuery {
+  daysAhead?: number;
+  limit?: number;
+}
+
+export interface MailQuery {
+  limit?: number;
+  unreadFirst?: boolean;
+}
+
+export interface NotesQuery {
+  limit?: number;
+}
+
+export interface AppleCalendarEvent {
+  id: string;
+  title: string;
+  calendarName: string;
+  startAt: string;
+  endAt?: string | null;
+  location?: string | null;
+  notes?: string | null;
+}
+
+export interface AppleMailMessage {
+  id: string;
+  mailbox: string;
+  subject: string;
+  sender: string;
+  receivedAt?: string | null;
+  isRead: boolean;
+  preview?: string | null;
+}
+
+export interface AppleNotePreview {
+  id: string;
+  title: string;
+  folder: string;
+  createdAt?: string | null;
+  modifiedAt?: string | null;
+  preview?: string | null;
+}
+
+export interface AppleContextWarning {
+  source: "calendar" | "mail" | "notes" | "system";
+  message: string;
+}
+
+export interface AppleContextBundle {
+  calendarEvents: AppleCalendarEvent[];
+  mailMessages: AppleMailMessage[];
+  notes: AppleNotePreview[];
+  warnings: AppleContextWarning[];
+  loadedAt: number;
 }
 
 export interface ExternalAuthRequirement {

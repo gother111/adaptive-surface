@@ -1,8 +1,10 @@
+mod apple;
+
+use apple::{load_apple_context_bundle, load_calendar_events, load_mail_messages, load_notes};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::process::Command;
 use std::time::SystemTime;
 
 const MAX_SCANNED_ENTRIES: usize = 12_000;
@@ -40,16 +42,6 @@ struct LocalContextPreview {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct AppleContextPreview {
-    calendar_events: Vec<String>,
-    reminders: Vec<String>,
-    notes: Vec<String>,
-    mail_messages: Vec<String>,
-    warnings: Vec<String>,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
 struct ExternalAuthRequirement {
     id: String,
     label: String,
@@ -58,48 +50,6 @@ struct ExternalAuthRequirement {
     required_values: Vec<String>,
     redirect_strategy: String,
     notes: Vec<String>,
-}
-
-fn run_osascript(script: &str) -> Result<String, String> {
-    let output = Command::new("osascript")
-        .arg("-e")
-        .arg(script)
-        .output()
-        .map_err(|error| format!("Failed to launch osascript: {error}"))?;
-
-    if output.status.success() {
-        String::from_utf8(output.stdout)
-            .map(|stdout| stdout.trim().to_string())
-            .map_err(|error| format!("AppleScript returned invalid UTF-8: {error}"))
-    } else {
-        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-        Err(if stderr.is_empty() {
-            "AppleScript failed without stderr output.".to_string()
-        } else {
-            stderr
-        })
-    }
-}
-
-fn run_osascript_list(script: &str) -> Result<Vec<String>, String> {
-    let output = run_osascript(script)?;
-    Ok(output
-        .lines()
-        .map(str::trim)
-        .filter(|line| !line.is_empty())
-        .map(ToOwned::to_owned)
-        .collect())
-}
-
-#[tauri::command]
-async fn run_applescript(script: String) -> Result<String, String> {
-    if script.trim().is_empty() {
-        return Err("AppleScript command cannot be empty.".to_string());
-    }
-
-    // TODO: Gate production AppleScript behind explicit user approval, permission checks,
-    // audit logging, and a narrow allowlist of action templates.
-    run_osascript(&script)
 }
 
 #[tauri::command]
@@ -212,24 +162,6 @@ async fn load_local_context_preview(
 }
 
 #[tauri::command]
-async fn load_apple_context_preview() -> Result<AppleContextPreview, String> {
-    let mut warnings = Vec::new();
-
-    let calendar_events = load_apple_list(CALENDAR_PREVIEW_SCRIPT, "Calendar", &mut warnings);
-    let reminders = load_apple_list(REMINDERS_PREVIEW_SCRIPT, "Reminders", &mut warnings);
-    let notes = load_apple_list(NOTES_PREVIEW_SCRIPT, "Notes", &mut warnings);
-    let mail_messages = load_apple_list(MAIL_PREVIEW_SCRIPT, "Mail", &mut warnings);
-
-    Ok(AppleContextPreview {
-        calendar_events,
-        reminders,
-        notes,
-        mail_messages,
-        warnings,
-    })
-}
-
-#[tauri::command]
 async fn load_external_auth_requirements() -> Result<Vec<ExternalAuthRequirement>, String> {
     Ok(vec![
         ExternalAuthRequirement {
@@ -290,87 +222,6 @@ fn system_time_to_epoch_ms(value: SystemTime) -> u64 {
         .unwrap_or(0)
 }
 
-fn load_apple_list(script: &str, label: &str, warnings: &mut Vec<String>) -> Vec<String> {
-    match run_osascript_list(script) {
-        Ok(lines) => lines,
-        Err(error) => {
-            warnings.push(format!("{label}: {error}"));
-            Vec::new()
-        }
-    }
-}
-
-const CALENDAR_PREVIEW_SCRIPT: &str = r#"
-tell application "Calendar"
-	set outputLines to {}
-	set endDate to (current date) + (3 * days)
-	repeat with cal in calendars
-		repeat with evt in (every event of cal whose start date ≥ (current date) and start date ≤ endDate)
-			set end of outputLines to ((summary of evt as text) & " | " & ((start date of evt) as text) & " | " & (name of cal as text))
-			if (count of outputLines) ≥ 5 then exit repeat
-		end repeat
-		if (count of outputLines) ≥ 5 then exit repeat
-	end repeat
-	if (count of outputLines) is 0 then return "No upcoming calendar events found."
-	return outputLines as string
-end tell
-"#;
-
-const REMINDERS_PREVIEW_SCRIPT: &str = r#"
-tell application "Reminders"
-	set outputLines to {}
-	repeat with reminderList in lists
-		repeat with itemRef in (reminders of reminderList whose completed is false)
-			set reminderName to (name of itemRef as text)
-			try
-				set dueText to (due date of itemRef as text)
-			on error
-				set dueText to "No due date"
-			end try
-			set end of outputLines to (reminderName & " | " & dueText & " | " & (name of reminderList as text))
-			if (count of outputLines) ≥ 5 then exit repeat
-		end repeat
-		if (count of outputLines) ≥ 5 then exit repeat
-	end repeat
-	if (count of outputLines) is 0 then return "No incomplete reminders found."
-	return outputLines as string
-end tell
-"#;
-
-const NOTES_PREVIEW_SCRIPT: &str = r#"
-tell application "Notes"
-	set outputLines to {}
-	repeat with folderRef in folders
-		repeat with noteRef in notes of folderRef
-			set end of outputLines to ((name of noteRef as text) & " | " & (name of folderRef as text))
-			if (count of outputLines) ≥ 5 then exit repeat
-		end repeat
-		if (count of outputLines) ≥ 5 then exit repeat
-	end repeat
-	if (count of outputLines) is 0 then return "No notes found."
-	return outputLines as string
-end tell
-"#;
-
-const MAIL_PREVIEW_SCRIPT: &str = r#"
-tell application "Mail"
-	set outputLines to {}
-	set unreadMessages to (messages of inbox whose read status is false)
-	repeat with msg in unreadMessages
-		set end of outputLines to ((subject of msg as text) & " | " & (sender of msg as text))
-		if (count of outputLines) ≥ 5 then exit repeat
-	end repeat
-	if (count of outputLines) is 0 then
-		repeat with msg in messages of inbox
-			set end of outputLines to ((subject of msg as text) & " | " & (sender of msg as text))
-			if (count of outputLines) ≥ 5 then exit repeat
-		end repeat
-	end if
-	if (count of outputLines) is 0 then return "No inbox mail found."
-	return outputLines as string
-end tell
-"#;
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -380,9 +231,11 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
-            run_applescript,
             load_local_context_preview,
-            load_apple_context_preview,
+            load_calendar_events,
+            load_mail_messages,
+            load_notes,
+            load_apple_context_bundle,
             load_external_auth_requirements
         ])
         .run(tauri::generate_context!())

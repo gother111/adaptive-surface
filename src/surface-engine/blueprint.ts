@@ -266,7 +266,7 @@ export interface CalendarContextProps {
     label: string;
     detail?: string;
   }>;
-  status?: "mock" | "planned" | "available";
+  status?: "loading" | "planned" | "available" | "empty" | "warning";
 }
 
 export interface SurfaceComponentPropsMap {

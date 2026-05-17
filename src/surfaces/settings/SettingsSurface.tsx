@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   BadgeAlert,
   CalendarDays,
@@ -18,14 +18,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
-  loadAppleContextPreview,
+  loadAppleContextBundle,
   loadExternalAuthRequirements,
   loadLocalContextPreview,
 } from "@/lib/context-api";
 import { SurfaceHeader } from "@/surfaces/shared/SurfaceHeader";
 import { useSurfaceStore } from "@/stores/useSurfaceStore";
 import type {
-  AppleContextPreview,
+  AppleCalendarEvent,
+  AppleContextBundle,
+  AppleContextWarning,
+  AppleMailMessage,
+  AppleNotePreview,
   ExternalAuthRequirement,
   LocalContextPreview,
 } from "@/types/context";
@@ -40,12 +44,13 @@ type LoadState = "idle" | "loading" | "success" | "error";
 export function SettingsSurface({ config }: SettingsSurfaceProps) {
   const settings = useSurfaceStore((state) => state.settings);
   const updateSettings = useSurfaceStore((state) => state.updateSettings);
+  const setAppleContextBundle = useSurfaceStore((state) => state.setAppleContextBundle);
 
   const [localPreview, setLocalPreview] = useState<LocalContextPreview | null>(null);
   const [localState, setLocalState] = useState<LoadState>("idle");
   const [localError, setLocalError] = useState<string | null>(null);
 
-  const [applePreview, setApplePreview] = useState<AppleContextPreview | null>(null);
+  const [applePreview, setApplePreview] = useState<AppleContextBundle | null>(null);
   const [appleState, setAppleState] = useState<LoadState>("idle");
   const [appleError, setAppleError] = useState<string | null>(null);
 
@@ -82,8 +87,9 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
     setAppleError(null);
 
     try {
-      const preview = await loadAppleContextPreview();
+      const preview = await loadAppleContextBundle();
       setApplePreview(preview);
+      setAppleContextBundle(preview);
       setAppleState("success");
     } catch (error) {
       setAppleState("error");
@@ -156,8 +162,8 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
             onCheckedChange={(checked) => updateSettings({ accessibilityEnabled: checked })}
           />
           <SettingToggle
-            label="AppleScript bridge"
-            description="Required for Calendar, Reminders, Notes, and Mail previews through a narrow local AppleScript bridge."
+            label="Apple app bridge"
+            description="Required for local read-only Calendar, Notes, and Mail previews through a narrow allowlisted bridge."
             checked={settings.appleScriptEnabled}
             onCheckedChange={(checked) => updateSettings({ appleScriptEnabled: checked })}
           />
@@ -285,7 +291,7 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
               <div>
                 <h4 className="text-sm font-semibold">Apple app preview</h4>
                 <p className="text-sm text-muted-foreground">
-                  Pulls small read previews from Calendar, Reminders, Notes, and Mail.
+                  Pulls typed local read previews from Calendar, Notes, and Mail.
                 </p>
               </div>
             </div>
@@ -309,24 +315,21 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
                 icon={CalendarDays}
                 items={applePreview.calendarEvents}
                 emptyLabel="No calendar preview returned."
-              />
-              <AppleSourceCard
-                title="Reminders"
-                icon={ScrollText}
-                items={applePreview.reminders}
-                emptyLabel="No reminders preview returned."
+                renderItem={(event) => <CalendarPreviewItem event={event} />}
               />
               <AppleSourceCard
                 title="Notes"
                 icon={NotebookPen}
                 items={applePreview.notes}
                 emptyLabel="No notes preview returned."
+                renderItem={(note) => <NotePreviewItem note={note} />}
               />
               <AppleSourceCard
                 title="Mail"
                 icon={Mail}
                 items={applePreview.mailMessages}
                 emptyLabel="No mail preview returned."
+                renderItem={(message) => <MailPreviewItem message={message} />}
               />
 
               {applePreview.warnings.length ? (
@@ -336,8 +339,13 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
                     macOS permission warnings
                   </div>
                   <div className="mt-3 space-y-2 text-sm text-amber-50/85">
-                    {applePreview.warnings.map((warning) => (
-                      <p key={warning}>{warning}</p>
+                    {groupWarnings(applePreview.warnings).map((warningGroup) => (
+                      <div key={warningGroup.source}>
+                        <p className="font-medium capitalize">{warningGroup.source}</p>
+                        {warningGroup.messages.map((message) => (
+                          <p key={message}>{message}</p>
+                        ))}
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -496,16 +504,18 @@ function PreviewListCard({
   );
 }
 
-function AppleSourceCard({
+function AppleSourceCard<T extends { id: string }>({
   title,
   icon: Icon,
   items,
   emptyLabel,
+  renderItem,
 }: {
   title: string;
   icon: typeof CalendarDays;
-  items: string[];
+  items: T[];
   emptyLabel: string;
+  renderItem: (item: T) => ReactNode;
 }) {
   return (
     <div className="rounded-md border border-white/10 bg-white/[0.04] p-4">
@@ -514,10 +524,57 @@ function AppleSourceCard({
         {title}
       </div>
       <div className="mt-3 space-y-2 text-sm text-muted-foreground">
-        {items.length ? items.map((item) => <p key={item}>{item}</p>) : <p>{emptyLabel}</p>}
+        {items.length ? items.map((item) => <div key={item.id}>{renderItem(item)}</div>) : <p>{emptyLabel}</p>}
       </div>
     </div>
   );
+}
+
+function CalendarPreviewItem({ event }: { event: AppleCalendarEvent }) {
+  return (
+    <article className="rounded-md border border-white/10 bg-background/30 p-3">
+      <p className="font-medium text-foreground">{event.title}</p>
+      <p className="mt-1 text-xs">{event.startAt}</p>
+      <p className="mt-1 text-xs">{event.calendarName}</p>
+      {event.location ? <p className="mt-1 text-xs">Location: {event.location}</p> : null}
+    </article>
+  );
+}
+
+function MailPreviewItem({ message }: { message: AppleMailMessage }) {
+  return (
+    <article className="rounded-md border border-white/10 bg-background/30 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <p className="font-medium text-foreground">{message.subject}</p>
+        <Badge variant={message.isRead ? "outline" : "secondary"}>
+          {message.isRead ? "Read" : "Unread"}
+        </Badge>
+      </div>
+      <p className="mt-1 text-xs">{message.sender}</p>
+      <p className="mt-1 text-xs">{message.mailbox}</p>
+      {message.receivedAt ? <p className="mt-1 text-xs">{message.receivedAt}</p> : null}
+      {message.preview ? <p className="mt-2 text-xs leading-5">{message.preview}</p> : null}
+    </article>
+  );
+}
+
+function NotePreviewItem({ note }: { note: AppleNotePreview }) {
+  return (
+    <article className="rounded-md border border-white/10 bg-background/30 p-3">
+      <p className="font-medium text-foreground">{note.title}</p>
+      <p className="mt-1 text-xs">{note.folder}</p>
+      {note.modifiedAt ? <p className="mt-1 text-xs">Modified: {note.modifiedAt}</p> : null}
+      {note.preview ? <p className="mt-2 text-xs leading-5">{note.preview}</p> : null}
+    </article>
+  );
+}
+
+function groupWarnings(warnings: AppleContextWarning[]) {
+  const grouped = new Map<AppleContextWarning["source"], string[]>();
+  for (const warning of warnings) {
+    grouped.set(warning.source, [...(grouped.get(warning.source) ?? []), warning.message]);
+  }
+  return Array.from(grouped.entries()).map(([source, messages]) => ({ source, messages }));
 }
 
 function EmptyState({ body }: { body: string }) {

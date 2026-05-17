@@ -14,6 +14,7 @@ import type {
   CalendarPanelProps,
   ChartFrameProps,
   EmailDraftSurfaceProps,
+  MailPanelProps,
   NotesPanelProps,
   SurfaceInstance,
   TableFrameProps,
@@ -77,6 +78,18 @@ function PrimarySurface({ surface }: { surface: SurfaceInstance }) {
     return <EmailDraftSurface props={readEmailProps(surface.props)} />;
   }
 
+  if (surface.kind === "calendar") {
+    return <CalendarPanel props={surface.props as unknown as CalendarPanelProps} />;
+  }
+
+  if (surface.kind === "mail") {
+    return <MailPanel props={surface.props as unknown as MailPanelProps} />;
+  }
+
+  if (surface.kind === "notes") {
+    return <NotesPanel props={surface.props as unknown as NotesPanelProps} />;
+  }
+
   return null;
 }
 
@@ -87,6 +100,10 @@ function SupportingSurface({ surface }: { surface: SurfaceInstance }) {
 
   if (surface.kind === "calendar") {
     return <CalendarPanel props={surface.props as unknown as CalendarPanelProps} />;
+  }
+
+  if (surface.kind === "mail") {
+    return <MailPanel props={surface.props as unknown as MailPanelProps} />;
   }
 
   if (surface.kind === "notes") {
@@ -142,12 +159,47 @@ function CalendarPanel({ props }: { props: CalendarPanelProps }) {
   return (
     <PanelShell icon={<CalendarDays className="size-4 text-primary" />} title={props.title} badge={props.status}>
       <div className="space-y-3">
-        {props.items.map((item) => (
-          <div key={item.id} className="rounded-md border border-white/10 bg-background/35 p-3 text-sm">
-            <div className="font-medium">{item.label}</div>
-            <div className="mt-1 text-xs leading-5 text-muted-foreground">{item.detail}</div>
-          </div>
-        ))}
+        {props.items.length ? (
+          props.items.map((item) => (
+            <div key={item.id} className="rounded-md border border-white/10 bg-background/35 p-3 text-sm">
+              <div className="font-medium">{item.label}</div>
+              <div className="mt-1 text-xs leading-5 text-muted-foreground">{item.detail}</div>
+              <div className="mt-1 text-xs leading-5 text-muted-foreground">{item.calendarName}</div>
+              {item.location ? <div className="mt-1 text-xs leading-5 text-muted-foreground">{item.location}</div> : null}
+            </div>
+          ))
+        ) : (
+          <EmptyPanelText status={props.status} label="No calendar events loaded yet." />
+        )}
+        <PanelWarnings warnings={props.warnings} />
+      </div>
+    </PanelShell>
+  );
+}
+
+function MailPanel({ props }: { props: MailPanelProps }) {
+  return (
+    <PanelShell icon={<Mail className="size-4 text-primary" />} title={props.title} badge={props.status}>
+      <div className="space-y-3">
+        {props.messages.length ? (
+          props.messages.map((message) => (
+            <article key={message.id} className="rounded-md border border-white/10 bg-background/35 p-3 text-sm">
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="font-medium">{message.subject}</h3>
+                <Badge variant={message.isRead ? "outline" : "secondary"}>
+                  {message.isRead ? "Read" : "Unread"}
+                </Badge>
+              </div>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">{message.sender}</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">{message.mailbox}</p>
+              {message.receivedAt ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{message.receivedAt}</p> : null}
+              {message.preview ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{message.preview}</p> : null}
+            </article>
+          ))
+        ) : (
+          <EmptyPanelText status={props.status} label="No inbox messages loaded yet." />
+        )}
+        <PanelWarnings warnings={props.warnings} />
       </div>
     </PanelShell>
   );
@@ -157,14 +209,43 @@ function NotesPanel({ props }: { props: NotesPanelProps }) {
   return (
     <PanelShell icon={<NotebookText className="size-4 text-primary" />} title={props.title} badge={props.status}>
       <div className="space-y-3">
-        {props.notes.map((note) => (
-          <article key={note.id} className="rounded-md border border-white/10 bg-background/35 p-3 text-sm">
-            <h3 className="font-medium">{note.title}</h3>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">{note.excerpt}</p>
-          </article>
-        ))}
+        {props.notes.length ? (
+          props.notes.map((note) => (
+            <article key={note.id} className="rounded-md border border-white/10 bg-background/35 p-3 text-sm">
+              <h3 className="font-medium">{note.title}</h3>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">{note.folder}</p>
+              {note.modifiedAt ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{note.modifiedAt}</p> : null}
+              {note.excerpt ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{note.excerpt}</p> : null}
+            </article>
+          ))
+        ) : (
+          <EmptyPanelText status={props.status} label="No notes loaded yet." />
+        )}
+        <PanelWarnings warnings={props.warnings} />
       </div>
     </PanelShell>
+  );
+}
+
+function EmptyPanelText({ status, label }: { status: string; label: string }) {
+  return (
+    <p className="rounded-md border border-white/10 bg-background/35 p-3 text-xs leading-5 text-muted-foreground">
+      {status === "loading" ? "Loading real local Apple context..." : label}
+    </p>
+  );
+}
+
+function PanelWarnings({ warnings }: { warnings?: string[] }) {
+  if (!warnings?.length) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 text-xs leading-5 text-amber-50/85">
+      {warnings.map((warning) => (
+        <p key={warning}>{warning}</p>
+      ))}
+    </div>
   );
 }
 
@@ -283,6 +364,7 @@ function zoneWeight(zone: SurfaceInstance["zone"]) {
 function surfaceLabel(surface: SurfaceInstance) {
   if (surface.kind === "email_draft") return "Email draft";
   if (surface.kind === "calendar") return "Calendar";
+  if (surface.kind === "mail") return "Mail";
   if (surface.kind === "notes") return "Notes";
   if (surface.kind === "table") return "Table";
   if (surface.kind === "chart") return "Chart";

@@ -2,6 +2,7 @@ import type {
   CalendarPanelProps,
   ChartFrameProps,
   EmailDraftSurfaceProps,
+  MailPanelProps,
   NotesPanelProps,
   RoutedVoiceAction,
   SurfaceInstance,
@@ -14,6 +15,7 @@ import type {
 const EMAIL_SURFACE_ID = "workspace-email-draft";
 const SUPPORTING_SURFACE_IDS: Partial<Record<SurfaceKind, string>> = {
   calendar: "workspace-calendar",
+  mail: "workspace-mail",
   notes: "workspace-notes",
   table: "workspace-table",
   chart: "workspace-chart",
@@ -36,8 +38,17 @@ export function routeVoiceAction(session: WorkspaceSession, utterance: string): 
     return { kind: "update_existing_surface", targetSurfaceId: closeTarget.id, instruction: "collapse" };
   }
 
+  const appleKinds = requestedAppleSurfaceKinds(text);
+  if (appleKinds.length > 1) {
+    return { kind: "add_multiple_supporting_surfaces", surfaceKinds: appleKinds, instruction: utterance };
+  }
+
   if (isSupportingRequest(text, "calendar")) {
     return { kind: "add_supporting_surface", surfaceKind: "calendar", instruction: utterance };
+  }
+
+  if (isSupportingRequest(text, "mail")) {
+    return { kind: "add_supporting_surface", surfaceKind: "mail", instruction: utterance };
   }
 
   if (isSupportingRequest(text, "notes")) {
@@ -145,7 +156,7 @@ export function routedActionToPatches(
       ];
     }
     case "add_supporting_surface": {
-      const surface = createSupportingSurface(action.surfaceKind, now);
+      const surface = createWorkspaceSurface(action.surfaceKind, now, session.primarySurfaceId ? "supporting" : "primary");
       if (!surface) {
         return patches;
       }
@@ -155,6 +166,22 @@ export function routedActionToPatches(
         { type: "CREATE_SURFACE", surface },
         { type: "STORE_CONTEXT_RESULT", key: action.surfaceKind, value: surface.props },
       ];
+    }
+    case "add_multiple_supporting_surfaces": {
+      const surfaces = action.surfaceKinds
+        .map((surfaceKind, index) =>
+          createWorkspaceSurface(surfaceKind, now, !session.primarySurfaceId && index === 0 ? "primary" : "supporting"),
+        )
+        .filter((surface): surface is SurfaceInstance => surface !== null);
+
+      return surfaces.reduce(
+        (nextPatches, surface) => [
+          ...nextPatches,
+          { type: "CREATE_SURFACE" as const, surface },
+          { type: "STORE_CONTEXT_RESULT" as const, key: surface.kind, value: surface.props },
+        ],
+        patches,
+      );
     }
     case "complete_task":
       return [
@@ -188,7 +215,11 @@ function createEmailSurface(now: number, props: EmailDraftSurfaceProps): Surface
   };
 }
 
-function createSupportingSurface(kind: SurfaceKind, now: number): SurfaceInstance | null {
+function createWorkspaceSurface(
+  kind: SurfaceKind,
+  now: number,
+  role: "primary" | "supporting",
+): SurfaceInstance | null {
   const id = SUPPORTING_SURFACE_IDS[kind];
 
   if (!id) {
@@ -198,8 +229,8 @@ function createSupportingSurface(kind: SurfaceKind, now: number): SurfaceInstanc
   return {
     id,
     kind,
-    role: "supporting",
-    zone: preferredZone(kind),
+    role,
+    zone: role === "primary" ? "main" : preferredZone(kind),
     status: "active",
     createdAt: now,
     updatedAt: now,
@@ -327,27 +358,28 @@ function subjectFromInstruction(instruction: string, current: string) {
   return current || "Follow-up";
 }
 
-function supportingProps(kind: SurfaceKind): CalendarPanelProps | NotesPanelProps | TableFrameProps | ChartFrameProps {
+function supportingProps(kind: SurfaceKind): CalendarPanelProps | MailPanelProps | NotesPanelProps | TableFrameProps | ChartFrameProps {
   if (kind === "calendar") {
     return {
       title: "Calendar",
-      status: "mock",
-      items: [
-        { id: "fri-morning", label: "Friday morning", detail: "Tentatively busy" },
-        { id: "fri-after-3", label: "Friday after 3 PM", detail: "Open availability window" },
-        { id: "mon-checkin", label: "Monday 10:00", detail: "Internal planning hold" },
-      ],
+      status: "loading",
+      items: [],
+    };
+  }
+
+  if (kind === "mail") {
+    return {
+      title: "Inbox",
+      status: "loading",
+      messages: [],
     };
   }
 
   if (kind === "notes") {
     return {
       title: "Recent notes",
-      status: "mock",
-      notes: [
-        { id: "anna-pref", title: "Anna follow-up", excerpt: "Keep tone concise, warm, and specific about availability." },
-        { id: "meeting-window", title: "Scheduling", excerpt: "Friday afternoon is the cleanest window this week." },
-      ],
+      status: "loading",
+      notes: [],
     };
   }
 
@@ -376,6 +408,7 @@ function supportingProps(kind: SurfaceKind): CalendarPanelProps | NotesPanelProp
 
 function preferredZone(kind: SurfaceKind) {
   if (kind === "calendar") return "top_left";
+  if (kind === "mail") return "top_left";
   if (kind === "notes" || kind === "table") return "bottom_left";
   if (kind === "chart") return "top_left";
   return "left";
@@ -391,6 +424,7 @@ function getCloseTarget(session: WorkspaceSession, text: string) {
   }
 
   if (/\bcalendar\b/.test(text)) return findSurfaceByKind(session, "calendar");
+  if (/\b(mail|email|inbox|messages)\b/.test(text)) return findSurfaceByKind(session, "mail");
   if (/\bnotes?\b/.test(text)) return findSurfaceByKind(session, "notes");
   if (/\b(chart|graph)\b/.test(text)) return findSurfaceByKind(session, "chart");
   if (/\b(table|spreadsheet)\b/.test(text)) return findSurfaceByKind(session, "table");
@@ -408,11 +442,29 @@ function isCreateEmailDraft(text: string) {
 }
 
 function isSupportingRequest(text: string, kind: SurfaceKind) {
-  if (kind === "calendar") return /\b(show|open|check|pull up|fetch|look at).*\b(calendar|availability|schedule)\b/.test(text);
-  if (kind === "notes") return /\b(show|open|fetch|pull up|get).*\b(notes?|recent notes?)\b/.test(text);
+  if (kind === "calendar") return /\b(show|open|check|pull up|fetch|look at).*\b(calendar|availability|schedule|events?|meetings?)\b/.test(text);
+  if (kind === "mail") return /\b(show|open|check|pull up|fetch|look at|catch me up).*\b(mail|email|inbox|unread|messages?|latest email)\b/.test(text);
+  if (kind === "notes") return /\b(show|open|fetch|pull up|get|find|search|look at|catch me up).*\b(notes?|apple notes|recent notes?|my notes|note about)\b/.test(text);
   if (kind === "chart") return /\b(draw|show|create|make).*\b(graph|chart)\b/.test(text);
   if (kind === "table") return /\b(show|create|make|draw).*\b(table|spreadsheet)\b/.test(text);
   return false;
+}
+
+function requestedAppleSurfaceKinds(text: string): SurfaceKind[] {
+  const kinds: SurfaceKind[] = [];
+  if (/\b(calendar|schedule|events?|meetings?|today|tomorrow|this week)\b/.test(text)) {
+    kinds.push("calendar");
+  }
+  if (/\b(mail|email|inbox|unread|messages?|latest email)\b/.test(text)) {
+    kinds.push("mail");
+  }
+  if (/\b(notes?|apple notes|find note|my notes|note about)\b/.test(text)) {
+    kinds.push("notes");
+  }
+  if (!/\b(show|open|check|pull up|fetch|look at|find|search|catch me up)\b/.test(text)) {
+    return [];
+  }
+  return kinds;
 }
 
 function isTransformation(text: string) {

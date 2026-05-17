@@ -10,7 +10,10 @@ export type IntentKind =
   | "catch_up"
   | "comparison_table"
   | "approval_flow"
-  | "freeform_canvas";
+  | "freeform_canvas"
+  | "show_calendar"
+  | "show_mail"
+  | "show_notes";
 
 export interface IntentDetection {
   intent: IntentKind;

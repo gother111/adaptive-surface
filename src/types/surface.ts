@@ -12,7 +12,10 @@ export type SurfaceKind =
   | "research"
   | "catch_up"
   | "comparison"
-  | "email_draft";
+  | "email_draft"
+  | "calendar"
+  | "mail"
+  | "notes";
 
 export type StreamStatus = "idle" | "thinking" | "streaming" | "complete" | "error";
 

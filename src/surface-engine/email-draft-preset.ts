@@ -41,27 +41,24 @@ export function createCalendarContextNode(): SurfaceNode<"calendar_context"> {
     name: "Calendar context",
     role: "supporting_context",
     tags: ["calendar", "availability", "context"],
-    semanticText: "mock calendar availability context",
+    semanticText: "local calendar availability context",
     geometry: { x: 720, y: 128, width: 360, height: 330, minWidth: 280, minHeight: 220, zIndex: 8 },
     visibility: { state: "visible" },
     interaction: { selectable: true, focusable: true, draggable: true, resizable: true },
     bindings: [
       {
-        id: "mock-calendar-availability",
+        id: "apple-calendar-availability",
         source: "apple_calendar",
         label: "Calendar availability",
         status: "planned",
         refreshPolicy: "manual",
-        preview: "Mock context only. No calendar read has happened.",
+        preview: "Real local Calendar context loads through the Apple app bridge.",
       },
     ],
     props: {
       title: "Calendar context",
-      status: "mock",
-      items: [
-        { id: "fri-morning", label: "Friday morning", detail: "Tentatively busy" },
-        { id: "fri-after-2", label: "Friday after 2 PM", detail: "Available window to mention" },
-      ],
+      status: "loading",
+      items: [],
     },
     priority: "high",
   };

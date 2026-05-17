@@ -2,7 +2,6 @@ import { Play, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { runAppleScript } from "@/lib/tauri";
 import { SurfaceHeader } from "@/surfaces/shared/SurfaceHeader";
 import type { ApprovalAction, SurfaceConfig } from "@/types/surface";
 
@@ -39,8 +38,7 @@ export function ApprovalSurface({ config }: ApprovalSurfaceProps) {
 
 function ApprovalRow({ action }: { action: ApprovalAction }) {
   const runPlaceholder = async () => {
-    const response = await runAppleScript('return "Adaptive Surface AppleScript bridge is wired"');
-    toast.success(response);
+    toast.info("Write actions are disabled for this local read-only pass.");
   };
 
   return (
