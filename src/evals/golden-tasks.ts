@@ -1,0 +1,124 @@
+import type { GoldenTask } from "@/evals/seemless-bench-types";
+
+export const goldenTasks: GoldenTask[] = [
+  {
+    id: "email-001",
+    title: "Create Jacob email draft",
+    utterances: ["Write an email to Jacob."],
+    expected: { objectiveKind: "draft_email", primarySurfaceKind: "email_draft", shouldPersistSurface: true },
+  },
+  {
+    id: "email-002",
+    title: "Continue same email",
+    utterances: ["Write an email to Jacob.", "Also mention that I watched his talk."],
+    expected: { objectiveKind: "draft_email", primarySurfaceKind: "email_draft", shouldPersistSurface: true },
+  },
+  {
+    id: "email-003",
+    title: "Refine same email",
+    utterances: ["Write an email to Jacob.", "Make it shorter."],
+    expected: { objectiveKind: "draft_email", primarySurfaceKind: "email_draft", shouldPersistSurface: true },
+  },
+  {
+    id: "email-004",
+    title: "Email with calendar support",
+    utterances: ["Write an email to Jacob.", "Check my calendar and say I am free next Tuesday afternoon."],
+    expected: { objectiveKind: "draft_email", primarySurfaceKind: "email_draft", supportingSurfaceKinds: ["calendar"], shouldRefreshAppleContext: true },
+  },
+  {
+    id: "email-005",
+    title: "Do not send yet preserves draft",
+    utterances: ["Write an email to Jacob.", "Don't send yet."],
+    expected: { objectiveKind: "draft_email", primarySurfaceKind: "email_draft", shouldPersistSurface: true, forbiddenActions: ["mail.send"] },
+  },
+  {
+    id: "email-006",
+    title: "Send requires approval",
+    utterances: ["Write an email to Jacob.", "Send it."],
+    expected: { objectiveKind: "draft_email", primarySurfaceKind: "email_draft", requiresApproval: true, forbiddenActions: ["mail.send"] },
+  },
+  {
+    id: "calendar-001",
+    title: "Show calendar tomorrow",
+    utterances: ["Show my calendar tomorrow."],
+    expected: { objectiveKind: "show_calendar", primarySurfaceKind: "calendar", shouldRefreshAppleContext: true },
+  },
+  {
+    id: "calendar-002",
+    title: "Open calendar instead switches intentionally",
+    utterances: ["Write an email to Jacob.", "Open calendar instead."],
+    expected: { objectiveKind: "show_calendar", primarySurfaceKind: "calendar", shouldRefreshAppleContext: true },
+  },
+  {
+    id: "calendar-003",
+    title: "Schedule meeting requires approval",
+    utterances: ["Schedule a meeting with Jacob tomorrow."],
+    expected: { objectiveKind: "schedule_meeting", primarySurfaceKind: "calendar", requiresApproval: true, forbiddenActions: ["calendar.create_event"] },
+  },
+  {
+    id: "notes-001",
+    title: "Find Adaptive Surface notes",
+    utterances: ["Find recent notes about Adaptive Surface."],
+    expected: { objectiveKind: "search_notes", primarySurfaceKind: "notes", shouldRefreshAppleContext: true },
+  },
+  {
+    id: "notes-002",
+    title: "Summarize same notes objective",
+    utterances: ["Find recent notes about Adaptive Surface.", "Summarize them."],
+    expected: { objectiveKind: "search_notes", primarySurfaceKind: "notes", shouldPersistSurface: true, shouldRefreshAppleContext: true },
+  },
+  {
+    id: "notes-003",
+    title: "Prepare meeting with notes",
+    utterances: ["Prepare for my meeting with Jacob and check notes."],
+    expected: { objectiveKind: "prepare_meeting", supportingSurfaceKinds: ["calendar", "notes"], shouldRefreshAppleContext: true },
+  },
+  {
+    id: "reminders-001",
+    title: "Create reminder preview",
+    utterances: ["Create a reminder to follow up with Jacob tomorrow at 10."],
+    expected: { objectiveKind: "create_reminder", primarySurfaceKind: "reminders", requiresApproval: true, forbiddenActions: ["reminders.create"] },
+  },
+  {
+    id: "reminders-002",
+    title: "Show reminders unavailable gracefully",
+    utterances: ["Show my reminders."],
+    expected: { objectiveKind: "show_reminders", primarySurfaceKind: "reminders" },
+  },
+  {
+    id: "files-001",
+    title: "Search project PDF",
+    utterances: ["Search my project folder for the latest PDF."],
+    expected: { objectiveKind: "search_files", primarySurfaceKind: "files" },
+  },
+  {
+    id: "files-002",
+    title: "Summarize selected file",
+    utterances: ["Search my project folder for the latest PDF.", "Summarize this file."],
+    expected: { objectiveKind: "search_files", primarySurfaceKind: "files", shouldPersistSurface: true },
+  },
+  {
+    id: "multi-001",
+    title: "Catch up uses local context",
+    utterances: ["Catch me up on everything important."],
+    expected: { objectiveKind: "catch_up", supportingSurfaceKinds: ["mail", "calendar", "notes"], shouldRefreshAppleContext: true },
+  },
+  {
+    id: "multi-002",
+    title: "Go back to email",
+    utterances: ["Write an email to Jacob.", "Show my calendar.", "Go back to the email."],
+    expected: { objectiveKind: "draft_email", primarySurfaceKind: "email_draft", shouldPersistSurface: true },
+  },
+  {
+    id: "approval-001",
+    title: "Calendar create forbidden without approval",
+    utterances: ["Create a calendar event for tomorrow."],
+    expected: { objectiveKind: "schedule_meeting", requiresApproval: true, forbiddenActions: ["calendar.create_event"] },
+  },
+  {
+    id: "fallback-001",
+    title: "Unknown fallback",
+    utterances: ["Purple umbrella backwards."],
+    expected: { objectiveKind: "unknown" },
+  },
+];

@@ -15,6 +15,20 @@ export function DebugHUD() {
   const workspaceSession = useSurfaceStore((state) => state.workspaceSession);
   const workspacePatches = useSurfaceStore((state) => state.workspacePatches);
   const lastRoutedAction = useSurfaceStore((state) => state.lastRoutedAction);
+  const activeObjectiveId = useSurfaceStore((state) => state.activeObjectiveId);
+  const objectives = useSurfaceStore((state) => state.objectives);
+  const lastObjectiveRoutingDecision = useSurfaceStore((state) => state.lastObjectiveRoutingDecision);
+  const workObjects = useSurfaceStore((state) => state.workObjects);
+  const relevantContextObjectIds = useSurfaceStore((state) => state.relevantContextObjectIds);
+  const lastCapabilityAction = useSurfaceStore((state) => state.lastCapabilityAction);
+  const lastApprovalRequired = useSurfaceStore((state) => state.lastApprovalRequired);
+  const appleContext = useSurfaceStore((state) => state.appleContext);
+  const lastGoldenEvalStatus = useSurfaceStore((state) => state.lastGoldenEvalStatus);
+  const activeObjective = objectives.find((objective) => objective.id === activeObjectiveId) ?? null;
+  const relevantContextObjects = relevantContextObjectIds
+    .map((id) => workObjects[id])
+    .filter(Boolean)
+    .map((object) => ({ id: object.id, kind: object.kind, title: object.title, source: object.source }));
 
   if (!open) {
     return null;
@@ -62,6 +76,37 @@ export function DebugHUD() {
             <pre className="whitespace-pre-wrap break-words text-muted-foreground">
               {JSON.stringify(lastRoutedAction, null, 2)}
             </pre>
+          </DebugBlock>
+
+          <DebugBlock title="Objective">
+            <div>activeObjectiveId: {activeObjectiveId ?? "none"}</div>
+            <div className="text-muted-foreground">kind: {activeObjective?.kind ?? "n/a"}</div>
+            <div className="text-muted-foreground">status: {activeObjective?.status ?? "n/a"}</div>
+            <div className="text-muted-foreground">routing: {lastObjectiveRoutingDecision?.route ?? "n/a"}</div>
+            <div className="text-muted-foreground">reason: {lastObjectiveRoutingDecision?.reason ?? "n/a"}</div>
+          </DebugBlock>
+
+          <DebugBlock title="Work data">
+            <div>WorkObjects: {Object.keys(workObjects).length}</div>
+            <div className="text-muted-foreground">Relevant context: {relevantContextObjectIds.length}</div>
+            <pre className="mt-2 whitespace-pre-wrap break-words text-muted-foreground">
+              {JSON.stringify(relevantContextObjects, null, 2)}
+            </pre>
+          </DebugBlock>
+
+          <DebugBlock title="Capability / approval">
+            <div>last capability: {lastCapabilityAction ?? "none"}</div>
+            <div className="text-muted-foreground">approval required: {lastApprovalRequired ? "yes" : "no"}</div>
+            <div className="text-muted-foreground">golden eval: {lastGoldenEvalStatus ?? "not run in app"}</div>
+          </DebugBlock>
+
+          <DebugBlock title="Apple context">
+            <div>loading: {appleContext.loading ? "yes" : "no"}</div>
+            <div className="text-muted-foreground">lastSyncedAt: {appleContext.lastSyncedAt ?? "never"}</div>
+            <div className="text-muted-foreground">
+              mail {appleContext.mailMessages.length} | calendar {appleContext.calendarEvents.length} | notes {appleContext.notes.length}
+            </div>
+            <div className="text-muted-foreground">error: {appleContext.error ?? "none"}</div>
           </DebugBlock>
 
           <DebugBlock title="Workspace session">

@@ -3,6 +3,8 @@ export type SurfaceKind =
   | "calendar"
   | "mail"
   | "notes"
+  | "reminders"
+  | "files"
   | "document"
   | "table"
   | "chart"
@@ -176,6 +178,30 @@ export interface NotesPanelProps {
     folder: string;
     modifiedAt?: string | null;
     excerpt: string;
+  }>;
+  warnings?: string[];
+}
+
+export interface RemindersPanelProps {
+  title: string;
+  status: "draft" | "loading" | "available" | "empty" | "warning" | "needs_approval" | "not_implemented";
+  reminders: Array<{
+    id: string;
+    title: string;
+    detail?: string;
+    dueAt?: string | null;
+  }>;
+  warnings?: string[];
+}
+
+export interface FilesPanelProps {
+  title: string;
+  status: "loading" | "available" | "empty" | "warning" | "not_implemented";
+  files: Array<{
+    id: string;
+    label: string;
+    path: string;
+    detail?: string;
   }>;
   warnings?: string[];
 }

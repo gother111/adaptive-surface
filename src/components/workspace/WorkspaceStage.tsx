@@ -16,6 +16,8 @@ import type {
   EmailDraftSurfaceProps,
   MailPanelProps,
   NotesPanelProps,
+  RemindersPanelProps,
+  FilesPanelProps,
   SurfaceInstance,
   TableFrameProps,
   WorkspaceSession,
@@ -90,6 +92,14 @@ function PrimarySurface({ surface }: { surface: SurfaceInstance }) {
     return <NotesPanel props={surface.props as unknown as NotesPanelProps} />;
   }
 
+  if (surface.kind === "reminders") {
+    return <RemindersPanel props={surface.props as unknown as RemindersPanelProps} />;
+  }
+
+  if (surface.kind === "files" || surface.kind === "document") {
+    return <FilesPanel props={surface.props as unknown as FilesPanelProps} />;
+  }
+
   return null;
 }
 
@@ -108,6 +118,14 @@ function SupportingSurface({ surface }: { surface: SurfaceInstance }) {
 
   if (surface.kind === "notes") {
     return <NotesPanel props={surface.props as unknown as NotesPanelProps} />;
+  }
+
+  if (surface.kind === "reminders") {
+    return <RemindersPanel props={surface.props as unknown as RemindersPanelProps} />;
+  }
+
+  if (surface.kind === "files" || surface.kind === "document") {
+    return <FilesPanel props={surface.props as unknown as FilesPanelProps} />;
   }
 
   if (surface.kind === "table") {
@@ -220,6 +238,48 @@ function NotesPanel({ props }: { props: NotesPanelProps }) {
           ))
         ) : (
           <EmptyPanelText status={props.status} label="No notes loaded yet." />
+        )}
+        <PanelWarnings warnings={props.warnings} />
+      </div>
+    </PanelShell>
+  );
+}
+
+function RemindersPanel({ props }: { props: RemindersPanelProps }) {
+  return (
+    <PanelShell icon={<NotebookText className="size-4 text-primary" />} title={props.title} badge={props.status}>
+      <div className="space-y-3">
+        {props.reminders.length ? (
+          props.reminders.map((reminder) => (
+            <article key={reminder.id} className="rounded-md border border-white/10 bg-background/35 p-3 text-sm">
+              <h3 className="font-medium">{reminder.title}</h3>
+              {reminder.detail ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{reminder.detail}</p> : null}
+              {reminder.dueAt ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{reminder.dueAt}</p> : null}
+            </article>
+          ))
+        ) : (
+          <EmptyPanelText status={props.status} label="No reminders loaded yet." />
+        )}
+        <PanelWarnings warnings={props.warnings} />
+      </div>
+    </PanelShell>
+  );
+}
+
+function FilesPanel({ props }: { props: FilesPanelProps }) {
+  return (
+    <PanelShell icon={<FileSpreadsheet className="size-4 text-primary" />} title={props.title} badge={props.status}>
+      <div className="space-y-3">
+        {props.files.length ? (
+          props.files.map((file) => (
+            <article key={file.id} className="rounded-md border border-white/10 bg-background/35 p-3 text-sm">
+              <h3 className="font-medium">{file.label}</h3>
+              <p className="mt-1 break-words text-xs leading-5 text-muted-foreground">{file.path}</p>
+              {file.detail ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{file.detail}</p> : null}
+            </article>
+          ))
+        ) : (
+          <EmptyPanelText status={props.status} label="No trusted file results loaded yet." />
         )}
         <PanelWarnings warnings={props.warnings} />
       </div>
@@ -366,6 +426,8 @@ function surfaceLabel(surface: SurfaceInstance) {
   if (surface.kind === "calendar") return "Calendar";
   if (surface.kind === "mail") return "Mail";
   if (surface.kind === "notes") return "Notes";
+  if (surface.kind === "reminders") return "Reminders";
+  if (surface.kind === "files") return "Files";
   if (surface.kind === "table") return "Table";
   if (surface.kind === "chart") return "Chart";
   return "Surface";

@@ -4,6 +4,8 @@ import type {
   EmailDraftSurfaceProps,
   MailPanelProps,
   NotesPanelProps,
+  RemindersPanelProps,
+  FilesPanelProps,
   RoutedVoiceAction,
   SurfaceInstance,
   SurfaceKind,
@@ -17,6 +19,9 @@ const SUPPORTING_SURFACE_IDS: Partial<Record<SurfaceKind, string>> = {
   calendar: "workspace-calendar",
   mail: "workspace-mail",
   notes: "workspace-notes",
+  reminders: "workspace-reminders",
+  files: "workspace-files",
+  document: "workspace-files",
   table: "workspace-table",
   chart: "workspace-chart",
 };
@@ -38,6 +43,22 @@ export function routeVoiceAction(session: WorkspaceSession, utterance: string): 
     return { kind: "update_existing_surface", targetSurfaceId: closeTarget.id, instruction: "collapse" };
   }
 
+  if (/\b(open calendar instead|switch to calendar|start over.*calendar|new task.*calendar)\b/.test(text)) {
+    return { kind: "create_new_primary_surface", surfaceKind: "calendar", instruction: utterance };
+  }
+
+  if (/\b(catch me up|catch up|what did i miss)\b/.test(text)) {
+    return {
+      kind: "add_multiple_supporting_surfaces",
+      surfaceKinds: ["mail", "calendar", "notes"],
+      instruction: utterance,
+    };
+  }
+
+  if (/\b(schedule|book|create).*\b(meeting|event)\b/.test(text)) {
+    return { kind: "create_new_primary_surface", surfaceKind: "calendar", instruction: utterance };
+  }
+
   const appleKinds = requestedAppleSurfaceKinds(text);
   if (appleKinds.length > 1) {
     return { kind: "add_multiple_supporting_surfaces", surfaceKinds: appleKinds, instruction: utterance };
@@ -53,6 +74,14 @@ export function routeVoiceAction(session: WorkspaceSession, utterance: string): 
 
   if (isSupportingRequest(text, "notes")) {
     return { kind: "add_supporting_surface", surfaceKind: "notes", instruction: utterance };
+  }
+
+  if (isSupportingRequest(text, "reminders")) {
+    return { kind: "add_supporting_surface", surfaceKind: "reminders", instruction: utterance };
+  }
+
+  if (isSupportingRequest(text, "files") || isSupportingRequest(text, "document")) {
+    return { kind: "add_supporting_surface", surfaceKind: "files", instruction: utterance };
   }
 
   if (isSupportingRequest(text, "chart")) {
@@ -109,6 +138,20 @@ export function routedActionToPatches(
 
   switch (action.kind) {
     case "create_new_primary_surface": {
+      if (action.surfaceKind !== "email_draft") {
+        const surface = createWorkspaceSurface(action.surfaceKind, now, "primary");
+        if (!surface) {
+          return patches;
+        }
+
+        return [
+          ...patches,
+          { type: "CREATE_SURFACE", surface },
+          { type: "SET_PRIMARY_SURFACE", surfaceId: surface.id },
+          { type: "STORE_CONTEXT_RESULT", key: action.surfaceKind, value: surface.props },
+        ];
+      }
+
       if (action.surfaceKind !== "email_draft") {
         return patches;
       }
@@ -358,7 +401,9 @@ function subjectFromInstruction(instruction: string, current: string) {
   return current || "Follow-up";
 }
 
-function supportingProps(kind: SurfaceKind): CalendarPanelProps | MailPanelProps | NotesPanelProps | TableFrameProps | ChartFrameProps {
+function supportingProps(
+  kind: SurfaceKind,
+): CalendarPanelProps | MailPanelProps | NotesPanelProps | RemindersPanelProps | FilesPanelProps | TableFrameProps | ChartFrameProps {
   if (kind === "calendar") {
     return {
       title: "Calendar",
@@ -380,6 +425,31 @@ function supportingProps(kind: SurfaceKind): CalendarPanelProps | MailPanelProps
       title: "Recent notes",
       status: "loading",
       notes: [],
+    };
+  }
+
+  if (kind === "reminders") {
+    return {
+      title: "Reminder draft",
+      status: "needs_approval",
+      reminders: [
+        {
+          id: "draft-reminder",
+          title: "Follow up with Jacob",
+          detail: "Preview only. Real creation requires approval.",
+          dueAt: "tomorrow 10:00",
+        },
+      ],
+      warnings: ["Reminders creation is approval-gated and the real adapter is not implemented yet."],
+    };
+  }
+
+  if (kind === "files" || kind === "document") {
+    return {
+      title: "Trusted files",
+      status: "empty",
+      files: [],
+      warnings: ["File search reads only trusted local roots."],
     };
   }
 
@@ -410,6 +480,7 @@ function preferredZone(kind: SurfaceKind) {
   if (kind === "calendar") return "top_left";
   if (kind === "mail") return "top_left";
   if (kind === "notes" || kind === "table") return "bottom_left";
+  if (kind === "reminders" || kind === "files" || kind === "document") return "bottom_left";
   if (kind === "chart") return "top_left";
   return "left";
 }
@@ -426,6 +497,8 @@ function getCloseTarget(session: WorkspaceSession, text: string) {
   if (/\bcalendar\b/.test(text)) return findSurfaceByKind(session, "calendar");
   if (/\b(mail|email|inbox|messages)\b/.test(text)) return findSurfaceByKind(session, "mail");
   if (/\bnotes?\b/.test(text)) return findSurfaceByKind(session, "notes");
+  if (/\breminders?\b/.test(text)) return findSurfaceByKind(session, "reminders");
+  if (/\b(files?|folder|pdf|document)\b/.test(text)) return findSurfaceByKind(session, "files") ?? findSurfaceByKind(session, "document");
   if (/\b(chart|graph)\b/.test(text)) return findSurfaceByKind(session, "chart");
   if (/\b(table|spreadsheet)\b/.test(text)) return findSurfaceByKind(session, "table");
   if (/\bemail|draft|message\b/.test(text)) return getPrimarySurface(session);
@@ -445,6 +518,8 @@ function isSupportingRequest(text: string, kind: SurfaceKind) {
   if (kind === "calendar") return /\b(show|open|check|pull up|fetch|look at).*\b(calendar|availability|schedule|events?|meetings?)\b/.test(text);
   if (kind === "mail") return /\b(show|open|check|pull up|fetch|look at|catch me up).*\b(mail|email|inbox|unread|messages?|latest email)\b/.test(text);
   if (kind === "notes") return /\b(show|open|fetch|pull up|get|find|search|look at|catch me up).*\b(notes?|apple notes|recent notes?|my notes|note about)\b/.test(text);
+  if (kind === "reminders") return /\b(show|open|check|create|add|set).*\b(reminders?|todo|follow up)\b/.test(text);
+  if (kind === "files" || kind === "document") return /\b(search|find|open|summarize|look for).*\b(files?|folder|directory|pdf|document|project)\b/.test(text);
   if (kind === "chart") return /\b(draw|show|create|make).*\b(graph|chart)\b/.test(text);
   if (kind === "table") return /\b(show|create|make|draw).*\b(table|spreadsheet)\b/.test(text);
   return false;
@@ -460,6 +535,12 @@ function requestedAppleSurfaceKinds(text: string): SurfaceKind[] {
   }
   if (/\b(notes?|apple notes|find note|my notes|note about)\b/.test(text)) {
     kinds.push("notes");
+  }
+  if (/\b(reminders?|todo|follow up)\b/.test(text)) {
+    kinds.push("reminders");
+  }
+  if (/\b(files?|folder|directory|pdf|document|project)\b/.test(text)) {
+    kinds.push("files");
   }
   if (!/\b(show|open|check|pull up|fetch|look at|find|search|catch me up)\b/.test(text)) {
     return [];

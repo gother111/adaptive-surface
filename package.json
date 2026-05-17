@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "test": "vitest run",
+    "eval:golden": "tsx src/evals/run-golden-tasks.ts",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:app": "tauri build --bundles app",
@@ -50,8 +52,10 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^6.0.1",
     "tailwindcss": "^4.0.0",
+    "tsx": "^4.22.1",
     "tw-animate-css": "^1.0.0",
     "typescript": "^5.7.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitest": "^4.1.6"
   }
 }

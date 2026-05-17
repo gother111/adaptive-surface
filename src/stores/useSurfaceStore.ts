@@ -8,6 +8,10 @@ import {
 } from "@/lib/context-sources";
 import { loadAppleContextBundle } from "@/lib/context-api";
 import { initialSurfaces } from "@/lib/surface-fixtures";
+import { getActiveObjective } from "@/objectives/objective-memory";
+import { applyObjectiveRouting, attachObjectsToObjectiveFrame, createObjectiveFrame } from "@/objectives/objective-reducer";
+import { routeUtteranceToObjectiveFrame } from "@/objectives/objective-router";
+import type { ObjectiveFrame, ObjectiveRoutingDecision } from "@/objectives/objective-types";
 import { applySurfacePatch, applySurfacePatches } from "@/surface-engine/patch-reducer";
 import type { SurfacePatch } from "@/surface-engine/patch-types";
 import type { SurfaceSession, SurfaceSessionPatch } from "@/surface-engine/session-manager";
@@ -29,6 +33,10 @@ import type {
   WorkspacePatch,
   WorkspaceSession,
 } from "@/workspace/types";
+import { connectContextToObjective } from "@/work-pipeline/connect-context-to-objective";
+import { ingestAppleContextBundle } from "@/work-pipeline/ingest-local-context";
+import { mergeWorkObjectIndex, selectWorkObjects, type WorkObjectIndex } from "@/work-objects/work-object-index";
+import type { WorkObject } from "@/work-objects/work-object-types";
 
 interface TranscriptEntry {
   id: string;
@@ -64,6 +72,15 @@ interface SurfaceState {
   workspaceSession: WorkspaceSession;
   workspacePatches: WorkspacePatch[];
   lastRoutedAction: RoutedVoiceAction | null;
+  workObjects: WorkObjectIndex;
+  activeObjectiveId: string | null;
+  objectives: ObjectiveFrame[];
+  objectiveHistory: string[];
+  lastObjectiveRoutingDecision: ObjectiveRoutingDecision | null;
+  relevantContextObjectIds: string[];
+  lastCapabilityAction: string | null;
+  lastApprovalRequired: boolean;
+  lastGoldenEvalStatus: string | null;
   draftSurface: SurfaceConfig | null;
   firstPartialLatencyMs: number | null;
   transcript: TranscriptEntry[];
@@ -92,6 +109,14 @@ interface SurfaceState {
   setAppleContextBundle: (bundle: AppleContextBundle) => void;
   refreshAppleContext: () => Promise<void>;
   clearAppleContextError: () => void;
+  ingestWorkObjects: (objects: WorkObject[]) => void;
+  createObjectiveFromVoice: (text: string) => ObjectiveFrame;
+  updateObjectiveFromVoice: (text: string) => void;
+  routeUtteranceToObjective: (text: string) => ObjectiveRoutingDecision;
+  attachObjectsToObjective: (objectIds: string[], objectiveId: string) => void;
+  completeObjective: (objectiveId: string) => void;
+  pauseObjective: (objectiveId: string) => void;
+  switchToObjective: (objectiveId: string) => void;
 }
 
 export const useSurfaceStore = create<SurfaceState>((set, get) => ({
@@ -111,6 +136,15 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
   workspaceSession: createInitialWorkspaceSession(),
   workspacePatches: [],
   lastRoutedAction: null,
+  workObjects: {},
+  activeObjectiveId: null,
+  objectives: [],
+  objectiveHistory: [],
+  lastObjectiveRoutingDecision: null,
+  relevantContextObjectIds: [],
+  lastCapabilityAction: null,
+  lastApprovalRequired: false,
+  lastGoldenEvalStatus: null,
   draftSurface: null,
   firstPartialLatencyMs: null,
   transcript: [],
@@ -175,10 +209,24 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
   receiveVoiceFinal: (text) => {
     let shouldRefreshAppleContext = false;
     set((state) => {
+      const activeObjective = getActiveObjective(state.objectives, state.activeObjectiveId);
+      const objectiveDecision = routeUtteranceToObjectiveFrame(text, activeObjective, state.objectives);
+      const objectiveUpdate = applyObjectiveRouting(
+        state.objectives,
+        state.activeObjectiveId,
+        objectiveDecision,
+        text,
+      );
       const routedAction = routeVoiceAction(state.workspaceSession, text);
-      shouldRefreshAppleContext = routeRequestsAppleContext(routedAction);
+      shouldRefreshAppleContext = routeRequestsAppleContext(routedAction) || objectiveRequestsAppleContext(objectiveDecision);
       const workspacePatches = routedActionToPatches(state.workspaceSession, routedAction, text);
       const workspaceSession = applyWorkspacePatches(state.workspaceSession, workspacePatches);
+      const nextObjectives = syncObjectiveSurfaceIds(objectiveUpdate.objectives, objectiveUpdate.activeObjectiveId, workspaceSession);
+      const relevantContextObjectIds = scoreRelevantContextIds(
+        nextObjectives,
+        objectiveUpdate.activeObjectiveId,
+        state.workObjects,
+      );
       const nextState: SurfaceState = {
         ...state,
         partialTranscript: "",
@@ -188,6 +236,13 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
         workspaceSession,
         workspacePatches: [...workspacePatches, ...state.workspacePatches].slice(0, 36),
         lastRoutedAction: routedAction,
+        objectives: nextObjectives,
+        activeObjectiveId: objectiveUpdate.activeObjectiveId,
+        objectiveHistory: objectiveUpdate.objectiveHistory,
+        lastObjectiveRoutingDecision: objectiveDecision,
+        relevantContextObjectIds,
+        lastApprovalRequired: objectiveDecision.route === "request_approval",
+        lastCapabilityAction: plannedCapabilityLabel(nextObjectives, objectiveUpdate.activeObjectiveId),
         debugHudOpen: workspaceSession.debugVisible,
       };
 
@@ -210,6 +265,13 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
       workspaceSession: createInitialWorkspaceSession(),
       workspacePatches: [],
       lastRoutedAction: null,
+      activeObjectiveId: null,
+      objectives: [],
+      objectiveHistory: [],
+      lastObjectiveRoutingDecision: null,
+      relevantContextObjectIds: [],
+      lastCapabilityAction: null,
+      lastApprovalRequired: false,
       debugHudOpen: false,
       activeSurfaceId: state.activeSurfaceId,
     })),
@@ -261,6 +323,87 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
   clearAppleContextError: () =>
     set((state) => ({
       appleContext: { ...state.appleContext, error: null },
+    })),
+  ingestWorkObjects: (objects) =>
+    set((state) => {
+      const workObjects = mergeWorkObjectIndex(state.workObjects, objects);
+      const objectives = attachRelevantObjectsToActiveObjective(
+        state.objectives,
+        state.activeObjectiveId,
+        workObjects,
+      );
+
+      return {
+        workObjects,
+        objectives,
+        relevantContextObjectIds: scoreRelevantContextIds(objectives, state.activeObjectiveId, workObjects),
+      };
+    }),
+  createObjectiveFromVoice: (text) => {
+    const decision = routeUtteranceToObjectiveFrame(text, null, get().objectives);
+    const objective = createObjectiveFrame(text, { ...decision, route: "create_new_objective" });
+    set((state) => ({
+      objectives: [...state.objectives, objective],
+      activeObjectiveId: objective.id,
+      objectiveHistory: [objective.id, ...state.objectiveHistory].slice(0, 12),
+      lastObjectiveRoutingDecision: decision,
+    }));
+    return objective;
+  },
+  updateObjectiveFromVoice: (text) => {
+    const decision = get().routeUtteranceToObjective(text);
+    set((state) => {
+      const update = applyObjectiveRouting(state.objectives, state.activeObjectiveId, decision, text);
+      return {
+        objectives: update.objectives,
+        activeObjectiveId: update.activeObjectiveId,
+        objectiveHistory: update.objectiveHistory,
+        lastObjectiveRoutingDecision: decision,
+      };
+    });
+  },
+  routeUtteranceToObjective: (text) => {
+    const state = get();
+    const decision = routeUtteranceToObjectiveFrame(
+      text,
+      getActiveObjective(state.objectives, state.activeObjectiveId),
+      state.objectives,
+    );
+    set({ lastObjectiveRoutingDecision: decision });
+    return decision;
+  },
+  attachObjectsToObjective: (objectIds, objectiveId) =>
+    set((state) => ({
+      objectives: state.objectives.map((objective) =>
+        objective.id === objectiveId ? attachObjectsToObjectiveFrame(objective, objectIds) : objective,
+      ),
+      relevantContextObjectIds: Array.from(new Set([...state.relevantContextObjectIds, ...objectIds])),
+    })),
+  completeObjective: (objectiveId) =>
+    set((state) => ({
+      objectives: state.objectives.map((objective) =>
+        objective.id === objectiveId ? { ...objective, status: "completed", updatedAt: Date.now() } : objective,
+      ),
+      activeObjectiveId: state.activeObjectiveId === objectiveId ? null : state.activeObjectiveId,
+    })),
+  pauseObjective: (objectiveId) =>
+    set((state) => ({
+      objectives: state.objectives.map((objective) =>
+        objective.id === objectiveId ? { ...objective, status: "paused", updatedAt: Date.now() } : objective,
+      ),
+      activeObjectiveId: state.activeObjectiveId === objectiveId ? null : state.activeObjectiveId,
+    })),
+  switchToObjective: (objectiveId) =>
+    set((state) => ({
+      objectives: state.objectives.map((objective) =>
+        objective.id === objectiveId
+          ? { ...objective, status: "active", updatedAt: Date.now() }
+          : objective.id === state.activeObjectiveId
+            ? { ...objective, status: "paused", updatedAt: Date.now() }
+            : objective,
+      ),
+      activeObjectiveId: objectiveId,
+      objectiveHistory: [objectiveId, ...state.objectiveHistory.filter((id) => id !== objectiveId)].slice(0, 12),
     })),
 }));
 
@@ -328,6 +471,10 @@ function routeRequestsAppleContext(action: RoutedVoiceAction) {
   return false;
 }
 
+function objectiveRequestsAppleContext(decision: ObjectiveRoutingDecision) {
+  return decision.requestedContext.some((context) => context.source === "calendar" || context.source === "mail" || context.source === "notes");
+}
+
 function applyAppleContextBundle(state: SurfaceState, bundle: AppleContextBundle): SurfaceState {
   const appleContext: AppleContextState = {
     calendarEvents: bundle.calendarEvents,
@@ -339,11 +486,68 @@ function applyAppleContextBundle(state: SurfaceState, bundle: AppleContextBundle
     error: null,
   };
 
+  const objects = ingestAppleContextBundle(bundle);
+  const workObjects = mergeWorkObjectIndex(state.workObjects, objects);
+  const objectives = attachRelevantObjectsToActiveObjective(state.objectives, state.activeObjectiveId, workObjects);
+
   return {
     ...state,
     appleContext,
+    workObjects,
+    objectives,
+    relevantContextObjectIds: scoreRelevantContextIds(objectives, state.activeObjectiveId, workObjects),
     workspaceSession: updateAppleWorkspaceSurfaces(state.workspaceSession, appleContext, false),
   };
+}
+
+function syncObjectiveSurfaceIds(
+  objectives: ObjectiveFrame[],
+  activeObjectiveId: string | null,
+  session: WorkspaceSession,
+) {
+  if (!activeObjectiveId) {
+    return objectives;
+  }
+
+  return objectives.map((objective) =>
+    objective.id === activeObjectiveId && session.primarySurfaceId
+      ? { ...objective, primarySurfaceId: session.primarySurfaceId }
+      : objective,
+  );
+}
+
+function attachRelevantObjectsToActiveObjective(
+  objectives: ObjectiveFrame[],
+  activeObjectiveId: string | null,
+  workObjects: WorkObjectIndex,
+) {
+  const activeObjective = getActiveObjective(objectives, activeObjectiveId);
+  if (!activeObjective) {
+    return objectives;
+  }
+
+  const result = connectContextToObjective(activeObjective, Object.values(workObjects));
+  return objectives.map((objective) => (objective.id === activeObjective.id ? result.objective : objective));
+}
+
+function scoreRelevantContextIds(
+  objectives: ObjectiveFrame[],
+  activeObjectiveId: string | null,
+  workObjects: WorkObjectIndex,
+) {
+  const activeObjective = getActiveObjective(objectives, activeObjectiveId);
+  if (!activeObjective) {
+    return [];
+  }
+
+  return connectContextToObjective(activeObjective, Object.values(workObjects)).relevantObjects
+    .map((item) => item.object.id)
+    .slice(0, 12);
+}
+
+function plannedCapabilityLabel(objectives: ObjectiveFrame[], activeObjectiveId: string | null) {
+  const activeObjective = getActiveObjective(objectives, activeObjectiveId);
+  return activeObjective?.plannedActions[0]?.capabilityId ?? null;
 }
 
 function updateAppleWorkspaceSurfaces(
