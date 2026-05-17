@@ -14,6 +14,7 @@ import type {
   CalendarPanelProps,
   ChartFrameProps,
   EmailDraftSurfaceProps,
+  FoundationSurfaceProps,
   MailPanelProps,
   NotesPanelProps,
   RemindersPanelProps,
@@ -100,6 +101,10 @@ function PrimarySurface({ surface }: { surface: SurfaceInstance }) {
     return <FilesPanel props={surface.props as unknown as FilesPanelProps} />;
   }
 
+  if (isFoundationSurface(surface.kind)) {
+    return <FoundationPanel props={surface.props as unknown as FoundationSurfaceProps} />;
+  }
+
   return null;
 }
 
@@ -134,6 +139,10 @@ function SupportingSurface({ surface }: { surface: SurfaceInstance }) {
 
   if (surface.kind === "chart") {
     return <ChartFrame props={surface.props as unknown as ChartFrameProps} />;
+  }
+
+  if (isFoundationSurface(surface.kind)) {
+    return <FoundationPanel props={surface.props as unknown as FoundationSurfaceProps} />;
   }
 
   return null;
@@ -287,6 +296,89 @@ function FilesPanel({ props }: { props: FilesPanelProps }) {
   );
 }
 
+function FoundationPanel({ props }: { props: FoundationSurfaceProps }) {
+  const items = props.items ?? [];
+  const detailEntries = props.detail ? Object.entries(props.detail).filter(([, value]) => value !== undefined && value !== null && value !== "") : [];
+
+  return (
+    <PanelShell icon={<Sparkles className="size-4 text-primary" />} title={props.title} badge={props.status}>
+      <div className="space-y-3">
+        <div className="rounded-md border border-white/10 bg-background/35 p-3 text-xs leading-5 text-muted-foreground">
+          <div><span className="text-foreground">Command:</span> {props.command}</div>
+          <div><span className="text-foreground">Adapter:</span> {props.adapter}</div>
+          {props.summary ? <div className="mt-2 text-foreground">{props.summary}</div> : null}
+        </div>
+
+        {props.approval ? (
+          <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 text-sm">
+            <div className="font-medium text-amber-50">Approval needed: {props.approval.label}</div>
+            <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-amber-50/85">
+              {JSON.stringify(props.approval.preview, null, 2)}
+            </pre>
+          </div>
+        ) : null}
+
+        {items.length ? (
+          <div className="space-y-2">
+            {items.map((item, index) => (
+              <article key={`${props.title}-${index}`} className="rounded-md border border-white/10 bg-background/35 p-3 text-sm">
+                <ObjectPreview item={item} />
+              </article>
+            ))}
+          </div>
+        ) : props.status === "empty" ? (
+          <EmptyPanelText status={props.status} label="The adapter returned no matching data." />
+        ) : null}
+
+        {detailEntries.length ? (
+          <div className="rounded-md border border-white/10 bg-background/35 p-3 text-xs leading-5 text-muted-foreground">
+            {detailEntries.map(([key, value]) => (
+              <div key={key} className="grid grid-cols-[120px_minmax(0,1fr)] gap-2">
+                <span className="text-foreground">{key}</span>
+                <span className="min-w-0 break-words">{String(value)}</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {props.body ? (
+          <div className="max-h-[46vh] overflow-auto whitespace-pre-wrap rounded-md border border-white/10 bg-white/[0.035] p-4 text-sm leading-6">
+            {props.body}
+          </div>
+        ) : null}
+
+        {props.error ? (
+          <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs leading-5 text-destructive-foreground">
+            <div className="font-medium">Exact error</div>
+            <div className="mt-1 break-words">{props.error}</div>
+          </div>
+        ) : null}
+
+        {props.permissionHint || props.suggestedNextAction ? (
+          <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 text-xs leading-5 text-amber-50/85">
+            {props.permissionHint ? <p>{props.permissionHint}</p> : null}
+            {props.suggestedNextAction ? <p className="mt-1">{props.suggestedNextAction}</p> : null}
+          </div>
+        ) : null}
+      </div>
+    </PanelShell>
+  );
+}
+
+function ObjectPreview({ item }: { item: Record<string, unknown> }) {
+  const title = pickString(item, ["title", "subject", "displayName", "name", "label", "id"]);
+  const subtitle = pickString(item, ["subtitle", "sender", "folder", "calendarName", "listName", "organization", "path"]);
+  const body = pickString(item, ["preview", "body", "contentPreview", "notes", "readableType"]);
+
+  return (
+    <div>
+      <div className="font-medium">{title}</div>
+      {subtitle ? <div className="mt-1 break-words text-xs leading-5 text-muted-foreground">{subtitle}</div> : null}
+      {body ? <div className="mt-2 break-words text-xs leading-5 text-muted-foreground">{body}</div> : null}
+    </div>
+  );
+}
+
 function EmptyPanelText({ status, label }: { status: string; label: string }) {
   return (
     <p className="rounded-md border border-white/10 bg-background/35 p-3 text-xs leading-5 text-muted-foreground">
@@ -430,5 +522,31 @@ function surfaceLabel(surface: SurfaceInstance) {
   if (surface.kind === "files") return "Files";
   if (surface.kind === "table") return "Table";
   if (surface.kind === "chart") return "Chart";
+  if (isFoundationSurface(surface.kind)) return "Local context";
   return "Surface";
+}
+
+function isFoundationSurface(kind: SurfaceInstance["kind"]) {
+  return [
+    "capability_status",
+    "email_list",
+    "email_detail",
+    "calendar_day",
+    "reminder_list",
+    "notes_list",
+    "note_detail",
+    "contacts",
+    "file_detail",
+    "command_error",
+    "approval",
+  ].includes(kind);
+}
+
+function pickString(item: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = item[key];
+    if (typeof value === "string" && value.trim()) return value;
+    if (typeof value === "number") return String(value);
+  }
+  return "";
 }

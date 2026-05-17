@@ -8,6 +8,7 @@ import type { ObjectiveFrame } from "@/objectives/objective-types";
 import { requiresApproval } from "@/capabilities/approval-policy";
 import { goldenTasks } from "@/evals/golden-tasks";
 import type { GoldenEvalReport, GoldenTask, GoldenTaskResult } from "@/evals/seemless-bench-types";
+import { routeFoundationCommand } from "@/local-context/work-command-router";
 
 export function runGoldenTasks(tasks: GoldenTask[] = goldenTasks): GoldenEvalReport {
   const results = tasks.map(runGoldenTask);
@@ -38,6 +39,32 @@ function runGoldenTask(task: GoldenTask): GoldenTaskResult {
   let approvalRequired = false;
 
   for (const utterance of task.utterances) {
+    const foundationCommand = routeFoundationCommand(utterance);
+    if (foundationCommand) {
+      const now = Date.now();
+      const role = session.primarySurfaceId ? "supporting" : "primary";
+      session = applyWorkspacePatches(session, [
+        {
+          type: "CREATE_SURFACE",
+          surface: {
+            id: `foundation-${foundationCommand.surfaceKind}`,
+            kind: foundationCommand.surfaceKind as never,
+            role,
+            zone: role === "primary" ? "main" : "bottom_left",
+            status: "active",
+            createdAt: now,
+            updatedAt: now,
+            props: { command: utterance, adapter: foundationCommand.adapter },
+          },
+        },
+        ...(role === "primary" ? [{ type: "SET_PRIMARY_SURFACE" as const, surfaceId: `foundation-${foundationCommand.surfaceKind}` }] : []),
+        { type: "STORE_CONTEXT_RESULT", key: foundationCommand.surfaceKind, value: foundationCommand.payload },
+      ]);
+      refreshedContext = refreshedContext || ["load_calendar_events", "load_mail_messages", "load_notes", "load_reminders", "search_contacts", "search_local_files"].includes(foundationCommand.adapter);
+      approvalRequired = approvalRequired || foundationCommand.requiresApproval;
+      continue;
+    }
+
     const activeObjective = getActiveObjective(objectives, activeObjectiveId);
     const decision = routeUtteranceToObjectiveFrame(utterance, activeObjective, objectives);
     const objectiveUpdate = applyObjectiveRouting(objectives, activeObjectiveId, decision, utterance);

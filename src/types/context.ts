@@ -36,6 +36,28 @@ export interface NotesQuery {
   limit?: number;
 }
 
+export interface ReminderQuery {
+  limit?: number;
+  includeCompleted?: boolean;
+}
+
+export interface ContactQuery {
+  query: string;
+  limit?: number;
+}
+
+export interface FileSearchQuery {
+  root?: "Desktop" | "Documents" | "Downloads" | string;
+  query?: string;
+  extension?: string;
+  modifiedAfterMs?: number;
+  limit?: number;
+}
+
+export interface FileReadQuery {
+  path: string;
+}
+
 export interface AppleCalendarEvent {
   id: string;
   title: string;
@@ -56,6 +78,10 @@ export interface AppleMailMessage {
   preview?: string | null;
 }
 
+export interface AppleMailMessageDetail extends AppleMailMessage {
+  body: string;
+}
+
 export interface AppleNotePreview {
   id: string;
   title: string;
@@ -65,8 +91,100 @@ export interface AppleNotePreview {
   preview?: string | null;
 }
 
+export interface AppleNoteDetail {
+  id: string;
+  title: string;
+  folder: string;
+  createdAt?: string | null;
+  modifiedAt?: string | null;
+  body: string;
+}
+
+export interface AppleReminder {
+  id: string;
+  title: string;
+  listName: string;
+  dueAt?: string | null;
+  completed: boolean;
+  notes?: string | null;
+}
+
+export interface AppleContact {
+  id: string;
+  displayName: string;
+  emails: string[];
+  phoneNumbers: string[];
+  organization?: string | null;
+}
+
+export interface AppleCommandResult {
+  id: string;
+  ok: boolean;
+  message: string;
+}
+
+export interface CreateCalendarEventRequest {
+  title: string;
+  startAt: string;
+  endAt?: string | null;
+  calendarName?: string | null;
+  notes?: string | null;
+}
+
+export interface CreateReminderRequest {
+  title: string;
+  dueAt?: string | null;
+  listName?: string | null;
+  notes?: string | null;
+}
+
+export interface UpdateReminderRequest {
+  id: string;
+  dueAt?: string | null;
+  completed?: boolean | null;
+}
+
+export interface CreateNoteRequest {
+  title: string;
+  body?: string | null;
+  folderName?: string | null;
+}
+
+export interface WorkFileRecord {
+  id: string;
+  path: string;
+  name: string;
+  extension?: string | null;
+  size: number;
+  modifiedAt?: number | null;
+  root: string;
+  readableType: string;
+}
+
+export interface FileReadResult {
+  file: WorkFileRecord;
+  supported: boolean;
+  contentPreview: string;
+  chunks: string[];
+  error?: string | null;
+}
+
+export interface CapabilityDiagnostic {
+  id: string;
+  label: string;
+  provider: string;
+  status: "available" | "needs-permission" | "needs-configuration" | "failed" | "not-implemented";
+  supportedOperations: Array<"read" | "list" | "search" | "create" | "update" | "delete" | "draft" | "send" | string>;
+  lastCheckedAt: number;
+  lastError?: string | null;
+  permissionInstructions: string;
+  testCommandExamples: string[];
+  works: string[];
+  doesNotWork: string[];
+}
+
 export interface AppleContextWarning {
-  source: "calendar" | "mail" | "notes" | "system";
+  source: "calendar" | "mail" | "notes" | "reminders" | "contacts" | "system";
   message: string;
 }
 
@@ -74,6 +192,7 @@ export interface AppleContextBundle {
   calendarEvents: AppleCalendarEvent[];
   mailMessages: AppleMailMessage[];
   notes: AppleNotePreview[];
+  reminders: AppleReminder[];
   warnings: AppleContextWarning[];
   loadedAt: number;
 }

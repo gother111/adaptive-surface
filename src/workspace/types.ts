@@ -8,7 +8,18 @@ export type SurfaceKind =
   | "document"
   | "table"
   | "chart"
-  | "intent_debug";
+  | "intent_debug"
+  | "capability_status"
+  | "email_list"
+  | "email_detail"
+  | "calendar_day"
+  | "reminder_list"
+  | "notes_list"
+  | "note_detail"
+  | "contacts"
+  | "file_detail"
+  | "command_error"
+  | "approval";
 
 export type SurfaceRole = "primary" | "supporting" | "temporary" | "debug";
 
@@ -204,6 +215,25 @@ export interface FilesPanelProps {
     detail?: string;
   }>;
   warnings?: string[];
+}
+
+export interface FoundationSurfaceProps {
+  title: string;
+  status: "loading" | "available" | "empty" | "permission_error" | "adapter_error" | "needs_approval" | "not_implemented";
+  command: string;
+  adapter: string;
+  summary?: string;
+  items?: Array<Record<string, unknown>>;
+  detail?: Record<string, unknown>;
+  body?: string;
+  error?: string | null;
+  permissionHint?: string;
+  suggestedNextAction?: string;
+  approval?: {
+    actionId: string;
+    label: string;
+    preview: Record<string, unknown>;
+  };
 }
 
 export interface TableFrameProps {

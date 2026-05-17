@@ -8,6 +8,9 @@ import {
 } from "@/lib/context-sources";
 import { loadAppleContextBundle } from "@/lib/context-api";
 import { initialSurfaces } from "@/lib/surface-fixtures";
+import { runFoundationCommand } from "@/local-context/work-command-runner";
+import { routeFoundationCommand } from "@/local-context/work-command-router";
+import type { FoundationCommandMemory } from "@/local-context/work-command-types";
 import { getActiveObjective } from "@/objectives/objective-memory";
 import { applyObjectiveRouting, attachObjectsToObjectiveFrame, createObjectiveFrame } from "@/objectives/objective-reducer";
 import { routeUtteranceToObjectiveFrame } from "@/objectives/objective-router";
@@ -22,6 +25,7 @@ import type {
   AppleContextWarning,
   AppleMailMessage,
   AppleNotePreview,
+  AppleReminder,
 } from "@/types/context";
 import { routeVoiceAction, routedActionToPatches } from "@/workspace/voice-router";
 import { applyWorkspacePatches, createInitialWorkspaceSession } from "@/workspace/workspace-reducer";
@@ -30,12 +34,13 @@ import type {
   MailPanelProps,
   NotesPanelProps,
   RoutedVoiceAction,
+  SurfaceInstance,
   WorkspacePatch,
   WorkspaceSession,
 } from "@/workspace/types";
 import { connectContextToObjective } from "@/work-pipeline/connect-context-to-objective";
 import { ingestAppleContextBundle } from "@/work-pipeline/ingest-local-context";
-import { mergeWorkObjectIndex, selectWorkObjects, type WorkObjectIndex } from "@/work-objects/work-object-index";
+import { mergeWorkObjectIndex, type WorkObjectIndex } from "@/work-objects/work-object-index";
 import type { WorkObject } from "@/work-objects/work-object-types";
 
 interface TranscriptEntry {
@@ -49,6 +54,7 @@ interface AppleContextState {
   calendarEvents: AppleCalendarEvent[];
   mailMessages: AppleMailMessage[];
   notes: AppleNotePreview[];
+  reminders: AppleReminder[];
   warnings: AppleContextWarning[];
   lastSyncedAt: number | null;
   loading: boolean;
@@ -81,6 +87,7 @@ interface SurfaceState {
   lastCapabilityAction: string | null;
   lastApprovalRequired: boolean;
   lastGoldenEvalStatus: string | null;
+  foundationCommandMemory: FoundationCommandMemory;
   draftSurface: SurfaceConfig | null;
   firstPartialLatencyMs: number | null;
   transcript: TranscriptEntry[];
@@ -117,6 +124,7 @@ interface SurfaceState {
   completeObjective: (objectiveId: string) => void;
   pauseObjective: (objectiveId: string) => void;
   switchToObjective: (objectiveId: string) => void;
+  executeFoundationCommand: (text: string) => Promise<void>;
 }
 
 export const useSurfaceStore = create<SurfaceState>((set, get) => ({
@@ -145,6 +153,7 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
   lastCapabilityAction: null,
   lastApprovalRequired: false,
   lastGoldenEvalStatus: null,
+  foundationCommandMemory: {},
   draftSurface: null,
   firstPartialLatencyMs: null,
   transcript: [],
@@ -153,6 +162,7 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
     calendarEvents: [],
     mailMessages: [],
     notes: [],
+    reminders: [],
     warnings: [],
     lastSyncedAt: null,
     loading: false,
@@ -207,6 +217,12 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
       };
     }),
   receiveVoiceFinal: (text) => {
+    const foundationCommand = routeFoundationCommand(text);
+    if (foundationCommand) {
+      void get().executeFoundationCommand(text);
+      return;
+    }
+
     let shouldRefreshAppleContext = false;
     set((state) => {
       const activeObjective = getActiveObjective(state.objectives, state.activeObjectiveId);
@@ -272,6 +288,7 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
       relevantContextObjectIds: [],
       lastCapabilityAction: null,
       lastApprovalRequired: false,
+      foundationCommandMemory: {},
       debugHudOpen: false,
       activeSurfaceId: state.activeSurfaceId,
     })),
@@ -405,6 +422,34 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
       activeObjectiveId: objectiveId,
       objectiveHistory: [objectiveId, ...state.objectiveHistory.filter((id) => id !== objectiveId)].slice(0, 12),
     })),
+  executeFoundationCommand: async (text) => {
+    const command = routeFoundationCommand(text);
+    if (!command) {
+      return;
+    }
+
+    set((state) => {
+      const loadingPatches = createFoundationLoadingPatches(state.workspaceSession, command.surfaceKind, text, command.adapter);
+      return {
+        partialTranscript: "",
+        committedTranscript: `${state.committedTranscript} ${text}`.trim(),
+        transcript: commitTranscript(state.transcript, text),
+        activeIntent: null,
+        workspaceSession: applyWorkspacePatches(state.workspaceSession, loadingPatches),
+        workspacePatches: [...loadingPatches, ...state.workspacePatches].slice(0, 36),
+        lastCapabilityAction: command.adapter,
+        lastApprovalRequired: command.requiresApproval,
+      };
+    });
+
+    const current = get();
+    const result = await runFoundationCommand(command, current.workspaceSession, current.foundationCommandMemory);
+    set((state) => ({
+      foundationCommandMemory: result.memory,
+      workspaceSession: applyWorkspacePatches(state.workspaceSession, result.patches),
+      workspacePatches: [...result.patches, ...state.workspacePatches].slice(0, 36),
+    }));
+  },
 }));
 
 function patchSurfaceState(state: SurfaceState, surfaceId: string, patch: SurfacePatch): SurfaceState {
@@ -459,6 +504,38 @@ function commitTranscript(transcript: TranscriptEntry[], text: string) {
   return [{ id: crypto.randomUUID(), text, at: Date.now(), status: "committed" as const }, ...withoutPartial].slice(0, 16);
 }
 
+function createFoundationLoadingPatches(
+  session: WorkspaceSession,
+  surfaceKind: string,
+  utteranceText: string,
+  adapter: string,
+): WorkspacePatch[] {
+  const now = Date.now();
+  const hasPrimary = Boolean(session.primarySurfaceId);
+  const surface: SurfaceInstance = {
+    id: `foundation-${surfaceKind}`,
+    kind: surfaceKind as SurfaceInstance["kind"],
+    role: hasPrimary ? "supporting" : "primary",
+    zone: hasPrimary ? "bottom_left" : "main",
+    status: "active",
+    createdAt: now,
+    updatedAt: now,
+    props: {
+      title: "Loading local context",
+      status: "loading",
+      command: utteranceText,
+      adapter,
+      summary: "Calling the local adapter now.",
+    },
+  };
+
+  return [
+    { type: "APPEND_UTTERANCE", utterance: { id: crypto.randomUUID(), text: utteranceText, createdAt: now } },
+    { type: "CREATE_SURFACE", surface },
+    ...(surface.role === "primary" ? [{ type: "SET_PRIMARY_SURFACE" as const, surfaceId: surface.id }] : []),
+  ];
+}
+
 function routeRequestsAppleContext(action: RoutedVoiceAction) {
   if (action.kind === "add_supporting_surface") {
     return action.surfaceKind === "calendar" || action.surfaceKind === "mail" || action.surfaceKind === "notes";
@@ -480,6 +557,7 @@ function applyAppleContextBundle(state: SurfaceState, bundle: AppleContextBundle
     calendarEvents: bundle.calendarEvents,
     mailMessages: bundle.mailMessages,
     notes: bundle.notes,
+    reminders: bundle.reminders,
     warnings: bundle.warnings,
     lastSyncedAt: bundle.loadedAt,
     loading: false,

@@ -1,6 +1,12 @@
 mod apple;
+mod local_files;
 
-use apple::{load_apple_context_bundle, load_calendar_events, load_mail_messages, load_notes};
+use apple::{
+    create_calendar_event, create_note, create_reminder, load_apple_context_bundle,
+    load_calendar_events, load_capability_diagnostics, load_mail_messages, load_notes,
+    load_reminders, read_mail_message, read_note, search_contacts, update_reminder,
+};
+use local_files::{FileReadQuery, FileReadResult, FileSearchQuery, WorkFileRecord};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::fs;
@@ -222,6 +228,16 @@ fn system_time_to_epoch_ms(value: SystemTime) -> u64 {
         .unwrap_or(0)
 }
 
+#[tauri::command]
+fn search_local_files(query: FileSearchQuery) -> Result<Vec<WorkFileRecord>, String> {
+    local_files::search_files(query)
+}
+
+#[tauri::command]
+fn read_local_file(query: FileReadQuery) -> Result<FileReadResult, String> {
+    local_files::read_file(query)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -233,8 +249,19 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             load_local_context_preview,
             load_calendar_events,
+            create_calendar_event,
             load_mail_messages,
+            read_mail_message,
             load_notes,
+            read_note,
+            create_note,
+            load_reminders,
+            create_reminder,
+            update_reminder,
+            search_contacts,
+            load_capability_diagnostics,
+            search_local_files,
+            read_local_file,
             load_apple_context_bundle,
             load_external_auth_requirements
         ])

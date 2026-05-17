@@ -69,3 +69,7 @@ pub fn optional_field(value: Option<&String>) -> Option<String> {
         .filter(|item| !item.is_empty() && *item != "missing value")
         .map(ToOwned::to_owned)
 }
+
+pub fn quote_applescript(value: &str) -> String {
+    format!("\"{}\"", value.replace('\\', "\\\\").replace('"', "\\\""))
+}

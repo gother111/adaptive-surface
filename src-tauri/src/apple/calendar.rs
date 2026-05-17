@@ -1,5 +1,5 @@
-use super::applescript::{optional_field, run_osascript_records};
-use super::models::{AppleCalendarEvent, CalendarQuery};
+use super::applescript::{optional_field, quote_applescript, run_osascript_records};
+use super::models::{AppleCalendarEvent, AppleCommandResult, CalendarQuery, CreateCalendarEventRequest};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
@@ -35,6 +35,25 @@ pub fn load_calendar_events(query: CalendarQuery) -> Result<Vec<AppleCalendarEve
         })
         .take(limit)
         .collect())
+}
+
+pub fn create_calendar_event(request: CreateCalendarEventRequest) -> Result<AppleCommandResult, String> {
+    let title = request.title.trim();
+    if title.is_empty() {
+        return Err("Calendar event title is required.".to_string());
+    }
+
+    let rows = run_osascript_records(&create_calendar_event_script(&request))?;
+    let id = rows
+        .first()
+        .and_then(|row| optional_field(row.first()))
+        .unwrap_or_else(|| stable_id(&[request.calendar_name.as_deref().unwrap_or("Calendar"), title, &request.start_at]));
+
+    Ok(AppleCommandResult {
+        id,
+        ok: true,
+        message: format!("Created calendar event \"{title}\"."),
+    })
 }
 
 fn calendar_script(limit: usize, days_ahead: u32) -> String {
@@ -85,6 +104,39 @@ end tell
 set AppleScript's text item delimiters to recordSeparator
 set outputText to outputRows as text
 set AppleScript's text item delimiters to ""
+return outputText
+"#
+    )
+}
+
+fn create_calendar_event_script(request: &CreateCalendarEventRequest) -> String {
+    let title = quote_applescript(&request.title);
+    let start_at = quote_applescript(&request.start_at);
+    let end_at = quote_applescript(request.end_at.as_deref().unwrap_or(&request.start_at));
+    let notes = quote_applescript(request.notes.as_deref().unwrap_or(""));
+    let calendar_name = quote_applescript(request.calendar_name.as_deref().unwrap_or(""));
+    format!(
+        r#"
+set fieldSeparator to ASCII character 31
+set outputText to ""
+set requestedCalendar to {calendar_name}
+tell application "Calendar"
+	set targetCalendar to first calendar
+	if requestedCalendar is not "" then
+		try
+			set targetCalendar to calendar requestedCalendar
+		end try
+	end if
+	set startDate to date {start_at}
+	set endDate to date {end_at}
+	if endDate is not greater than startDate then set endDate to startDate + (60 * minutes)
+	tell targetCalendar
+		set createdEvent to make new event with properties {{summary:{title}, start date:startDate, end date:endDate, description:{notes}}}
+	end tell
+	try
+		set outputText to uid of createdEvent as text
+	end try
+end tell
 return outputText
 "#
     )

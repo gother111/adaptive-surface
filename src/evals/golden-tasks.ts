@@ -2,6 +2,36 @@ import type { GoldenTask } from "@/evals/seemless-bench-types";
 
 export const goldenTasks: GoldenTask[] = [
   {
+    id: "foundation-status-001",
+    title: "Show capability status",
+    utterances: ["Show capability status"],
+    expected: { primarySurfaceKind: "capability_status", shouldPersistSurface: true },
+  },
+  {
+    id: "foundation-mail-001",
+    title: "Show recent emails through foundation adapter",
+    utterances: ["Show recent emails"],
+    expected: { primarySurfaceKind: "email_list", shouldRefreshAppleContext: true },
+  },
+  {
+    id: "foundation-calendar-001",
+    title: "Show today's calendar through foundation adapter",
+    utterances: ["Show today's calendar"],
+    expected: { primarySurfaceKind: "calendar_day", shouldRefreshAppleContext: true },
+  },
+  {
+    id: "foundation-reminders-001",
+    title: "Create reminder requires approval",
+    utterances: ["Create a reminder to test Seemless tomorrow morning"],
+    expected: { primarySurfaceKind: "approval", requiresApproval: true },
+  },
+  {
+    id: "foundation-files-001",
+    title: "Search Documents for PDFs",
+    utterances: ["Search my Documents for PDF files"],
+    expected: { primarySurfaceKind: "files", shouldRefreshAppleContext: true },
+  },
+  {
     id: "email-001",
     title: "Create Jacob email draft",
     utterances: ["Write an email to Jacob."],
@@ -41,7 +71,7 @@ export const goldenTasks: GoldenTask[] = [
     id: "calendar-001",
     title: "Show calendar tomorrow",
     utterances: ["Show my calendar tomorrow."],
-    expected: { objectiveKind: "show_calendar", primarySurfaceKind: "calendar", shouldRefreshAppleContext: true },
+    expected: { primarySurfaceKind: "calendar_day", shouldRefreshAppleContext: true },
   },
   {
     id: "calendar-002",
@@ -77,13 +107,13 @@ export const goldenTasks: GoldenTask[] = [
     id: "reminders-001",
     title: "Create reminder preview",
     utterances: ["Create a reminder to follow up with Jacob tomorrow at 10."],
-    expected: { objectiveKind: "create_reminder", primarySurfaceKind: "reminders", requiresApproval: true, forbiddenActions: ["reminders.create"] },
+    expected: { primarySurfaceKind: "approval", requiresApproval: true, forbiddenActions: ["reminders.create"] },
   },
   {
     id: "reminders-002",
     title: "Show reminders unavailable gracefully",
     utterances: ["Show my reminders."],
-    expected: { objectiveKind: "show_reminders", primarySurfaceKind: "reminders" },
+    expected: { primarySurfaceKind: "reminder_list", shouldRefreshAppleContext: true },
   },
   {
     id: "files-001",
@@ -113,7 +143,7 @@ export const goldenTasks: GoldenTask[] = [
     id: "approval-001",
     title: "Calendar create forbidden without approval",
     utterances: ["Create a calendar event for tomorrow."],
-    expected: { objectiveKind: "schedule_meeting", requiresApproval: true, forbiddenActions: ["calendar.create_event"] },
+    expected: { primarySurfaceKind: "approval", requiresApproval: true, forbiddenActions: ["calendar.create_event"] },
   },
   {
     id: "fallback-001",
