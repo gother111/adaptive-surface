@@ -100,7 +100,7 @@ import Foundation
 
 let store = EKEventStore()
 let raw = EKEventStore.authorizationStatus(for: .reminder).rawValue
-guard raw == 3 else {{
+guard raw == 3 || raw == 4 else {{
   fputs("permission: Reminders access is not authorized for Adaptive Surface\n", stderr)
   exit(3)
 }}
@@ -141,7 +141,7 @@ import Foundation
 
 let store = EKEventStore()
 let raw = EKEventStore.authorizationStatus(for: .reminder).rawValue
-guard raw == 3 else {{
+guard raw == 3 || raw == 4 else {{
   fputs("permission: Reminders write access is not authorized for Adaptive Surface\n", stderr)
   exit(3)
 }}
@@ -178,7 +178,7 @@ import Foundation
 
 let store = EKEventStore()
 let raw = EKEventStore.authorizationStatus(for: .reminder).rawValue
-guard raw == 3 else {{
+guard raw == 3 || raw == 4 else {{
   fputs("permission: Reminders update access is not authorized for Adaptive Surface\n", stderr)
   exit(3)
 }}
@@ -200,7 +200,7 @@ print(reminder.calendarItemIdentifier)
 const REMINDERS_STATUS_SWIFT: &str = r#"import EventKit
 import Foundation
 let raw = EKEventStore.authorizationStatus(for: .reminder).rawValue
-guard raw == 3 else {
+guard raw == 3 || raw == 4 else {
   fputs("permission: Reminders access is not authorized for Adaptive Surface\n", stderr)
   exit(3)
 }

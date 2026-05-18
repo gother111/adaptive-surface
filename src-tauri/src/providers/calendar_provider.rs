@@ -97,7 +97,7 @@ import Foundation
 
 let store = EKEventStore()
 let raw = EKEventStore.authorizationStatus(for: .event).rawValue
-guard raw == 3 else {{
+guard raw == 3 || raw == 4 else {{
   fputs("permission: Calendar access is not authorized for Adaptive Surface\n", stderr)
   exit(3)
 }}
@@ -129,7 +129,7 @@ import Foundation
 
 let store = EKEventStore()
 let raw = EKEventStore.authorizationStatus(for: .event).rawValue
-guard raw == 3 else {{
+guard raw == 3 || raw == 4 else {{
   fputs("permission: Calendar write access is not authorized for Adaptive Surface\n", stderr)
   exit(3)
 }}
@@ -158,7 +158,7 @@ print(event.eventIdentifier ?? "")
 const CALENDAR_STATUS_SWIFT: &str = r#"import EventKit
 import Foundation
 let raw = EKEventStore.authorizationStatus(for: .event).rawValue
-guard raw == 3 else {
+guard raw == 3 || raw == 4 else {
   fputs("permission: Calendar access is not authorized for Adaptive Surface\n", stderr)
   exit(3)
 }
