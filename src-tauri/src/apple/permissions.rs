@@ -1,31 +1,103 @@
-use super::applescript::{launch_application, run_osascript};
 use super::models::CapabilityDiagnostic;
+use crate::providers::{calendar_provider, contacts_provider, mail_provider, notes_provider, reminders_provider};
+use crate::providers::provider_status::{ProviderErrorKind, ProviderStatus};
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn capability_diagnostics() -> Vec<CapabilityDiagnostic> {
     vec![
-        apple_capability("apple.mail", "Apple Mail", "Mail", vec!["read", "list", "search", "draft"], vec!["show recent emails", "open latest email fully"], r#"tell application "Mail"
-	if not (exists inbox) then return "no inbox"
-	return "inbox available"
-end tell"#),
-        apple_capability("apple.calendar", "Apple Calendar", "Calendar", vec!["read", "list", "create"], vec!["show today's calendar", "create a calendar event tomorrow at 10 called Test Event"], r#"tell application "Calendar"
-	launch
-	return (count of calendars) as text
-end tell"#),
-        apple_capability("apple.reminders", "Apple Reminders", "Reminders", vec!["read", "list", "create", "update"], vec!["show my reminders", "create a reminder to test Seemless tomorrow morning"], r#"tell application "Reminders"
-	return (count of lists) as text
-end tell"#),
-        apple_capability("apple.notes", "Apple Notes", "Notes", vec!["read", "list", "search", "create", "update"], vec!["show recent notes", "open latest note fully", "create a note called Seemless Test Note"], r#"tell application "Notes"
-	return (count of notes) as text
-end tell"#),
-        apple_capability("apple.contacts", "Apple Contacts", "Contacts", vec!["read", "search"], vec!["find contacts named Yurii"], r#"tell application "Contacts"
-	return (count of people) as text
-end tell"#),
+        apple_capability(
+            "apple.mail",
+            "Apple Mail",
+            "Mail provider chain",
+            vec!["read", "list", "search", "draft"],
+            vec!["show recent emails", "open latest email fully"],
+            mail_provider::status(),
+            vec!["Envelope Index metadata", "best-effort .emlx body lookup", "AppleScript fallback only if Mail is already running"],
+        ),
+        apple_capability(
+            "apple.calendar",
+            "Apple Calendar",
+            "EventKit",
+            vec!["read", "list", "create"],
+            vec!["show today's calendar", "create a calendar event after approval"],
+            calendar_provider::status(),
+            vec!["today/upcoming events", "approval-gated event creation"],
+        ),
+        apple_capability(
+            "apple.reminders",
+            "Apple Reminders",
+            "EventKit",
+            vec!["read", "list", "create", "update"],
+            vec!["show my reminders", "create a reminder after approval"],
+            reminders_provider::status(),
+            vec!["incomplete reminder listing", "approval-gated reminder creation", "update by native identifier"],
+        ),
+        apple_capability(
+            "apple.notes",
+            "Apple Notes",
+            "Notes provider chain",
+            vec!["read", "list", "search", "create", "update"],
+            vec!["show recent notes", "open latest note fully"],
+            notes_provider::status(),
+            vec!["AppleScript fallback only if Notes is already running"],
+        ),
+        apple_capability(
+            "apple.contacts",
+            "Apple Contacts",
+            "Contacts.framework",
+            vec!["read", "search"],
+            vec!["find contacts named Yurii"],
+            contacts_provider::status(),
+            vec!["name/email/phone/organization search", "contact notes are not requested"],
+        ),
         local_files_capability(),
         scaffolded_google("google.calendar", "Google Calendar"),
         scaffolded_google("google.drive", "Google Drive"),
     ]
+}
+
+fn apple_capability(
+    id: &str,
+    label: &str,
+    provider: &str,
+    operations: Vec<&str>,
+    examples: Vec<&str>,
+    status: ProviderStatus,
+    works_when_available: Vec<&str>,
+) -> CapabilityDiagnostic {
+    let available = status.status == "available";
+    let status_label = if available {
+        "available"
+    } else {
+        match status.error_kind {
+            Some(ProviderErrorKind::Permission) => "needs-permission",
+            Some(ProviderErrorKind::Unsupported) => "not-implemented",
+            _ => "failed",
+        }
+    };
+
+    CapabilityDiagnostic {
+        id: id.to_string(),
+        label: label.to_string(),
+        provider: format!("{provider} ({})", status.provider_name),
+        status: status_label.to_string(),
+        supported_operations: strings(operations),
+        last_checked_at: epoch_ms(),
+        last_error: status.exact_error,
+        permission_instructions: permission_instructions(id),
+        test_command_examples: strings(examples),
+        works: if available {
+            works_when_available.into_iter().map(ToOwned::to_owned).collect()
+        } else {
+            Vec::new()
+        },
+        does_not_work: if available {
+            vec!["does not open external Apple apps for read/list/search".to_string()]
+        } else {
+            vec!["read/list/search does not open external Apple apps; unavailable providers return an honest status".to_string()]
+        },
+    }
 }
 
 fn local_files_capability() -> CapabilityDiagnostic {
@@ -57,7 +129,7 @@ fn local_files_capability() -> CapabilityDiagnostic {
             .map(|root| format!("trusted root available: {root}"))
             .chain(strings(vec!["metadata indexing", "name search", "extension search", "safe text previews"]))
             .collect(),
-        does_not_work: strings(vec!["system folders", "hidden folder crawling", "large-file full reads"]),
+        does_not_work: strings(vec!["system folders", "hidden folder crawling", "pdf/docx/xlsx full reads"]),
     }
 }
 
@@ -72,47 +144,14 @@ fn trusted_file_roots() -> Vec<PathBuf> {
         .collect()
 }
 
-fn apple_capability(
-    id: &str,
-    label: &str,
-    app_name: &str,
-    operations: Vec<&str>,
-    examples: Vec<&str>,
-    probe_script: &str,
-) -> CapabilityDiagnostic {
-    let checked = epoch_ms();
-    launch_application(app_name);
-    match run_osascript(probe_script) {
-        Ok(probe_result) => CapabilityDiagnostic {
-            id: id.to_string(),
-            label: label.to_string(),
-            provider: format!("{app_name} AppleScript adapter"),
-            status: "available".to_string(),
-            supported_operations: strings(operations),
-            last_checked_at: checked,
-            last_error: None,
-            permission_instructions: format!("macOS may ask to allow Adaptive Surface to control {app_name}. Approve it in System Settings > Privacy & Security > Automation if blocked."),
-            test_command_examples: strings(examples),
-            works: vec![
-                "adapter launches".to_string(),
-                "real read/list probe succeeded".to_string(),
-                format!("probe result: {probe_result}"),
-            ],
-            does_not_work: strings(vec!["no background daemon", "requires local macOS app data", "AppleScript can still fail on specific records"]),
-        },
-        Err(error) => CapabilityDiagnostic {
-            id: id.to_string(),
-            label: label.to_string(),
-            provider: format!("{app_name} AppleScript adapter"),
-            status: "needs-permission".to_string(),
-            supported_operations: strings(operations),
-            last_checked_at: checked,
-            last_error: Some(error),
-            permission_instructions: format!("Open {app_name} once, then allow Adaptive Surface under System Settings > Privacy & Security > Automation."),
-            test_command_examples: strings(examples),
-            works: Vec::new(),
-            does_not_work: strings(vec!["permission check failed"]),
-        },
+fn permission_instructions(id: &str) -> String {
+    match id {
+        "apple.calendar" => "Allow Calendar access for Adaptive Surface in macOS Privacy & Security. Automation is only used for optional fallbacks.".to_string(),
+        "apple.reminders" => "Allow Reminders access for Adaptive Surface in macOS Privacy & Security. Automation is only used for optional fallbacks.".to_string(),
+        "apple.contacts" => "Allow Contacts access for Adaptive Surface in macOS Privacy & Security. Contact notes are not requested.".to_string(),
+        "apple.mail" => "Mail reads use local Envelope Index metadata first. Automation is only used if Mail is already running.".to_string(),
+        "apple.notes" => "Notes support uses a non-opening provider chain. If Notes is closed and local decoding is unavailable, Adaptive Surface reports unavailable.".to_string(),
+        _ => "No app-opening diagnostics are used.".to_string(),
     }
 }
 

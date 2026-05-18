@@ -48,9 +48,29 @@ pub fn run_osascript(script: &str) -> Result<String, String> {
     }
 }
 
-pub fn launch_application(app_name: &str) {
-    let _ = Command::new("open").args(["-g", "-j", "-a", app_name]).status();
-    thread::sleep(Duration::from_millis(300));
+pub fn is_application_running(app_name: &str) -> bool {
+    Command::new("/usr/bin/pgrep")
+        .args(["-x", app_name])
+        .status()
+        .map(|status| status.success())
+        .unwrap_or(false)
+}
+
+pub fn run_applescript_without_launch(script: &str) -> Result<String, String> {
+    run_osascript(script)
+}
+
+pub fn run_optional_applescript_fallback_only_if_running(
+    app_name: &str,
+    script: &str,
+) -> Result<String, String> {
+    if !is_application_running(app_name) {
+        return Err(format!(
+            "{app_name} AppleScript fallback is not available because {app_name} is not running. Adaptive Surface did not open it."
+        ));
+    }
+
+    run_applescript_without_launch(script)
 }
 
 #[allow(dead_code)]
@@ -64,6 +84,7 @@ pub fn run_osascript_lines(script: &str) -> Result<Vec<String>, String> {
         .collect())
 }
 
+#[allow(dead_code)]
 pub fn run_osascript_records(script: &str) -> Result<Vec<Vec<String>>, String> {
     let output = run_osascript(script)?;
     Ok(output

@@ -34,6 +34,16 @@ export function applyWorkspacePatch(session: WorkspaceSession, patch: WorkspaceP
         mode: patch.surface.kind === "email_draft" ? "drafting" : session.mode,
       };
     }
+    case "UPSERT_SURFACE": {
+      const surfaces = upsertSurface(session.surfaces, patch.surface);
+      return {
+        ...session,
+        active: true,
+        surfaces,
+        primarySurfaceId: patch.surface.role === "primary" ? patch.surface.id : session.primarySurfaceId,
+        currentGoal: patch.surface.role === "primary" ? surfaceGoal(patch.surface) : session.currentGoal,
+      };
+    }
     case "UPDATE_SURFACE":
       return {
         ...session,
@@ -41,6 +51,8 @@ export function applyWorkspacePatch(session: WorkspaceSession, patch: WorkspaceP
           surface.id === patch.surfaceId
             ? {
                 ...surface,
+                role: patch.role ?? surface.role,
+                zone: patch.zone ?? surface.zone,
                 status: surface.status === "hidden" ? "active" : surface.status,
                 updatedAt,
                 props: { ...surface.props, ...patch.props },
@@ -81,9 +93,7 @@ export function applyWorkspacePatch(session: WorkspaceSession, patch: WorkspaceP
         surfaces: session.surfaces.map((surface) =>
           surface.id === patch.surfaceId
             ? { ...surface, role: "primary", zone: "main", status: "active", updatedAt }
-            : surface.role === "primary"
-              ? { ...surface, role: "supporting", status: "collapsed", updatedAt }
-              : surface,
+            : surface,
         ),
       };
     case "SET_DEBUG_VISIBLE":

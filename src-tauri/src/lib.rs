@@ -1,5 +1,6 @@
 mod apple;
 mod local_files;
+mod providers;
 
 use apple::{
     create_calendar_event, create_note, create_reminder, load_apple_context_bundle,

@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { WorkspaceGrid } from "@/components/workspace/WorkspaceGrid";
 import type {
   CalendarPanelProps,
   ChartFrameProps,
@@ -30,9 +30,6 @@ interface WorkspaceStageProps {
 
 export function WorkspaceStage({ session }: WorkspaceStageProps) {
   const primarySurface = session.surfaces.find((surface) => surface.id === session.primarySurfaceId && surface.status !== "hidden");
-  const supportingSurfaces = session.surfaces
-    .filter((surface) => surface.role !== "primary" && surface.status !== "hidden" && surface.role !== "debug")
-    .sort(sortSupportingSurfaces);
 
   if (!primarySurface) {
     return (
@@ -50,67 +47,16 @@ export function WorkspaceStage({ session }: WorkspaceStageProps) {
     );
   }
 
-  return (
-    <section className="h-screen min-h-0 overflow-hidden px-4 pb-24 pt-16 sm:px-5 lg:px-6">
-      <div
-        className={cn(
-          "mx-auto grid h-full max-w-7xl gap-4",
-          supportingSurfaces.length > 0
-            ? "grid-cols-1 lg:grid-cols-[minmax(260px,360px)_minmax(0,1fr)]"
-            : "grid-cols-1",
-        )}
-      >
-        {supportingSurfaces.length > 0 ? (
-          <aside className="no-drag flex min-h-0 flex-col gap-3 overflow-auto pr-1">
-            {supportingSurfaces.map((surface) => (
-              <SupportingSurface key={surface.id} surface={surface} />
-            ))}
-          </aside>
-        ) : null}
-
-        <div className="no-drag min-h-0">
-          <PrimarySurface surface={primarySurface} />
-        </div>
-      </div>
-    </section>
-  );
+  return <WorkspaceGrid session={session} renderSurface={(surface) => <WorkspaceSurface surface={surface} />} />;
 }
 
-function PrimarySurface({ surface }: { surface: SurfaceInstance }) {
-  if (surface.kind === "email_draft") {
-    return <EmailDraftSurface props={readEmailProps(surface.props)} />;
-  }
-
-  if (surface.kind === "calendar") {
-    return <CalendarPanel props={surface.props as unknown as CalendarPanelProps} />;
-  }
-
-  if (surface.kind === "mail") {
-    return <MailPanel props={surface.props as unknown as MailPanelProps} />;
-  }
-
-  if (surface.kind === "notes") {
-    return <NotesPanel props={surface.props as unknown as NotesPanelProps} />;
-  }
-
-  if (surface.kind === "reminders") {
-    return <RemindersPanel props={surface.props as unknown as RemindersPanelProps} />;
-  }
-
-  if (surface.kind === "files" || surface.kind === "document") {
-    return <FilesPanel props={surface.props as unknown as FilesPanelProps} />;
-  }
-
-  if (isFoundationSurface(surface.kind)) {
-    return <FoundationPanel props={surface.props as unknown as FoundationSurfaceProps} />;
-  }
-
-  return null;
-}
-
-function SupportingSurface({ surface }: { surface: SurfaceInstance }) {
+function WorkspaceSurface({ surface }: { surface: SurfaceInstance }) {
   if (surface.status === "collapsed") {
     return <CollapsedSurface surface={surface} />;
+  }
+
+  if (surface.kind === "email_draft") {
+    return <EmailDraftSurface props={readEmailProps(surface.props)} />;
   }
 
   if (surface.kind === "calendar") {
@@ -306,6 +252,11 @@ function FoundationPanel({ props }: { props: FoundationSurfaceProps }) {
         <div className="rounded-md border border-white/10 bg-background/35 p-3 text-xs leading-5 text-muted-foreground">
           <div><span className="text-foreground">Command:</span> {props.command}</div>
           <div><span className="text-foreground">Adapter:</span> {props.adapter}</div>
+          {props.provider ? <div><span className="text-foreground">Provider:</span> {props.provider}</div> : null}
+          {props.errorKind ? <div><span className="text-foreground">Error kind:</span> {props.errorKind}</div> : null}
+          {typeof props.didOpenExternalApp === "boolean" ? (
+            <div><span className="text-foreground">External app opened:</span> {props.didOpenExternalApp ? "yes" : "no"}</div>
+          ) : null}
           {props.summary ? <div className="mt-2 text-foreground">{props.summary}</div> : null}
         </div>
 
@@ -499,18 +450,6 @@ function readEmailProps(props: Record<string, unknown>): EmailDraftSurfaceProps 
       ? props.sourceChips.filter((item): item is string => typeof item === "string")
       : [],
   };
-}
-
-function sortSupportingSurfaces(a: SurfaceInstance, b: SurfaceInstance) {
-  return zoneWeight(a.zone) - zoneWeight(b.zone) || a.createdAt - b.createdAt;
-}
-
-function zoneWeight(zone: SurfaceInstance["zone"]) {
-  if (zone === "top_left") return 0;
-  if (zone === "left") return 1;
-  if (zone === "bottom_left") return 2;
-  if (zone === "bottom") return 3;
-  return 4;
 }
 
 function surfaceLabel(surface: SurfaceInstance) {

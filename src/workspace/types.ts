@@ -24,6 +24,9 @@ export type SurfaceKind =
 export type SurfaceRole = "primary" | "supporting" | "temporary" | "debug";
 
 export type SurfaceZone =
+  | "leftRail"
+  | "rightRail"
+  | "bottomDock"
   | "main"
   | "left"
   | "right"
@@ -72,6 +75,12 @@ export type WorkspacePatch =
       type: "UPDATE_SURFACE";
       surfaceId: string;
       props: Record<string, unknown>;
+      role?: SurfaceRole;
+      zone?: SurfaceZone;
+    }
+  | {
+      type: "UPSERT_SURFACE";
+      surface: SurfaceInstance;
     }
   | {
       type: "COLLAPSE_SURFACE";
@@ -222,6 +231,9 @@ export interface FoundationSurfaceProps {
   status: "loading" | "available" | "empty" | "permission_error" | "adapter_error" | "needs_approval" | "not_implemented";
   command: string;
   adapter: string;
+  provider?: string;
+  didOpenExternalApp?: boolean;
+  errorKind?: "permission" | "unavailable" | "adapter" | "timeout" | "unsupported";
   summary?: string;
   items?: Array<Record<string, unknown>>;
   detail?: Record<string, unknown>;

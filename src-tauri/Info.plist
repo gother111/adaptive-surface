@@ -7,6 +7,12 @@
   <key>NSSpeechRecognitionUsageDescription</key>
   <string>Adaptive Surface uses speech recognition to turn your voice into adaptive local work surfaces.</string>
   <key>NSAppleEventsUsageDescription</key>
-  <string>Adaptive Surface can run approval-gated AppleScript commands for local macOS automation.</string>
+  <string>Adaptive Surface uses AppleScript only as an optional fallback when an Apple app is already running.</string>
+  <key>NSCalendarsFullAccessUsageDescription</key>
+  <string>Adaptive Surface reads and creates calendar events inside the workspace without opening Calendar.</string>
+  <key>NSRemindersFullAccessUsageDescription</key>
+  <string>Adaptive Surface reads and manages reminders inside the workspace without opening Reminders.</string>
+  <key>NSContactsUsageDescription</key>
+  <string>Adaptive Surface searches contact names, emails, phone numbers, and organizations without opening Contacts.</string>
 </dict>
 </plist>

@@ -15,6 +15,7 @@ import {
 } from "@/lib/context-api";
 import { mergeCapabilityDiagnostics } from "@/local-context/capability-registry";
 import type { FoundationCommand, FoundationCommandMemory, PendingApproval } from "@/local-context/work-command-types";
+import { assignWorkspaceLayout, shouldCommandBecomePrimary } from "@/workspace/layout/workspace-layout-engine";
 import type { FoundationSurfaceProps, SurfaceInstance, WorkspacePatch, WorkspaceSession } from "@/workspace/types";
 
 export interface FoundationCommandRunResult {
@@ -42,7 +43,7 @@ export async function runFoundationCommand(
   try {
     switch (command.kind) {
       case "show_capability_status": {
-        const diagnostics = await loadCapabilityDiagnostics();
+        const diagnostics = await withTimeout(loadCapabilityDiagnostics(), command.adapter);
         const capabilities = mergeCapabilityDiagnostics(diagnostics);
         return result(session, command, memory, {
           title: "Capability status",
@@ -54,7 +55,7 @@ export async function runFoundationCommand(
         });
       }
       case "show_recent_emails": {
-        const messages = await loadMailMessages({ limit: 25, unreadFirst: true });
+        const messages = await withTimeout(loadMailMessages({ limit: 25, unreadFirst: true }), command.adapter);
         return result(session, command, { ...memory, latestEmailId: messages[0]?.id }, {
           title: "Recent emails",
           status: messages.length ? "available" : "empty",
@@ -68,7 +69,7 @@ export async function runFoundationCommand(
         if (!memory.latestEmailId) {
           throw new Error("No latest email is loaded yet. Say \"Show recent emails\" first.");
         }
-        const message = await readMailMessage(memory.latestEmailId);
+        const message = await withTimeout(readMailMessage(memory.latestEmailId), command.adapter);
         return result(session, command, memory, {
           title: message.subject || "Email detail",
           status: "available",
@@ -80,7 +81,7 @@ export async function runFoundationCommand(
         });
       }
       case "show_today_calendar": {
-        const events = await loadCalendarEvents({ daysAhead: 1, limit: 30 });
+        const events = await withTimeout(loadCalendarEvents({ daysAhead: 1, limit: 30 }), command.adapter);
         return result(session, command, memory, {
           title: "Today's calendar",
           status: events.length ? "available" : "empty",
@@ -91,7 +92,7 @@ export async function runFoundationCommand(
         });
       }
       case "show_reminders": {
-        const reminders = await loadReminders({ includeCompleted: false, limit: 50 });
+        const reminders = await withTimeout(loadReminders({ includeCompleted: false, limit: 50 }), command.adapter);
         return result(session, command, memory, {
           title: "Reminders",
           status: reminders.length ? "available" : "empty",
@@ -102,7 +103,7 @@ export async function runFoundationCommand(
         });
       }
       case "show_recent_notes": {
-        const notes = await loadNotes({ limit: 25 });
+        const notes = await withTimeout(loadNotes({ limit: 25 }), command.adapter);
         return result(session, command, { ...memory, latestNoteId: notes[0]?.id }, {
           title: "Recent notes",
           status: notes.length ? "available" : "empty",
@@ -116,7 +117,7 @@ export async function runFoundationCommand(
         if (!memory.latestNoteId) {
           throw new Error("No latest note is loaded yet. Say \"Show recent notes\" first.");
         }
-        const note = await readNote(memory.latestNoteId);
+        const note = await withTimeout(readNote(memory.latestNoteId), command.adapter);
         return result(session, command, memory, {
           title: note.title,
           status: "available",
@@ -128,7 +129,7 @@ export async function runFoundationCommand(
         });
       }
       case "find_contacts": {
-        const contacts = await searchContacts({ query: String(command.payload.query ?? ""), limit: 25 });
+        const contacts = await withTimeout(searchContacts({ query: String(command.payload.query ?? ""), limit: 25 }), command.adapter);
         return result(session, command, memory, {
           title: "Contacts",
           status: contacts.length ? "available" : "empty",
@@ -140,7 +141,7 @@ export async function runFoundationCommand(
       }
       case "show_files":
       case "search_files": {
-        const files = await searchLocalFiles(command.payload);
+        const files = await withTimeout(searchLocalFiles(command.payload), command.adapter);
         return result(session, command, { ...memory, latestFilePath: files[0]?.path }, {
           title: command.kind === "show_files" ? `Files from ${command.payload.root ?? "trusted roots"}` : "File search",
           status: files.length ? "available" : "empty",
@@ -154,7 +155,7 @@ export async function runFoundationCommand(
         if (!memory.latestFilePath) {
           throw new Error("No file is selected yet. Say \"Show files from Desktop\" or \"Search Documents for PDF files\" first.");
         }
-        const file = await readLocalFile({ path: memory.latestFilePath });
+        const file = await withTimeout(readLocalFile({ path: memory.latestFilePath }), command.adapter);
         return result(session, command, memory, {
           title: file.file.name,
           status: file.supported ? "available" : "not_implemented",
@@ -233,7 +234,10 @@ function result(
 ): FoundationCommandRunResult {
   return {
     memory,
-    patches: surfacePatches(session, command.surfaceKind, props, command.utterance),
+    patches: surfacePatches(session, command.surfaceKind, {
+      didOpenExternalApp: false,
+      ...props,
+    }, command.utterance),
   };
 }
 
@@ -255,13 +259,17 @@ function approvalProps(command: FoundationCommand, pendingApproval: PendingAppro
 
 function errorProps(command: Pick<FoundationCommand, "utterance" | "adapter">, error: unknown): FoundationSurfaceProps {
   const message = error instanceof Error ? error.message : String(error);
+  const metadata = parseProviderError(message);
   return {
     title: "Command failed",
-    status: message.toLowerCase().includes("not authorized") || message.toLowerCase().includes("permission") ? "permission_error" : "adapter_error",
+    status: metadata.errorKind === "permission" || message.toLowerCase().includes("not authorized") || message.toLowerCase().includes("permission") ? "permission_error" : "adapter_error",
     command: command.utterance,
     adapter: command.adapter,
+    provider: metadata.provider,
+    didOpenExternalApp: metadata.didOpenExternalApp,
+    errorKind: metadata.errorKind,
     error: message,
-    permissionHint: "If this is a macOS app permission issue, open System Settings > Privacy & Security > Automation and allow Adaptive Surface to control the target app.",
+    permissionHint: "For Calendar, Reminders, and Contacts, grant native privacy access in System Settings > Privacy & Security. Automation is only used as an optional fallback when an app is already running.",
     suggestedNextAction: "Run \"Show capability status\" to inspect the adapter.",
   };
 }
@@ -284,10 +292,13 @@ function surfacePatches(
 ): WorkspacePatch[] {
   const now = Date.now();
   const surface = createFoundationSurface(session, surfaceKind, props, now, utterance);
+  const shouldBecomePrimary = surface.role === "primary";
   return [
-    { type: "APPEND_UTTERANCE", utterance: { id: crypto.randomUUID(), text: utterance, createdAt: now } },
-    { type: "CREATE_SURFACE", surface },
-    ...(surface.role === "primary" ? [{ type: "SET_PRIMARY_SURFACE" as const, surfaceId: surface.id }] : []),
+    {
+      type: "UPSERT_SURFACE",
+      surface,
+    },
+    ...(shouldBecomePrimary ? [{ type: "SET_PRIMARY_SURFACE" as const, surfaceId: surface.id }] : []),
     { type: "STORE_CONTEXT_RESULT", key: surfaceKind, value: props },
   ];
 }
@@ -300,17 +311,50 @@ function createFoundationSurface(
   utterance: string,
 ): SurfaceInstance {
   const startOver = /\b(start over|clear|new workspace)\b/i.test(utterance);
-  const hasPrimary = Boolean(session.primarySurfaceId);
-  const role = !hasPrimary || startOver ? "primary" : "supporting";
+  const makePrimary = startOver || shouldCommandBecomePrimary(surfaceKind as SurfaceInstance["kind"]);
+  const layout = assignWorkspaceLayout({ kind: surfaceKind as SurfaceInstance["kind"] }, { makePrimary });
 
   return {
     id: `foundation-${surfaceKind}`,
     kind: surfaceKind as SurfaceInstance["kind"],
-    role,
-    zone: role === "primary" ? "main" : "bottom_left",
+    role: layout.role,
+    zone: layout.zone,
     status: "active",
     createdAt: now,
     updatedAt: now,
     props: { ...props },
   };
+}
+
+async function withTimeout<T>(promise: Promise<T>, adapter: string, timeoutMs = 12_000): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeout = setTimeout(() => {
+          reject(new Error(`provider=${adapter} errorKind=timeout didOpenExternalApp=false exactError=Adapter timed out after ${timeoutMs}ms.`));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
+function parseProviderError(message: string) {
+  return {
+    provider: message.match(/provider=([^ ]+)/)?.[1],
+    didOpenExternalApp: message.match(/didOpenExternalApp=(true|false)/)?.[1] === "true",
+    errorKind: normalizeErrorKind(message.match(/errorKind=([A-Za-z]+)/)?.[1]),
+  };
+}
+
+function normalizeErrorKind(value?: string): FoundationSurfaceProps["errorKind"] | undefined {
+  if (!value) return undefined;
+  const lower = value.toLowerCase();
+  if (lower === "permission" || lower === "unavailable" || lower === "adapter" || lower === "timeout" || lower === "unsupported") {
+    return lower;
+  }
+  return undefined;
 }

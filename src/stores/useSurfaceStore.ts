@@ -29,6 +29,7 @@ import type {
 } from "@/types/context";
 import { routeVoiceAction, routedActionToPatches } from "@/workspace/voice-router";
 import { applyWorkspacePatches, createInitialWorkspaceSession } from "@/workspace/workspace-reducer";
+import { assignWorkspaceLayout, shouldCommandBecomePrimary } from "@/workspace/layout/workspace-layout-engine";
 import type {
   CalendarPanelProps,
   MailPanelProps,
@@ -511,12 +512,15 @@ function createFoundationLoadingPatches(
   adapter: string,
 ): WorkspacePatch[] {
   const now = Date.now();
-  const hasPrimary = Boolean(session.primarySurfaceId);
+  const layout = assignWorkspaceLayout(
+    { kind: surfaceKind as SurfaceInstance["kind"] },
+    { makePrimary: shouldCommandBecomePrimary(surfaceKind as SurfaceInstance["kind"]) },
+  );
   const surface: SurfaceInstance = {
     id: `foundation-${surfaceKind}`,
     kind: surfaceKind as SurfaceInstance["kind"],
-    role: hasPrimary ? "supporting" : "primary",
-    zone: hasPrimary ? "bottom_left" : "main",
+    role: layout.role,
+    zone: layout.zone,
     status: "active",
     createdAt: now,
     updatedAt: now,
@@ -531,7 +535,7 @@ function createFoundationLoadingPatches(
 
   return [
     { type: "APPEND_UTTERANCE", utterance: { id: crypto.randomUUID(), text: utteranceText, createdAt: now } },
-    { type: "CREATE_SURFACE", surface },
+    { type: "UPSERT_SURFACE", surface },
     ...(surface.role === "primary" ? [{ type: "SET_PRIMARY_SURFACE" as const, surfaceId: surface.id }] : []),
   ];
 }
