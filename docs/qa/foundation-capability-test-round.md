@@ -1,6 +1,6 @@
 # Foundation Capability Test Round
 
-Use this checklist for manual QA of the local-context foundation. Every failure must show a visible command-error surface with adapter name, exact error, permission hint, and suggested next action.
+Use this checklist for manual QA of the local-context foundation. Every failure must show a visible command-error surface with adapter name, exact error, permission hint, and suggested next action. Run each phrase through both the microphone and the typed command bar at the bottom of the app so command handling can be separated from dictation reliability.
 
 | Spoken phrase | Expected adapter call | Expected surface | Success state | Permission failure state | Empty state |
 | --- | --- | --- | --- | --- | --- |
@@ -19,6 +19,19 @@ Use this checklist for manual QA of the local-context foundation. Every failure 
 | Search my Documents for PDF files | `search_local_files` with root `Documents`, extension `pdf` | `FilesSurface` | Real PDF files from Documents | `CommandErrorSurface` shows filesystem error | Files surface says no matching PDFs |
 | Open this file summary | `read_local_file` using latest loaded file path | `FileDetailSurface` | Supported text file shows preview/chunks | Unsupported PDF/DOCX/XLSX says indexed but not readable in this milestone | If no prior file, visible error says to search files first |
 
+## Short Phrase Regression Checks
+
+These short forms should route to the same adapters as the fuller spoken phrases:
+
+- `recent emails`
+- `calendar today`
+- `reminders`
+- `notes`
+- `latest note`
+- `find Yurii`
+- `desktop files`
+- `documents pdf`
+
 ## Stability Checks
 
 - These commands must not destroy the existing primary surface unless the user says `start over`, `clear`, or `new workspace`.
@@ -26,3 +39,5 @@ Use this checklist for manual QA of the local-context foundation. Every failure 
 - Partial transcripts may update live debug/caption state only.
 - Write actions must show `ApprovalSurface` first.
 - Sending email remains disabled unless a future explicit confirmation flow is built.
+- Capability status must run real adapter probes; a shallow app-launch check is not enough.
+- AppleScript adapter calls must time out with a visible error rather than spinning forever.

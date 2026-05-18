@@ -1,4 +1,4 @@
-use super::applescript::{optional_field, quote_applescript, run_osascript_records};
+use super::applescript::{launch_application, optional_field, quote_applescript, run_osascript_records};
 use super::models::{AppleCommandResult, AppleNoteDetail, AppleNotePreview, CreateNoteRequest, NotesQuery};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -7,6 +7,7 @@ pub fn load_notes(query: NotesQuery) -> Result<Vec<AppleNotePreview>, String> {
     let limit = query.limit.unwrap_or(25).clamp(1, 100);
     let script = notes_script(limit);
 
+    launch_application("Notes");
     let rows = run_osascript_records(&script)?;
     Ok(rows
         .into_iter()
@@ -40,6 +41,7 @@ pub fn load_notes(query: NotesQuery) -> Result<Vec<AppleNotePreview>, String> {
 }
 
 pub fn read_note(id: String) -> Result<AppleNoteDetail, String> {
+    launch_application("Notes");
     let rows = run_osascript_records(&read_note_script(&id))?;
     let row = rows
         .into_iter()
@@ -64,6 +66,7 @@ pub fn create_note(request: CreateNoteRequest) -> Result<AppleCommandResult, Str
 
     let body = request.body.unwrap_or_default();
     let folder_name = request.folder_name.unwrap_or_else(|| "Notes".to_string());
+    launch_application("Notes");
     let rows = run_osascript_records(&create_note_script(title, &body, &folder_name))?;
     let id = rows
         .first()

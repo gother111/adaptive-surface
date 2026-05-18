@@ -29,6 +29,22 @@ describe("foundation command router", () => {
     expect(searchPdf?.payload.extension).toBe("pdf");
   });
 
+  it("routes short natural phrases that users actually try", () => {
+    expect(routeFoundationCommand("recent emails")?.kind).toBe("show_recent_emails");
+    expect(routeFoundationCommand("calendar today")?.kind).toBe("show_today_calendar");
+    expect(routeFoundationCommand("reminders")?.kind).toBe("show_reminders");
+    expect(routeFoundationCommand("notes")?.kind).toBe("show_recent_notes");
+    expect(routeFoundationCommand("latest note")?.kind).toBe("open_latest_note");
+    expect(routeFoundationCommand("find Yurii")?.payload.query).toBe("yurii");
+    expect(routeFoundationCommand("desktop files")?.payload.root).toBe("Desktop");
+    expect(routeFoundationCommand("documents pdf")?.payload.extension).toBe("pdf");
+  });
+
+  it("does not steal explicit workflow switches or note searches from the objective router", () => {
+    expect(routeFoundationCommand("Open calendar instead.")).toBeNull();
+    expect(routeFoundationCommand("Find recent notes about Adaptive Surface.")).toBeNull();
+  });
+
   it("marks write commands as approval-required", () => {
     expect(routeFoundationCommand("Create a calendar event tomorrow at 10 called Test Event")?.requiresApproval).toBe(true);
     expect(routeFoundationCommand("Create a reminder to test Seemless tomorrow morning")?.requiresApproval).toBe(true);

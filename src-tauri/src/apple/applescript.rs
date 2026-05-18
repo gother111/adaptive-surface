@@ -1,14 +1,38 @@
 use std::process::Command;
+use std::process::Stdio;
+use std::thread;
+use std::time::{Duration, Instant};
 
 pub const FIELD_SEPARATOR: char = '\u{001f}';
 pub const RECORD_SEPARATOR: char = '\u{001e}';
 
 pub fn run_osascript(script: &str) -> Result<String, String> {
-    let output = Command::new("osascript")
+    let timeout = Duration::from_secs(12);
+    let mut child = Command::new("osascript")
         .arg("-e")
         .arg(script)
-        .output()
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
         .map_err(|error| format!("Failed to launch osascript: {error}"))?;
+
+    let started_at = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) if started_at.elapsed() >= timeout => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!("AppleScript timed out after {} seconds.", timeout.as_secs()));
+            }
+            Ok(None) => thread::sleep(Duration::from_millis(50)),
+            Err(error) => return Err(format!("Failed while waiting for osascript: {error}")),
+        }
+    }
+
+    let output = child
+        .wait_with_output()
+        .map_err(|error| format!("Failed to collect osascript output: {error}"))?;
 
     if output.status.success() {
         String::from_utf8(output.stdout)
@@ -22,6 +46,11 @@ pub fn run_osascript(script: &str) -> Result<String, String> {
             stderr
         })
     }
+}
+
+pub fn launch_application(app_name: &str) {
+    let _ = Command::new("open").args(["-g", "-j", "-a", app_name]).status();
+    thread::sleep(Duration::from_millis(300));
 }
 
 #[allow(dead_code)]

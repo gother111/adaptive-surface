@@ -53,7 +53,7 @@ export const goldenTasks: GoldenTask[] = [
     id: "email-004",
     title: "Email with calendar support",
     utterances: ["Write an email to Jacob.", "Check my calendar and say I am free next Tuesday afternoon."],
-    expected: { objectiveKind: "draft_email", primarySurfaceKind: "email_draft", supportingSurfaceKinds: ["calendar"], shouldRefreshAppleContext: true },
+    expected: { objectiveKind: "draft_email", primarySurfaceKind: "email_draft", supportingSurfaceKinds: ["calendar_day"], shouldRefreshAppleContext: true },
   },
   {
     id: "email-005",

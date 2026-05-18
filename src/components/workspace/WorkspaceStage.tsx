@@ -41,7 +41,7 @@ export function WorkspaceStage({ session }: WorkspaceStageProps) {
           <div className="mx-auto mb-5 flex size-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-primary shadow-[0_0_42px_var(--surface-glow)]">
             <Sparkles className="size-5" />
           </div>
-          <h1 className="text-lg font-medium">Speak or press Cmd Shift Space</h1>
+          <h1 className="text-lg font-medium">Speak or type a command</h1>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
             A workspace will stay open once there is something useful to work on.
           </p>

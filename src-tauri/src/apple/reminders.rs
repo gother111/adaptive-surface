@@ -1,4 +1,4 @@
-use super::applescript::{optional_field, quote_applescript, run_osascript_records};
+use super::applescript::{launch_application, optional_field, quote_applescript, run_osascript_records};
 use super::models::{AppleCommandResult, AppleReminder, CreateReminderRequest, ReminderQuery, UpdateReminderRequest};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -6,6 +6,7 @@ use std::hash::{Hash, Hasher};
 pub fn load_reminders(query: ReminderQuery) -> Result<Vec<AppleReminder>, String> {
     let limit = query.limit.unwrap_or(50).clamp(1, 200);
     let include_completed = query.include_completed.unwrap_or(false);
+    launch_application("Reminders");
     let rows = run_osascript_records(&reminders_script(limit, include_completed))?;
 
     Ok(rows
@@ -42,6 +43,7 @@ pub fn create_reminder(request: CreateReminderRequest) -> Result<AppleCommandRes
         return Err("Reminder title is required.".to_string());
     }
 
+    launch_application("Reminders");
     let rows = run_osascript_records(&create_reminder_script(&request))?;
     let id = rows
         .first()
@@ -56,6 +58,7 @@ pub fn create_reminder(request: CreateReminderRequest) -> Result<AppleCommandRes
 }
 
 pub fn update_reminder(request: UpdateReminderRequest) -> Result<AppleCommandResult, String> {
+    launch_application("Reminders");
     let rows = run_osascript_records(&update_reminder_script(&request))?;
     let id = rows
         .first()

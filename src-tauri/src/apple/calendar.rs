@@ -1,4 +1,4 @@
-use super::applescript::{optional_field, quote_applescript, run_osascript_records};
+use super::applescript::{launch_application, optional_field, quote_applescript, run_osascript_records};
 use super::models::{AppleCalendarEvent, AppleCommandResult, CalendarQuery, CreateCalendarEventRequest};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -8,6 +8,7 @@ pub fn load_calendar_events(query: CalendarQuery) -> Result<Vec<AppleCalendarEve
     let days_ahead = query.days_ahead.unwrap_or(14).clamp(1, 365);
     let script = calendar_script(limit, days_ahead);
 
+    launch_application("Calendar");
     let rows = run_osascript_records(&script)?;
     Ok(rows
         .into_iter()
@@ -43,6 +44,7 @@ pub fn create_calendar_event(request: CreateCalendarEventRequest) -> Result<Appl
         return Err("Calendar event title is required.".to_string());
     }
 
+    launch_application("Calendar");
     let rows = run_osascript_records(&create_calendar_event_script(&request))?;
     let id = rows
         .first()
@@ -63,10 +65,12 @@ set fieldSeparator to ASCII character 31
 set recordSeparator to ASCII character 30
 set outputRows to {{}}
 set maxRows to {limit}
-set endDate to (current date) + ({days_ahead} * days)
+set startDate to current date
+set time of startDate to 0
+set endDate to startDate + ({days_ahead} * days)
 tell application "Calendar"
 	repeat with cal in calendars
-		repeat with evt in (every event of cal whose start date >= (current date) and start date <= endDate)
+		repeat with evt in (every event of cal whose start date >= startDate and start date < endDate)
 			set eventTitle to ""
 			set calendarName to ""
 			set startText to ""

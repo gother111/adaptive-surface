@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { DevDrawer } from "@/components/app/DevDrawer";
 import { FloatingSurfaceControls } from "@/components/app/FloatingSurfaceControls";
+import { FoundationCommandBar } from "@/components/command/FoundationCommandBar";
 import { WorkspaceStage } from "@/components/workspace/WorkspaceStage";
 import { useSurfaceStore } from "@/stores/useSurfaceStore";
 
@@ -22,6 +23,7 @@ export function AppShell() {
         activeSurface={activeSurface}
         onOpenDevDrawer={() => setDevDrawerOpen(true)}
       />
+      <FoundationCommandBar />
       {import.meta.env.DEV ? (
         <DevDrawer open={devDrawerOpen} onOpenChange={setDevDrawerOpen} activeSurfaceId={activeSurfaceId} />
       ) : null}

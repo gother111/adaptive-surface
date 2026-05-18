@@ -1,4 +1,4 @@
-use super::applescript::{quote_applescript, run_osascript_records};
+use super::applescript::{launch_application, quote_applescript, run_osascript_records};
 use super::models::{AppleContact, ContactQuery};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -10,6 +10,7 @@ pub fn search_contacts(query: ContactQuery) -> Result<Vec<AppleContact>, String>
     }
 
     let limit = query.limit.unwrap_or(25).clamp(1, 100);
+    launch_application("Contacts");
     let rows = run_osascript_records(&contacts_script(needle, limit))?;
 
     Ok(rows

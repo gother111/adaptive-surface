@@ -11,15 +11,20 @@ export function routeFoundationCommand(utterance: string): FoundationCommand | n
     return command("show_capability_status", utterance, "capability_status", "load_capability_diagnostics", false, {});
   }
 
-  if (/\b(show|list).*\b(recent )?(emails?|mail|inbox messages)\b/.test(text)) {
+  if (/\b(show|list).*\b(recent )?(emails?|mail|inbox messages)\b/.test(text) || /\brecent (emails?|mail|inbox messages)\b/.test(text)) {
     return command("show_recent_emails", utterance, "email_list", "load_mail_messages", false, { limit: 25 });
   }
 
-  if (/\b(open|read).*\b(latest|last).*\b(email|mail|message).*\b(fully|full|body)?\b/.test(text)) {
+  if (/\b(open|read).*\b(latest|last).*\b(email|mail|message).*\b(fully|full|body)?\b/.test(text) || /\blatest (email|mail|message)\b/.test(text)) {
     return command("open_latest_email", utterance, "email_detail", "read_mail_message", false, {});
   }
 
-  if (/\b(show|open|check).*\b(today'?s|today).*\b(calendar|schedule|events?)\b/.test(text) || /\bshow my calendar\b/.test(text)) {
+  if (
+    !/\b(instead|switch to|start over|new task)\b/.test(text) &&
+    (/\b(show|open|check).*\b(today'?s|todays|today).*\b(calendar|schedule|events?)\b/.test(text) ||
+      /\b(calendar|schedule|events?)\s+(today'?s|todays|today)\b/.test(text) ||
+      /\b(show|open|check)\s+(my\s+)?calendar\b/.test(text))
+  ) {
     return command("show_today_calendar", utterance, "calendar_day", "load_calendar_events", false, { daysAhead: 1, limit: 30 });
   }
 
@@ -31,7 +36,7 @@ export function routeFoundationCommand(utterance: string): FoundationCommand | n
     });
   }
 
-  if (/\b(show|list|open|check).*\b(reminders?|todos?)\b/.test(text)) {
+  if (/\b(show|list|open|check).*\b(reminders?|todos?)\b/.test(text) || /^(reminders?|todos?)$/.test(text)) {
     return command("show_reminders", utterance, "reminder_list", "load_reminders", false, { includeCompleted: false, limit: 50 });
   }
 
@@ -42,11 +47,11 @@ export function routeFoundationCommand(utterance: string): FoundationCommand | n
     });
   }
 
-  if (/\b(show|list).*\b(recent )?notes?\b/.test(text)) {
+  if (/\b(show|list).*\b(recent )?notes?\b/.test(text) || /^(recent )?notes?$/.test(text)) {
     return command("show_recent_notes", utterance, "notes_list", "load_notes", false, { limit: 25 });
   }
 
-  if (/\b(open|read).*\b(latest|last).*\bnotes?.*\b(fully|full|body)?\b/.test(text)) {
+  if (/\b(open|read).*\b(latest|last).*\bnotes?.*\b(fully|full|body)?\b/.test(text) || /\blatest notes?\b/.test(text)) {
     return command("open_latest_note", utterance, "note_detail", "read_note", false, {});
   }
 
@@ -57,21 +62,21 @@ export function routeFoundationCommand(utterance: string): FoundationCommand | n
     });
   }
 
-  if (/\b(find|search).*\bcontacts?\b/.test(text) || /\bfind contact\b/.test(text)) {
+  if (/\b(find|search).*\bcontacts?\b/.test(text) || /\bfind contact\b/.test(text) || isLikelyContactFind(utterance)) {
     return command("find_contacts", utterance, "contacts", "search_contacts", false, {
-      query: extractAfter(text, "named") ?? extractAfter(text, "contact") ?? extractAfter(text, "contacts") ?? "",
+      query: extractAfter(text, "named") ?? extractAfter(text, "contact") ?? extractAfter(text, "contacts") ?? extractFindTarget(text) ?? "",
       limit: 25,
     });
   }
 
-  if (/\bshow files from\b/.test(text)) {
+  if (/\bshow files from\b/.test(text) || /\b(desktop|documents|downloads) files\b/.test(text)) {
     return command("show_files", utterance, "files", "search_local_files", false, {
       root: extractRoot(text) ?? "Desktop",
       limit: 50,
     });
   }
 
-  if (/\bsearch\b.*\b(documents|desktop|downloads)\b/.test(text)) {
+  if (/\bsearch\b.*\b(documents|desktop|downloads)\b/.test(text) || /\b(documents|desktop|downloads)\s+pdfs?\b/.test(text)) {
     return command("search_files", utterance, "files", "search_local_files", false, {
       root: extractRoot(text) ?? "Documents",
       extension: text.includes("pdf") ? "pdf" : undefined,
@@ -120,6 +125,14 @@ function extractAfter(text: string, marker: string) {
   const index = text.indexOf(marker);
   if (index === -1) return null;
   return text.slice(index + marker.length).replace(/[.]/g, "").trim() || null;
+}
+
+function extractFindTarget(text: string) {
+  return text.replace(/^find\s+/i, "").replace(/[.]/g, "").trim() || null;
+}
+
+function isLikelyContactFind(utterance: string) {
+  return /^find\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\.?$/.test(utterance.trim());
 }
 
 function extractRoot(text: string) {
