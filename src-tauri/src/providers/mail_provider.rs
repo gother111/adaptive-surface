@@ -13,13 +13,14 @@ use std::process::Command;
 const PROVIDER_NAME: &str = "EnvelopeIndexProvider";
 
 pub fn status() -> ProviderStatus {
-    if envelope_index_path().is_some() {
+    let diagnostics = mail_metadata_diagnostics();
+    if diagnostics.envelope_index_found {
         ProviderStatus::available(PROVIDER_NAME)
     } else {
         ProviderStatus::unavailable(
             PROVIDER_NAME,
             ProviderErrorKind::Unavailable,
-            "Apple Mail Envelope Index was not found. Adaptive Surface did not open Mail.",
+            diagnostics.summary(),
         )
     }
 }
@@ -68,7 +69,8 @@ pub fn read(id: String) -> Result<AppleMailMessageDetail, ProviderError> {
 }
 
 fn load_mail_messages_from_envelope_index(limit: usize) -> Result<Vec<AppleMailMessage>, String> {
-    let index_path = envelope_index_path().ok_or_else(|| "Apple Mail Envelope Index was not found.".to_string())?;
+    let diagnostics = mail_metadata_diagnostics();
+    let index_path = diagnostics.envelope_index_path.clone().ok_or_else(|| diagnostics.summary())?;
     let query = format!(
         "select m.message_id, coalesce(s.subject,''), coalesce(a.address,''), datetime(m.date_received, 'unixepoch'), m.read, coalesce(mb.url,'') \
          from messages m \
@@ -118,8 +120,9 @@ fn read_envelope_index_message(message_id: &str, id: String) -> Result<AppleMail
     let numeric_id = message_id
         .parse::<i64>()
         .map_err(|_| ProviderError::new(PROVIDER_NAME, ProviderErrorKind::Adapter, "Apple Mail Envelope Index id is invalid."))?;
-    let index_path = envelope_index_path().ok_or_else(|| {
-        ProviderError::new(PROVIDER_NAME, ProviderErrorKind::Unavailable, "Apple Mail Envelope Index was not found.")
+    let diagnostics = mail_metadata_diagnostics();
+    let index_path = diagnostics.envelope_index_path.clone().ok_or_else(|| {
+        ProviderError::new(PROVIDER_NAME, ProviderErrorKind::Unavailable, diagnostics.summary())
     })?;
     let query = format!(
         "select coalesce(s.subject,''), coalesce(a.address,''), datetime(m.date_received, 'unixepoch'), m.read, coalesce(mb.url,'') \
@@ -203,11 +206,59 @@ fn find_file_named(dir: &Path, file_name: &str, depth: usize) -> Option<PathBuf>
     None
 }
 
-fn envelope_index_path() -> Option<PathBuf> {
-    let home = std::env::var("HOME").ok()?;
+#[derive(Default)]
+struct MailMetadataDiagnostics {
+    home_resolved: bool,
+    home_path: Option<PathBuf>,
+    library_mail_exists: bool,
+    library_mail_readable: bool,
+    v_folders: Vec<PathBuf>,
+    mail_data_folders: Vec<PathBuf>,
+    envelope_index_path: Option<PathBuf>,
+    envelope_index_found: bool,
+    read_error: Option<String>,
+}
+
+impl MailMetadataDiagnostics {
+    fn summary(&self) -> String {
+        format!(
+            "Apple Mail local metadata unavailable. homeResolved={} homePath={} libraryMailExists={} libraryMailReadable={} vFoldersFound={} mailDataFound={} envelopeIndexFound={} readError={}. Adaptive Surface did not open Mail.",
+            self.home_resolved,
+            self.home_path.as_ref().map(|path| path.display().to_string()).unwrap_or_else(|| "(none)".to_string()),
+            self.library_mail_exists,
+            self.library_mail_readable,
+            self.v_folders.len(),
+            self.mail_data_folders.len(),
+            self.envelope_index_found,
+            self.read_error.clone().unwrap_or_else(|| "(none)".to_string())
+        )
+    }
+}
+
+fn mail_metadata_diagnostics() -> MailMetadataDiagnostics {
+    let mut diagnostics = MailMetadataDiagnostics::default();
+    let Ok(home) = std::env::var("HOME") else {
+        diagnostics.read_error = Some("HOME is unavailable.".to_string());
+        return diagnostics;
+    };
+
+    diagnostics.home_resolved = true;
+    diagnostics.home_path = Some(PathBuf::from(&home));
     let mail_dir = PathBuf::from(home).join("Library/Mail");
-    let mut candidates = fs::read_dir(mail_dir)
-        .ok()?
+    diagnostics.library_mail_exists = mail_dir.exists();
+
+    let entries = match fs::read_dir(&mail_dir) {
+        Ok(entries) => {
+            diagnostics.library_mail_readable = true;
+            entries
+        }
+        Err(error) => {
+            diagnostics.read_error = Some(error.to_string());
+            return diagnostics;
+        }
+    };
+
+    let mut v_folders = entries
         .flatten()
         .map(|entry| entry.path())
         .filter(|path| {
@@ -217,12 +268,28 @@ fn envelope_index_path() -> Option<PathBuf> {
                 .unwrap_or(false)
         })
         .collect::<Vec<PathBuf>>();
-    candidates.sort();
-    candidates
+    v_folders.sort();
+    diagnostics.v_folders = v_folders.clone();
+
+    diagnostics.mail_data_folders = v_folders
+        .iter()
+        .map(|path| path.join("MailData"))
+        .filter(|path| path.is_dir())
+        .collect();
+
+    diagnostics.envelope_index_path = v_folders
         .into_iter()
         .rev()
-        .map(|path| path.join("MailData/Envelope Index"))
-        .find(|path| path.is_file())
+        .flat_map(|path| {
+            [
+                path.join("MailData/Envelope Index"),
+                path.join("MailData/Envelope Index-wal"),
+                path.join("MailData/Protected Index"),
+            ]
+        })
+        .find(|path| path.is_file() && path.file_name().and_then(|name| name.to_str()) == Some("Envelope Index"));
+    diagnostics.envelope_index_found = diagnostics.envelope_index_path.is_some();
+    diagnostics
 }
 
 fn parse_mail_rows(rows: Vec<Vec<String>>, limit: usize) -> Result<Vec<AppleMailMessage>, ProviderError> {

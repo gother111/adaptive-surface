@@ -15,6 +15,7 @@ export function DevDrawer({ open, activeSurfaceId, onOpenChange }: DevDrawerProp
   const setActiveSurface = useSurfaceStore((state) => state.setActiveSurface);
   const applyBlueprintPatch = useSurfaceStore((state) => state.applyBlueprintPatch);
   const toggleDebugHud = useSurfaceStore((state) => state.toggleDebugHud);
+  const clearWorkspace = useSurfaceStore((state) => state.clearWorkspace);
 
   if (!open) {
     return null;
@@ -41,6 +42,9 @@ export function DevDrawer({ open, activeSurfaceId, onOpenChange }: DevDrawerProp
             <div className="mt-3 grid grid-cols-2 gap-2">
               <Button variant="secondary" size="sm" onClick={toggleDebugHud}>
                 Debug HUD
+              </Button>
+              <Button variant="secondary" size="sm" onClick={clearWorkspace}>
+                Clear workspace
               </Button>
               <Button
                 variant="secondary"

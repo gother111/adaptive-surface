@@ -7,7 +7,10 @@ pub const FIELD_SEPARATOR: char = '\u{001f}';
 pub const RECORD_SEPARATOR: char = '\u{001e}';
 
 pub fn run_osascript(script: &str) -> Result<String, String> {
-    let timeout = Duration::from_secs(12);
+    run_osascript_with_timeout(script, Duration::from_secs(12))
+}
+
+pub fn run_osascript_with_timeout(script: &str, timeout: Duration) -> Result<String, String> {
     let mut child = Command::new("osascript")
         .arg("-e")
         .arg(script)
@@ -56,6 +59,7 @@ pub fn is_application_running(app_name: &str) -> bool {
         .unwrap_or(false)
 }
 
+#[allow(dead_code)]
 pub fn run_applescript_without_launch(script: &str) -> Result<String, String> {
     run_osascript(script)
 }
@@ -70,7 +74,7 @@ pub fn run_optional_applescript_fallback_only_if_running(
         ));
     }
 
-    run_applescript_without_launch(script)
+    run_osascript_with_timeout(script, Duration::from_secs(3))
 }
 
 #[allow(dead_code)]

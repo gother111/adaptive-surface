@@ -42,22 +42,22 @@ function runGoldenTask(task: GoldenTask): GoldenTaskResult {
     const foundationCommand = routeFoundationCommand(utterance);
     if (foundationCommand) {
       const now = Date.now();
-      const role = session.primarySurfaceId ? "supporting" : "primary";
+      const role = foundationCommand.surfaceKind === "approval" ? "temporary" : "primary";
       session = applyWorkspacePatches(session, [
         {
-          type: "CREATE_SURFACE",
+          type: "UPSERT_SURFACE",
           surface: {
             id: `foundation-${foundationCommand.surfaceKind}`,
             kind: foundationCommand.surfaceKind as never,
             role,
-            zone: role === "primary" ? "main" : "bottom_left",
+            zone: role === "primary" ? "main" : role === "temporary" ? "bottomDock" : "leftRail",
             status: "active",
             createdAt: now,
             updatedAt: now,
             props: { command: utterance, adapter: foundationCommand.adapter },
           },
         },
-        ...(role === "primary" ? [{ type: "SET_PRIMARY_SURFACE" as const, surfaceId: `foundation-${foundationCommand.surfaceKind}` }] : []),
+        ...(role === "primary" || !session.primarySurfaceId ? [{ type: "SET_PRIMARY_SURFACE" as const, surfaceId: `foundation-${foundationCommand.surfaceKind}` }] : []),
         { type: "STORE_CONTEXT_RESULT", key: foundationCommand.surfaceKind, value: foundationCommand.payload },
       ]);
       refreshedContext = refreshedContext || ["load_calendar_events", "load_mail_messages", "load_notes", "load_reminders", "search_contacts", "search_local_files"].includes(foundationCommand.adapter);

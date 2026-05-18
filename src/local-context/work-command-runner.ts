@@ -168,13 +168,26 @@ export async function runFoundationCommand(
           suggestedNextAction: file.supported ? undefined : "Choose a .txt, .md, .json, .csv, or .html file.",
         });
       }
+      case "unsupported_local_context": {
+        return result(session, command, memory, {
+          title: "Local context command not understood",
+          status: "not_implemented",
+          command: command.utterance,
+          adapter: command.adapter,
+          errorKind: "unsupported",
+          didOpenExternalApp: false,
+          summary: "This sounded like a local-context request, so it stayed in the foundation path instead of opening a legacy surface.",
+          detail: { ...command.payload },
+          suggestedNextAction: "Try: show recent emails, show my calendar, show reminders, show notes, find contact Yurii, or show files from Desktop.",
+        });
+      }
       default:
         throw new Error(`Command ${command.kind} is not implemented in the foundation runner.`);
     }
   } catch (error) {
     return {
       memory,
-      patches: surfacePatches(session, "command_error", errorProps(command, error), command.utterance),
+      patches: surfacePatches(session, command.surfaceKind, errorProps(command, error), command.utterance),
     };
   }
 }

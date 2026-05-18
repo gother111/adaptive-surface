@@ -19,6 +19,7 @@ export type SurfaceKind =
   | "contacts"
   | "file_detail"
   | "command_error"
+  | "unsupported_context"
   | "approval";
 
 export type SurfaceRole = "primary" | "supporting" | "temporary" | "debug";

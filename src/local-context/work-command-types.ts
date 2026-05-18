@@ -15,6 +15,7 @@ export type FoundationCommandKind =
   | "show_files"
   | "search_files"
   | "open_file_summary"
+  | "unsupported_local_context"
   | "approve_pending_action";
 
 export interface FoundationCommand {

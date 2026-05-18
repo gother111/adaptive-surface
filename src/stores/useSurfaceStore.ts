@@ -8,6 +8,7 @@ import {
 } from "@/lib/context-sources";
 import { loadAppleContextBundle } from "@/lib/context-api";
 import { initialSurfaces } from "@/lib/surface-fixtures";
+import { isLocalContextUtterance } from "@/local-context/foundation-intent-router";
 import { runFoundationCommand } from "@/local-context/work-command-runner";
 import { routeFoundationCommand } from "@/local-context/work-command-router";
 import type { FoundationCommandMemory } from "@/local-context/work-command-types";
@@ -106,6 +107,7 @@ interface SurfaceState {
   receiveVoicePartial: (text: string, firstPartialLatencyMs?: number | null) => void;
   receiveVoiceFinal: (text: string) => void;
   clearVoiceDraft: () => void;
+  clearWorkspace: () => void;
   appendTranscript: (text: string) => void;
   applyBlueprintPatch: (surfaceId: string, patch: SurfacePatch) => void;
   applyBlueprintPatches: (surfaceId: string, patches: SurfacePatch[]) => void;
@@ -218,8 +220,18 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
       };
     }),
   receiveVoiceFinal: (text) => {
+    if (/\b(clear|reset)\s+(the\s+)?workspace\b/i.test(text)) {
+      get().clearWorkspace();
+      return;
+    }
+
     const foundationCommand = routeFoundationCommand(text);
     if (foundationCommand) {
+      void get().executeFoundationCommand(text);
+      return;
+    }
+
+    if (isLocalContextUtterance(text) && !isExplicitEmailDraftUtterance(text)) {
       void get().executeFoundationCommand(text);
       return;
     }
@@ -292,6 +304,28 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
       foundationCommandMemory: {},
       debugHudOpen: false,
       activeSurfaceId: state.activeSurfaceId,
+    })),
+  clearWorkspace: () =>
+    set((state) => ({
+      partialTranscript: "",
+      committedTranscript: "",
+      activeIntent: null,
+      activeSession: null,
+      emittedPatches: [],
+      draftSurface: null,
+      firstPartialLatencyMs: null,
+      workspaceSession: createInitialWorkspaceSession(),
+      workspacePatches: [],
+      lastRoutedAction: null,
+      activeObjectiveId: null,
+      objectives: [],
+      objectiveHistory: [],
+      lastObjectiveRoutingDecision: null,
+      relevantContextObjectIds: [],
+      lastCapabilityAction: null,
+      lastApprovalRequired: false,
+      foundationCommandMemory: {},
+      transcript: commitTranscript(state.transcript, "clear workspace"),
     })),
   appendTranscript: (text) =>
     set((state) => ({
@@ -503,6 +537,10 @@ function upsertPartialTranscript(transcript: TranscriptEntry[], text: string) {
 function commitTranscript(transcript: TranscriptEntry[], text: string) {
   const withoutPartial = transcript.filter((entry) => entry.status !== "partial");
   return [{ id: crypto.randomUUID(), text, at: Date.now(), status: "committed" as const }, ...withoutPartial].slice(0, 16);
+}
+
+function isExplicitEmailDraftUtterance(text: string) {
+  return /\b(draft|write|compose|start).*\b(email|mail|message)\b/i.test(text);
 }
 
 function createFoundationLoadingPatches(

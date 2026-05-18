@@ -10,12 +10,19 @@ describe("foundation command router", () => {
 
   it("routes read commands to real local adapters", () => {
     expect(routeFoundationCommand("Show recent emails")?.adapter).toBe("load_mail_messages");
+    expect(routeFoundationCommand("Can you pull up my recent emails")?.kind).toBe("show_recent_emails");
+    expect(routeFoundationCommand("Open my inbox")?.kind).toBe("show_recent_emails");
     expect(routeFoundationCommand("Open the latest email fully")?.adapter).toBe("read_mail_message");
     expect(routeFoundationCommand("Show today's calendar")?.adapter).toBe("load_calendar_events");
+    expect(routeFoundationCommand("Show me my calendar")?.kind).toBe("show_today_calendar");
+    expect(routeFoundationCommand("Can you pull up my calendar")?.kind).toBe("show_today_calendar");
     expect(routeFoundationCommand("Show my reminders")?.adapter).toBe("load_reminders");
+    expect(routeFoundationCommand("Show me my reminders")?.kind).toBe("show_reminders");
     expect(routeFoundationCommand("Show recent notes")?.adapter).toBe("load_notes");
+    expect(routeFoundationCommand("Show me my notes")?.kind).toBe("show_recent_notes");
     expect(routeFoundationCommand("Open the full latest note")?.adapter).toBe("read_note");
     expect(routeFoundationCommand("Find contacts named Yurii")?.adapter).toBe("search_contacts");
+    expect(routeFoundationCommand("Find Yurii in contacts")?.payload.query).toBe("yurii");
   });
 
   it("routes local file commands with trusted root filters", () => {
@@ -27,6 +34,10 @@ describe("foundation command router", () => {
     expect(searchPdf?.kind).toBe("search_files");
     expect(searchPdf?.payload.root).toBe("Documents");
     expect(searchPdf?.payload.extension).toBe("pdf");
+
+    expect(routeFoundationCommand("Show my documents")?.payload.root).toBe("Documents");
+    expect(routeFoundationCommand("Search downloads for PDFs")?.payload.root).toBe("Downloads");
+    expect(routeFoundationCommand("Search downloads for PDFs")?.payload.extension).toBe("pdf");
   });
 
   it("routes short natural phrases that users actually try", () => {
@@ -40,9 +51,9 @@ describe("foundation command router", () => {
     expect(routeFoundationCommand("documents pdf")?.payload.extension).toBe("pdf");
   });
 
-  it("does not steal explicit workflow switches or note searches from the objective router", () => {
-    expect(routeFoundationCommand("Open calendar instead.")).toBeNull();
-    expect(routeFoundationCommand("Find recent notes about Adaptive Surface.")).toBeNull();
+  it("keeps local context phrases in the foundation path even when unsupported", () => {
+    expect(routeFoundationCommand("Find recent notes about Adaptive Surface.")?.kind).toBe("show_recent_notes");
+    expect(routeFoundationCommand("Do something with folders")?.kind).toBe("unsupported_local_context");
   });
 
   it("marks write commands as approval-required", () => {

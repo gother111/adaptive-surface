@@ -30,8 +30,9 @@ interface WorkspaceStageProps {
 
 export function WorkspaceStage({ session }: WorkspaceStageProps) {
   const primarySurface = session.surfaces.find((surface) => surface.id === session.primarySurfaceId && surface.status !== "hidden");
+  const hasActiveSurface = session.surfaces.some((surface) => surface.status !== "hidden" && surface.role !== "debug");
 
-  if (!primarySurface) {
+  if (!primarySurface && !hasActiveSurface) {
     return (
       <section className="drag-region grid h-screen place-items-center px-6">
         <div className="max-w-md text-center">
@@ -47,10 +48,38 @@ export function WorkspaceStage({ session }: WorkspaceStageProps) {
     );
   }
 
-  return <WorkspaceGrid session={session} renderSurface={(surface) => <WorkspaceSurface surface={surface} />} />;
+  return (
+    <WorkspaceGrid
+      session={session}
+      renderSurface={(surface) => (
+        <WorkspaceSurface
+          surface={surface}
+          debugVisible={session.debugVisible}
+          primary={surface.id === session.primarySurfaceId}
+        />
+      )}
+    />
+  );
 }
 
-function WorkspaceSurface({ surface }: { surface: SurfaceInstance }) {
+function WorkspaceSurface({ surface, debugVisible, primary }: { surface: SurfaceInstance; debugVisible: boolean; primary: boolean }) {
+  const content = renderWorkspaceSurface(surface);
+
+  if (!debugVisible || !content) {
+    return content;
+  }
+
+  return (
+    <div className="relative">
+      <div className="mb-1 rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-[11px] text-primary">
+        {surface.id} | {surface.kind} | {surface.role} | {surface.zone} | primary {primary ? "yes" : "no"}
+      </div>
+      {content}
+    </div>
+  );
+}
+
+function renderWorkspaceSurface(surface: SurfaceInstance) {
   if (surface.status === "collapsed") {
     return <CollapsedSurface surface={surface} />;
   }
@@ -477,6 +506,7 @@ function isFoundationSurface(kind: SurfaceInstance["kind"]) {
     "contacts",
     "file_detail",
     "command_error",
+    "unsupported_context",
     "approval",
   ].includes(kind);
 }

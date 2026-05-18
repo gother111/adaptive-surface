@@ -16,12 +16,6 @@ import type {
 
 const EMAIL_SURFACE_ID = "workspace-email-draft";
 const SUPPORTING_SURFACE_IDS: Partial<Record<SurfaceKind, string>> = {
-  calendar: "workspace-calendar",
-  mail: "workspace-mail",
-  notes: "workspace-notes",
-  reminders: "workspace-reminders",
-  files: "workspace-files",
-  document: "workspace-files",
   table: "workspace-table",
   chart: "workspace-chart",
 };
@@ -43,47 +37,6 @@ export function routeVoiceAction(session: WorkspaceSession, utterance: string): 
     return { kind: "update_existing_surface", targetSurfaceId: closeTarget.id, instruction: "collapse" };
   }
 
-  if (/\b(open calendar instead|switch to calendar|start over.*calendar|new task.*calendar)\b/.test(text)) {
-    return { kind: "create_new_primary_surface", surfaceKind: "calendar", instruction: utterance };
-  }
-
-  if (/\b(catch me up|catch up|what did i miss)\b/.test(text)) {
-    return {
-      kind: "add_multiple_supporting_surfaces",
-      surfaceKinds: ["mail", "calendar", "notes"],
-      instruction: utterance,
-    };
-  }
-
-  if (/\b(schedule|book|create).*\b(meeting|event)\b/.test(text)) {
-    return { kind: "create_new_primary_surface", surfaceKind: "calendar", instruction: utterance };
-  }
-
-  const appleKinds = requestedAppleSurfaceKinds(text);
-  if (appleKinds.length > 1) {
-    return { kind: "add_multiple_supporting_surfaces", surfaceKinds: appleKinds, instruction: utterance };
-  }
-
-  if (isSupportingRequest(text, "calendar")) {
-    return { kind: "add_supporting_surface", surfaceKind: "calendar", instruction: utterance };
-  }
-
-  if (isSupportingRequest(text, "mail")) {
-    return { kind: "add_supporting_surface", surfaceKind: "mail", instruction: utterance };
-  }
-
-  if (isSupportingRequest(text, "notes")) {
-    return { kind: "add_supporting_surface", surfaceKind: "notes", instruction: utterance };
-  }
-
-  if (isSupportingRequest(text, "reminders")) {
-    return { kind: "add_supporting_surface", surfaceKind: "reminders", instruction: utterance };
-  }
-
-  if (isSupportingRequest(text, "files") || isSupportingRequest(text, "document")) {
-    return { kind: "add_supporting_surface", surfaceKind: "files", instruction: utterance };
-  }
-
   if (isSupportingRequest(text, "chart")) {
     return { kind: "add_supporting_surface", surfaceKind: "chart", instruction: utterance };
   }
@@ -96,7 +49,7 @@ export function routeVoiceAction(session: WorkspaceSession, utterance: string): 
     return { kind: "create_new_primary_surface", surfaceKind: "email_draft", instruction: utterance };
   }
 
-  if (primary?.kind === "email_draft") {
+  if (primary?.kind === "email_draft" && isEmailDraftFollowup(text)) {
     if (isCompletion(text)) {
       return { kind: "complete_task", targetSurfaceId: primary.id, action: completionAction(text) };
     }
@@ -515,37 +468,9 @@ function isCreateEmailDraft(text: string) {
 }
 
 function isSupportingRequest(text: string, kind: SurfaceKind) {
-  if (kind === "calendar") return /\b(show|open|check|pull up|fetch|look at).*\b(calendar|availability|schedule|events?|meetings?)\b/.test(text);
-  if (kind === "mail") return /\b(show|open|check|pull up|fetch|look at|catch me up).*\b(mail|email|inbox|unread|messages?|latest email)\b/.test(text);
-  if (kind === "notes") return /\b(show|open|fetch|pull up|get|find|search|look at|catch me up).*\b(notes?|apple notes|recent notes?|my notes|note about)\b/.test(text);
-  if (kind === "reminders") return /\b(show|open|check|create|add|set).*\b(reminders?|todo|follow up)\b/.test(text);
-  if (kind === "files" || kind === "document") return /\b(search|find|open|summarize|look for).*\b(files?|folder|directory|pdf|document|project)\b/.test(text);
   if (kind === "chart") return /\b(draw|show|create|make).*\b(graph|chart)\b/.test(text);
   if (kind === "table") return /\b(show|create|make|draw).*\b(table|spreadsheet)\b/.test(text);
   return false;
-}
-
-function requestedAppleSurfaceKinds(text: string): SurfaceKind[] {
-  const kinds: SurfaceKind[] = [];
-  if (/\b(calendar|schedule|events?|meetings?|today|tomorrow|this week)\b/.test(text)) {
-    kinds.push("calendar");
-  }
-  if (/\b(mail|email|inbox|unread|messages?|latest email)\b/.test(text)) {
-    kinds.push("mail");
-  }
-  if (/\b(notes?|apple notes|find note|my notes|note about)\b/.test(text)) {
-    kinds.push("notes");
-  }
-  if (/\b(reminders?|todo|follow up)\b/.test(text)) {
-    kinds.push("reminders");
-  }
-  if (/\b(files?|folder|directory|pdf|document|project)\b/.test(text)) {
-    kinds.push("files");
-  }
-  if (!/\b(show|open|check|pull up|fetch|look at|find|search|catch me up)\b/.test(text)) {
-    return [];
-  }
-  return kinds;
 }
 
 function isTransformation(text: string) {
@@ -554,6 +479,10 @@ function isTransformation(text: string) {
 
 function isCompletion(text: string) {
   return /\b(send|export|save|copy)\b/.test(text) && /\b(email|draft|this|it)\b/.test(text);
+}
+
+function isEmailDraftFollowup(text: string) {
+  return isCompletion(text) || isTransformation(text) || /\b(email|draft|message|write|say|tell|mention|include|make it|subject|recipient)\b/.test(text);
 }
 
 function completionAction(text: string): "send" | "export" | "save" | "copy" {

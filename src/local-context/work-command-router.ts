@@ -1,3 +1,4 @@
+import { classifyFoundationIntent } from "@/local-context/foundation-intent-router";
 import type { FoundationCommand } from "@/local-context/work-command-types";
 
 export function routeFoundationCommand(utterance: string): FoundationCommand | null {
@@ -7,37 +8,16 @@ export function routeFoundationCommand(utterance: string): FoundationCommand | n
     return command("approve_pending_action", utterance, "approval", "approval", false, {});
   }
 
-  if (/\b(show capability status|check app permissions|what can you access)\b/.test(text)) {
-    return command("show_capability_status", utterance, "capability_status", "load_capability_diagnostics", false, {});
+  if (/\b(draft|write|compose|start).*\b(email|mail|message)\b/.test(text)) {
+    return null;
   }
 
-  if (/\b(show|list).*\b(recent )?(emails?|mail|inbox messages)\b/.test(text) || /\brecent (emails?|mail|inbox messages)\b/.test(text)) {
-    return command("show_recent_emails", utterance, "email_list", "load_mail_messages", false, { limit: 25 });
-  }
-
-  if (/\b(open|read).*\b(latest|last).*\b(email|mail|message).*\b(fully|full|body)?\b/.test(text) || /\blatest (email|mail|message)\b/.test(text)) {
-    return command("open_latest_email", utterance, "email_detail", "read_mail_message", false, {});
-  }
-
-  if (
-    !/\b(instead|switch to|start over|new task)\b/.test(text) &&
-    (/\b(show|open|check).*\b(today'?s|todays|today).*\b(calendar|schedule|events?)\b/.test(text) ||
-      /\b(calendar|schedule|events?)\s+(today'?s|todays|today)\b/.test(text) ||
-      /\b(show|open|check)\s+(my\s+)?calendar\b/.test(text))
-  ) {
-    return command("show_today_calendar", utterance, "calendar_day", "load_calendar_events", false, { daysAhead: 1, limit: 30 });
-  }
-
-  if (/\b(create|add).*\b(calendar event|event)\b/.test(text)) {
+  if (/\b(create|add).*\b(calendar event|event)\b/.test(text) || /\b(schedule|book).*\b(meeting|event)\b/.test(text)) {
     return command("create_calendar_event", utterance, "approval", "create_calendar_event", true, {
       title: extractCalledTitle(utterance) ?? "Test Event",
       startAt: extractDatePhrase(text) ?? "tomorrow at 10:00 AM",
       endAt: "tomorrow at 11:00 AM",
     });
-  }
-
-  if (/\b(show|list|open|check).*\b(reminders?|todos?)\b/.test(text) || /^(reminders?|todos?)$/.test(text)) {
-    return command("show_reminders", utterance, "reminder_list", "load_reminders", false, { includeCompleted: false, limit: 50 });
   }
 
   if (/\b(create|add|set).*\b(reminder|todo)\b/.test(text)) {
@@ -47,14 +27,6 @@ export function routeFoundationCommand(utterance: string): FoundationCommand | n
     });
   }
 
-  if (/\b(show|list).*\b(recent )?notes?\b/.test(text) || /^(recent )?notes?$/.test(text)) {
-    return command("show_recent_notes", utterance, "notes_list", "load_notes", false, { limit: 25 });
-  }
-
-  if (/\b(open|read).*\b(latest|last).*\bnotes?.*\b(fully|full|body)?\b/.test(text) || /\blatest notes?\b/.test(text)) {
-    return command("open_latest_note", utterance, "note_detail", "read_note", false, {});
-  }
-
   if (/\b(create|add).*\bnote\b/.test(text)) {
     return command("create_note", utterance, "approval", "create_note", true, {
       title: extractCalledTitle(utterance) ?? "Seemless Test Note",
@@ -62,34 +34,49 @@ export function routeFoundationCommand(utterance: string): FoundationCommand | n
     });
   }
 
-  if (/\b(find|search).*\bcontacts?\b/.test(text) || /\bfind contact\b/.test(text) || isLikelyContactFind(utterance)) {
-    return command("find_contacts", utterance, "contacts", "search_contacts", false, {
-      query: extractAfter(text, "named") ?? extractAfter(text, "contact") ?? extractAfter(text, "contacts") ?? extractFindTarget(text) ?? "",
-      limit: 25,
-    });
+  const intent = classifyFoundationIntent(utterance);
+  if (!intent) {
+    return null;
   }
 
-  if (/\bshow files from\b/.test(text) || /\b(desktop|documents|downloads) files\b/.test(text)) {
-    return command("show_files", utterance, "files", "search_local_files", false, {
-      root: extractRoot(text) ?? "Desktop",
-      limit: 50,
-    });
+  switch (intent.intent) {
+    case "capability.status":
+      return command("show_capability_status", utterance, "capability_status", "load_capability_diagnostics", false, {});
+    case "email.list":
+      return command("show_recent_emails", utterance, "email_list", "load_mail_messages", false, { limit: 25 });
+    case "email.readLatest":
+      return command("open_latest_email", utterance, "email_detail", "read_mail_message", false, {});
+    case "calendar.today":
+      return command("show_today_calendar", utterance, "calendar_day", "load_calendar_events", false, { daysAhead: 1, limit: 30 });
+    case "reminder.list":
+      return command("show_reminders", utterance, "reminder_list", "load_reminders", false, { includeCompleted: false, limit: 50 });
+    case "notes.list":
+      return command("show_recent_notes", utterance, "notes_list", "load_notes", false, { limit: 25 });
+    case "notes.readLatest":
+      return command("open_latest_note", utterance, "note_detail", "read_note", false, {});
+    case "contacts.search":
+      return command("find_contacts", utterance, "contacts", "search_contacts", false, {
+        query: intent.query ?? "",
+        limit: 25,
+      });
+    case "files.listRoot":
+      return command("show_files", utterance, "files", "search_local_files", false, {
+        root: intent.root ?? "Desktop",
+        limit: 50,
+      });
+    case "files.search":
+      return command("search_files", utterance, "files", "search_local_files", false, {
+        root: intent.root ?? "Documents",
+        extension: intent.extension,
+        query: intent.query,
+        limit: 80,
+      });
+    case "local.unsupported":
+      return command("unsupported_local_context", utterance, "unsupported_context", "foundation_intent_router", false, {
+        reason: intent.reason,
+        normalizedText: intent.normalizedText,
+      });
   }
-
-  if (/\bsearch\b.*\b(documents|desktop|downloads)\b/.test(text) || /\b(documents|desktop|downloads)\s+pdfs?\b/.test(text)) {
-    return command("search_files", utterance, "files", "search_local_files", false, {
-      root: extractRoot(text) ?? "Documents",
-      extension: text.includes("pdf") ? "pdf" : undefined,
-      query: extractFileQuery(text),
-      limit: 80,
-    });
-  }
-
-  if (/\b(open|read|show).*\b(file summary|this file summary|file)\b/.test(text)) {
-    return command("open_file_summary", utterance, "file_detail", "read_local_file", false, {});
-  }
-
-  return null;
 }
 
 function command(
@@ -119,30 +106,4 @@ function extractDatePhrase(text: string) {
   if (text.includes("tomorrow at 10")) return "tomorrow at 10:00 AM";
   if (text.includes("tomorrow")) return "tomorrow at 10:00 AM";
   return null;
-}
-
-function extractAfter(text: string, marker: string) {
-  const index = text.indexOf(marker);
-  if (index === -1) return null;
-  return text.slice(index + marker.length).replace(/[.]/g, "").trim() || null;
-}
-
-function extractFindTarget(text: string) {
-  return text.replace(/^find\s+/i, "").replace(/[.]/g, "").trim() || null;
-}
-
-function isLikelyContactFind(utterance: string) {
-  return /^find\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?\.?$/.test(utterance.trim());
-}
-
-function extractRoot(text: string) {
-  if (text.includes("desktop")) return "Desktop";
-  if (text.includes("downloads")) return "Downloads";
-  if (text.includes("documents")) return "Documents";
-  return null;
-}
-
-function extractFileQuery(text: string) {
-  if (text.includes("pdf")) return undefined;
-  return text.replace(/\b(search|desktop|documents|downloads|for|files?|from|my)\b/g, " ").replace(/\s+/g, " ").trim() || undefined;
 }
