@@ -72,26 +72,18 @@ static bool ASRequestAccess(EKEntityType entityType, EKEventStore *store, char *
   __block NSError *requestError = nil;
   dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
 
-  if (@available(macOS 14.0, *)) {
-    if (entityType == EKEntityTypeEvent && [store respondsToSelector:@selector(requestFullAccessToEventsWithCompletion:)]) {
-      [store requestFullAccessToEventsWithCompletion:^(BOOL didGrant, NSError *error) {
-        granted = didGrant;
-        requestError = error;
-        dispatch_semaphore_signal(semaphore);
-      }];
-    } else if (entityType == EKEntityTypeReminder && [store respondsToSelector:@selector(requestFullAccessToRemindersWithCompletion:)]) {
-      [store requestFullAccessToRemindersWithCompletion:^(BOOL didGrant, NSError *error) {
-        granted = didGrant;
-        requestError = error;
-        dispatch_semaphore_signal(semaphore);
-      }];
-    } else {
-      [store requestAccessToEntityType:entityType completion:^(BOOL didGrant, NSError *error) {
-        granted = didGrant;
-        requestError = error;
-        dispatch_semaphore_signal(semaphore);
-      }];
-    }
+  if (entityType == EKEntityTypeEvent && [store respondsToSelector:@selector(requestFullAccessToEventsWithCompletion:)]) {
+    [store requestFullAccessToEventsWithCompletion:^(BOOL didGrant, NSError *error) {
+      granted = didGrant;
+      requestError = error;
+      dispatch_semaphore_signal(semaphore);
+    }];
+  } else if (entityType == EKEntityTypeReminder && [store respondsToSelector:@selector(requestFullAccessToRemindersWithCompletion:)]) {
+    [store requestFullAccessToRemindersWithCompletion:^(BOOL didGrant, NSError *error) {
+      granted = didGrant;
+      requestError = error;
+      dispatch_semaphore_signal(semaphore);
+    }];
   } else {
     [store requestAccessToEntityType:entityType completion:^(BOOL didGrant, NSError *error) {
       granted = didGrant;
