@@ -1,4 +1,5 @@
 use crate::apple::models::{AppleCalendarEvent, AppleCommandResult, CalendarQuery, CreateCalendarEventRequest};
+use crate::providers::eventkit_bridge;
 use crate::providers::provider_status::{ProviderError, ProviderErrorKind, ProviderStatus};
 use crate::providers::run_swift_helper;
 use serde::Deserialize;
@@ -18,17 +19,13 @@ struct NativeCalendarEvent {
 }
 
 pub fn status() -> ProviderStatus {
-    match run_swift_helper(PROVIDER_NAME, CALENDAR_STATUS_SWIFT) {
-        Ok(_) => ProviderStatus::available(PROVIDER_NAME),
-        Err(error) => ProviderStatus::unavailable(PROVIDER_NAME, error.kind, error.exact_error),
-    }
+    eventkit_bridge::eventkit_status(false, PROVIDER_NAME)
 }
 
 pub fn list(query: CalendarQuery) -> Result<Vec<AppleCalendarEvent>, ProviderError> {
     let limit = query.limit.unwrap_or(25).clamp(1, 100);
     let days_ahead = query.days_ahead.unwrap_or(14).clamp(1, 365);
-    let source = calendar_list_swift(limit, days_ahead);
-    let stdout = run_swift_helper(PROVIDER_NAME, &source)?;
+    let stdout = eventkit_bridge::calendar_events_json(days_ahead, limit)?;
     let events: Vec<NativeCalendarEvent> = serde_json::from_str(&stdout)
         .map_err(|error| ProviderError::new(PROVIDER_NAME, ProviderErrorKind::Adapter, format!("Calendar provider returned invalid JSON: {error}")))?;
     Ok(events
@@ -90,38 +87,6 @@ if let date = formatter.date(from: "{}") {{
         .map_err(|error| ProviderError::new(PROVIDER_NAME, ProviderErrorKind::Adapter, format!("Calendar date parser returned invalid timestamp: {error}")))
 }
 
-fn calendar_list_swift(limit: usize, days_ahead: u32) -> String {
-    format!(
-        r#"import EventKit
-import Foundation
-
-let store = EKEventStore()
-let raw = EKEventStore.authorizationStatus(for: .event).rawValue
-guard raw == 3 || raw == 4 else {{
-  fputs("permission: Calendar access is not authorized for Adaptive Surface\n", stderr)
-  exit(3)
-}}
-let start = Calendar.current.startOfDay(for: Date())
-let end = Calendar.current.date(byAdding: .day, value: {days_ahead}, to: start)!
-let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
-let formatter = ISO8601DateFormatter()
-let rows = Array(store.events(matching: predicate).sorted {{ $0.startDate < $1.startDate }}.prefix({limit})).map {{ event in
-  [
-    "id": event.eventIdentifier ?? UUID().uuidString,
-    "title": event.title ?? "(No title)",
-    "calendarName": event.calendar.title,
-    "startAt": formatter.string(from: event.startDate),
-    "endAt": event.endDate.map {{ formatter.string(from: $0) }} as Any,
-    "location": event.location as Any,
-    "notes": event.notes as Any
-  ]
-}}
-let data = try JSONSerialization.data(withJSONObject: rows)
-print(String(data: data, encoding: .utf8)!)
-"#
-    )
-}
-
 fn calendar_create_swift(title: &str, start: f64, end: f64, calendar_name: Option<&str>, notes: Option<&str>) -> String {
     format!(
         r#"import EventKit
@@ -154,16 +119,6 @@ print(event.eventIdentifier ?? "")
         escape_swift(calendar_name.unwrap_or(""))
     )
 }
-
-const CALENDAR_STATUS_SWIFT: &str = r#"import EventKit
-import Foundation
-let raw = EKEventStore.authorizationStatus(for: .event).rawValue
-guard raw == 3 || raw == 4 else {
-  fputs("permission: Calendar access is not authorized for Adaptive Surface\n", stderr)
-  exit(3)
-}
-print("available")
-"#;
 
 fn escape_swift(value: &str) -> String {
     value.replace('\\', "\\\\").replace('"', "\\\"")

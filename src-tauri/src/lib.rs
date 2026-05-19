@@ -9,6 +9,7 @@ use apple::{
 };
 use local_files::{FileReadQuery, FileReadResult, FileSearchQuery, WorkFileRecord};
 use serde::Serialize;
+use serde_json::json;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
@@ -227,6 +228,41 @@ fn system_time_to_epoch_ms(value: SystemTime) -> u64 {
         .duration_since(SystemTime::UNIX_EPOCH)
         .map(|duration| duration.as_millis() as u64)
         .unwrap_or(0)
+}
+
+pub fn eventkit_smoke_report() -> String {
+    let calendar_status = providers::calendar_provider::status();
+    let reminders_status = providers::reminders_provider::status();
+    let calendar_result = providers::calendar_provider::list(apple::models::CalendarQuery {
+        days_ahead: Some(1),
+        limit: Some(5),
+    });
+    let reminders_result = providers::reminders_provider::list(apple::models::ReminderQuery {
+        limit: Some(5),
+        include_completed: Some(false),
+    });
+
+    json!({
+        "calendarStatus": calendar_status,
+        "remindersStatus": reminders_status,
+        "calendar": match calendar_result {
+            Ok(events) => json!({
+                "ok": true,
+                "count": events.len(),
+                "sampleTitles": events.into_iter().take(3).map(|event| event.title).collect::<Vec<_>>()
+            }),
+            Err(error) => json!({ "ok": false, "error": error.message() }),
+        },
+        "reminders": match reminders_result {
+            Ok(reminders) => json!({
+                "ok": true,
+                "count": reminders.len(),
+                "sampleTitles": reminders.into_iter().take(3).map(|reminder| reminder.title).collect::<Vec<_>>()
+            }),
+            Err(error) => json!({ "ok": false, "error": error.message() }),
+        }
+    })
+    .to_string()
 }
 
 #[tauri::command]

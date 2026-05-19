@@ -1,5 +1,6 @@
 pub mod calendar_provider;
 pub mod contacts_provider;
+pub mod eventkit_bridge;
 pub mod mail_provider;
 pub mod notes_provider;
 pub mod provider_status;

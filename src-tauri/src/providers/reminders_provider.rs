@@ -1,4 +1,5 @@
 use crate::apple::models::{AppleCommandResult, AppleReminder, CreateReminderRequest, ReminderQuery, UpdateReminderRequest};
+use crate::providers::eventkit_bridge;
 use crate::providers::provider_status::{ProviderError, ProviderErrorKind, ProviderStatus};
 use crate::providers::run_swift_helper;
 use serde::Deserialize;
@@ -17,17 +18,13 @@ struct NativeReminder {
 }
 
 pub fn status() -> ProviderStatus {
-    match run_swift_helper(PROVIDER_NAME, REMINDERS_STATUS_SWIFT) {
-        Ok(_) => ProviderStatus::available(PROVIDER_NAME),
-        Err(error) => ProviderStatus::unavailable(PROVIDER_NAME, error.kind, error.exact_error),
-    }
+    eventkit_bridge::eventkit_status(true, PROVIDER_NAME)
 }
 
 pub fn list(query: ReminderQuery) -> Result<Vec<AppleReminder>, ProviderError> {
     let limit = query.limit.unwrap_or(50).clamp(1, 200);
     let include_completed = query.include_completed.unwrap_or(false);
-    let source = reminders_list_swift(limit, include_completed);
-    let stdout = run_swift_helper(PROVIDER_NAME, &source)?;
+    let stdout = eventkit_bridge::reminders_json(include_completed, limit)?;
     let reminders: Vec<NativeReminder> = serde_json::from_str(&stdout)
         .map_err(|error| ProviderError::new(PROVIDER_NAME, ProviderErrorKind::Adapter, format!("Reminders provider returned invalid JSON: {error}")))?;
     Ok(reminders
@@ -91,44 +88,6 @@ if let date = formatter.date(from: "{}") {{
         .trim()
         .parse::<f64>()
         .map_err(|error| ProviderError::new(PROVIDER_NAME, ProviderErrorKind::Adapter, format!("Reminder date parser returned invalid timestamp: {error}")))
-}
-
-fn reminders_list_swift(limit: usize, include_completed: bool) -> String {
-    format!(
-        r#"import EventKit
-import Foundation
-
-let store = EKEventStore()
-let raw = EKEventStore.authorizationStatus(for: .reminder).rawValue
-guard raw == 3 || raw == 4 else {{
-  fputs("permission: Reminders access is not authorized for Adaptive Surface\n", stderr)
-  exit(3)
-}}
-let predicate = store.predicateForReminders(in: nil)
-let semaphore = DispatchSemaphore(value: 0)
-var loaded: [EKReminder] = []
-store.fetchReminders(matching: predicate) {{ reminders in
-  loaded = reminders ?? []
-  semaphore.signal()
-}}
-_ = semaphore.wait(timeout: .now() + 8)
-let formatter = ISO8601DateFormatter()
-let includeCompleted = {include_completed}
-let rows = Array(loaded.filter {{ includeCompleted || !$0.isCompleted }}.prefix({limit})).map {{ reminder in
-  let due = reminder.dueDateComponents.flatMap {{ Calendar.current.date(from: $0) }}
-  return [
-    "id": reminder.calendarItemIdentifier,
-    "title": reminder.title ?? "(No title)",
-    "listName": reminder.calendar.title,
-    "dueAt": due.map {{ formatter.string(from: $0) }} as Any,
-    "completed": reminder.isCompleted,
-    "notes": reminder.notes as Any
-  ]
-}}
-let data = try JSONSerialization.data(withJSONObject: rows)
-print(String(data: data, encoding: .utf8)!)
-"#
-    )
 }
 
 fn reminders_create_swift(title: &str, due: Option<f64>, list_name: Option<&str>, notes: Option<&str>) -> String {
@@ -196,16 +155,6 @@ print(reminder.calendarItemIdentifier)
         completed_block
     )
 }
-
-const REMINDERS_STATUS_SWIFT: &str = r#"import EventKit
-import Foundation
-let raw = EKEventStore.authorizationStatus(for: .reminder).rawValue
-guard raw == 3 || raw == 4 else {
-  fputs("permission: Reminders access is not authorized for Adaptive Surface\n", stderr)
-  exit(3)
-}
-print("available")
-"#;
 
 fn escape_swift(value: &str) -> String {
     value.replace('\\', "\\\\").replace('"', "\\\"")
