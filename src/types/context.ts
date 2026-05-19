@@ -206,3 +206,14 @@ export interface ExternalAuthRequirement {
   redirectStrategy: string;
   notes: string[];
 }
+
+export interface NativePermissionDebug {
+  appBundleIdentifier: string;
+  executablePath?: string | null;
+  calendar: Record<string, unknown>;
+  reminders: Record<string, unknown>;
+  contacts: Record<string, unknown>;
+  mail: Record<string, unknown>;
+  notes: Record<string, unknown>;
+  didOpenExternalApp: false;
+}

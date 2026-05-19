@@ -74,7 +74,7 @@ pub fn run_optional_applescript_fallback_only_if_running(
         ));
     }
 
-    run_osascript_with_timeout(script, Duration::from_secs(3))
+    run_osascript_with_timeout(script, Duration::from_secs(12))
 }
 
 #[allow(dead_code)]

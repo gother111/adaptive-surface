@@ -23,7 +23,7 @@ pub fn reminders_json(include_completed: bool, limit: usize) -> Result<String, P
 }
 
 pub fn eventkit_status(reminders: bool, provider_name: &str) -> ProviderStatus {
-    match call_eventkit_json(provider_name, |error| unsafe { adaptive_eventkit_status_json(reminders, error) }) {
+    match eventkit_status_json(reminders, provider_name) {
         Ok(json) => {
             let authorized = json.contains("\"authorized\":true");
             if authorized {
@@ -38,6 +38,10 @@ pub fn eventkit_status(reminders: bool, provider_name: &str) -> ProviderStatus {
         }
         Err(error) => ProviderStatus::unavailable(provider_name, error.kind, error.exact_error),
     }
+}
+
+pub fn eventkit_status_json(reminders: bool, provider_name: &str) -> Result<String, ProviderError> {
+    call_eventkit_json(provider_name, |error| unsafe { adaptive_eventkit_status_json(reminders, error) })
 }
 
 fn call_eventkit_json(

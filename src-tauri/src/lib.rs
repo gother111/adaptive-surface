@@ -223,6 +223,50 @@ async fn load_external_auth_requirements() -> Result<Vec<ExternalAuthRequirement
     ])
 }
 
+#[tauri::command]
+fn load_native_permission_debug() -> Result<serde_json::Value, String> {
+    let calendar_status = providers::eventkit_bridge::eventkit_status_json(false, "EventKitCalendarProvider")
+        .and_then(|json| serde_json::from_str::<serde_json::Value>(&json).map_err(|error| {
+            providers::provider_status::ProviderError::new(
+                "EventKitCalendarProvider",
+                providers::provider_status::ProviderErrorKind::Adapter,
+                format!("Calendar status JSON was invalid: {error}"),
+            )
+        }))
+        .map_err(|error| error.message())?;
+    let reminders_status = providers::eventkit_bridge::eventkit_status_json(true, "EventKitRemindersProvider")
+        .and_then(|json| serde_json::from_str::<serde_json::Value>(&json).map_err(|error| {
+            providers::provider_status::ProviderError::new(
+                "EventKitRemindersProvider",
+                providers::provider_status::ProviderErrorKind::Adapter,
+                format!("Reminders status JSON was invalid: {error}"),
+            )
+        }))
+        .map_err(|error| error.message())?;
+    let contacts_status = providers::contacts_bridge::contacts_status_json("ContactsFrameworkProvider")
+        .and_then(|json| serde_json::from_str::<serde_json::Value>(&json).map_err(|error| {
+            providers::provider_status::ProviderError::new(
+                "ContactsFrameworkProvider",
+                providers::provider_status::ProviderErrorKind::Adapter,
+                format!("Contacts status JSON was invalid: {error}"),
+            )
+        }))
+        .map_err(|error| error.message())?;
+    let mail = providers::mail_provider::mail_metadata_diagnostics();
+    let notes = providers::notes_provider::notes_diagnostics();
+
+    Ok(json!({
+        "appBundleIdentifier": "com.adaptivesurface.desktop",
+        "executablePath": std::env::current_exe().ok().map(|path| path.display().to_string()),
+        "calendar": calendar_status,
+        "reminders": reminders_status,
+        "contacts": contacts_status,
+        "mail": mail,
+        "notes": notes,
+        "didOpenExternalApp": false
+    }))
+}
+
 fn system_time_to_epoch_ms(value: SystemTime) -> u64 {
     value
         .duration_since(SystemTime::UNIX_EPOCH)
@@ -300,7 +344,8 @@ pub fn run() {
             search_local_files,
             read_local_file,
             load_apple_context_bundle,
-            load_external_auth_requirements
+            load_external_auth_requirements,
+            load_native_permission_debug
         ])
         .run(tauri::generate_context!())
         .expect("error while running Adaptive Surface");

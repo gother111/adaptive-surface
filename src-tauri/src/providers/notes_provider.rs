@@ -4,22 +4,24 @@ use crate::apple::applescript::{
 };
 use crate::apple::models::{AppleCommandResult, AppleNoteDetail, AppleNotePreview, CreateNoteRequest, NotesQuery};
 use crate::providers::provider_status::{ProviderError, ProviderErrorKind, ProviderStatus};
+use serde::Serialize;
 use std::path::PathBuf;
 
 const PROVIDER_NAME: &str = "LocalNotesDatabaseProvider";
 
 pub fn status() -> ProviderStatus {
-    if notes_store_path().is_some() {
+    let diagnostics = notes_diagnostics();
+    if diagnostics.local_db_exists {
         ProviderStatus::unavailable(
             PROVIDER_NAME,
             ProviderErrorKind::Unsupported,
-            "Local Notes store exists, but this milestone does not safely decode Apple's private Notes schema. Adaptive Surface did not open Notes.",
+            "unsupported_local_db: Local Notes store exists, but Adaptive Surface does not safely decode Apple's private Notes schema. AppleScript fallback requires Notes to already be running and Automation permission.",
         )
     } else {
         ProviderStatus::unavailable(
             PROVIDER_NAME,
             ProviderErrorKind::Unavailable,
-            "Local Notes store was not found. Adaptive Surface did not open Notes.",
+            "unsupported_local_db: Local Notes database decoding is not implemented, and no supported local Notes store was found. Adaptive Surface did not open Notes.",
         )
     }
 }
@@ -31,8 +33,8 @@ pub fn list(query: NotesQuery) -> Result<Vec<AppleNotePreview>, ProviderError> {
         .map_err(|error| {
             ProviderError::new(
                 "NotesProviderChain",
-                ProviderErrorKind::Unavailable,
-                format!("Local Notes database decoding is not safely implemented; AppleScript fallback unavailable: {error}"),
+                notes_fallback_error_kind(&error),
+                format!("unsupported_local_db: Local Notes database decoding is not implemented; AppleScript fallback unavailable: {}", classify_notes_fallback_error(&error)),
             )
         })?;
     Ok(rows
@@ -67,8 +69,8 @@ pub fn read(id: String) -> Result<AppleNoteDetail, ProviderError> {
         .map_err(|error| {
             ProviderError::new(
                 "NotesProviderChain",
-                ProviderErrorKind::Unavailable,
-                format!("Full local Notes decoding is not safely implemented; AppleScript fallback unavailable: {error}"),
+                notes_fallback_error_kind(&error),
+                format!("unsupported_local_db: Full local Notes decoding is not implemented; AppleScript fallback unavailable: {}", classify_notes_fallback_error(&error)),
             )
         })?;
     let row = rows
@@ -108,6 +110,49 @@ fn notes_store_path() -> Option<PathBuf> {
     .iter()
     .map(|relative| PathBuf::from(&home).join(relative))
     .find(|path| path.is_file())
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotesDiagnostics {
+    pub local_db_exists: bool,
+    pub local_db_path: Option<String>,
+    pub notes_running: bool,
+    pub local_decoding_implemented: bool,
+}
+
+pub fn notes_diagnostics() -> NotesDiagnostics {
+    let path = notes_store_path();
+    NotesDiagnostics {
+        local_db_exists: path.is_some(),
+        local_db_path: path.map(|value| value.display().to_string()),
+        notes_running: crate::apple::applescript::is_application_running("Notes"),
+        local_decoding_implemented: false,
+    }
+}
+
+fn notes_fallback_error_kind(error: &str) -> ProviderErrorKind {
+    let classified = classify_notes_fallback_error(error);
+    if classified.contains("fallback_requires_automation") {
+        ProviderErrorKind::Permission
+    } else if classified.contains("fallback_timeout") {
+        ProviderErrorKind::Timeout
+    } else {
+        ProviderErrorKind::Unavailable
+    }
+}
+
+fn classify_notes_fallback_error(error: &str) -> String {
+    let lower = error.to_lowercase();
+    if lower.contains("not running") {
+        format!("fallback_requires_notes_running: {error}")
+    } else if lower.contains("not authorized") || lower.contains("not permitted") || lower.contains("not allowed") || lower.contains("automation") {
+        format!("fallback_requires_automation: {error}")
+    } else if lower.contains("timed out") || lower.contains("timeout") {
+        format!("fallback_timeout: {error}")
+    } else {
+        error.to_string()
+    }
 }
 
 fn parse_records(output: &str) -> Vec<Vec<String>> {

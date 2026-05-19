@@ -67,3 +67,24 @@ impl ProviderStatus {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn provider_error_message_includes_provider_kind_external_app_and_exact_error() {
+        let error = ProviderError::new(
+            "EnvelopeIndexProvider",
+            ProviderErrorKind::Permission,
+            "full_disk_access_missing: Operation not permitted",
+        );
+
+        let message = error.message();
+
+        assert!(message.contains("provider=EnvelopeIndexProvider"));
+        assert!(message.contains("errorKind=Permission"));
+        assert!(message.contains("didOpenExternalApp=false"));
+        assert!(message.contains("exactError=full_disk_access_missing: Operation not permitted"));
+    }
+}

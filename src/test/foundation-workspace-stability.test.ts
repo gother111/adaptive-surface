@@ -44,7 +44,7 @@ describe("foundation workspace stability", () => {
 
   it("upserts a loading surface into a result without duplicating it", () => {
     const loading = surface("foundation-email-list", "email_list", "primary");
-    loading.props = { title: "Loading local context", status: "loading" };
+    loading.props = { title: "Loading local context", status: "loading", summary: "Calling the local adapter now." };
     const next = applyWorkspacePatches(createInitialWorkspaceSession(), [
       { type: "UPSERT_SURFACE", surface: loading },
       {
@@ -59,5 +59,6 @@ describe("foundation workspace stability", () => {
 
     expect(next.surfaces.filter((item) => item.id === "foundation-email-list")).toHaveLength(1);
     expect(next.surfaces[0]?.props.title).toBe("Recent emails");
+    expect(next.surfaces[0]?.props.summary).toBeUndefined();
   });
 });

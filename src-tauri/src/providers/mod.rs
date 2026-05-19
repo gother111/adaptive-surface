@@ -1,4 +1,5 @@
 pub mod calendar_provider;
+pub mod contacts_bridge;
 pub mod contacts_provider;
 pub mod eventkit_bridge;
 pub mod mail_provider;

@@ -273,16 +273,138 @@ function approvalProps(command: FoundationCommand, pendingApproval: PendingAppro
 function errorProps(command: Pick<FoundationCommand, "utterance" | "adapter">, error: unknown): FoundationSurfaceProps {
   const message = error instanceof Error ? error.message : String(error);
   const metadata = parseProviderError(message);
+  const guidance = providerFailureGuidance(command.adapter, metadata.provider, message);
+  const errorKind = guidance.errorKind ?? metadata.errorKind;
   return {
     title: "Command failed",
-    status: metadata.errorKind === "permission" || message.toLowerCase().includes("not authorized") || message.toLowerCase().includes("permission") ? "permission_error" : "adapter_error",
+    status: errorKind === "unsupported"
+      ? "not_implemented"
+      : errorKind === "permission" || message.toLowerCase().includes("not authorized") || message.toLowerCase().includes("permission")
+        ? "permission_error"
+        : "adapter_error",
     command: command.utterance,
     adapter: command.adapter,
     provider: metadata.provider,
     didOpenExternalApp: metadata.didOpenExternalApp,
-    errorKind: metadata.errorKind,
+    errorKind,
     error: message,
-    permissionHint: "For Calendar, Reminders, and Contacts, grant native privacy access in System Settings > Privacy & Security. Automation is only used as an optional fallback when an app is already running.",
+    summary: guidance.summary,
+    suggestedNextAction: guidance.suggestedNextAction,
+  };
+}
+
+function providerFailureGuidance(
+  adapter: string,
+  provider: string | undefined,
+  message: string,
+): Pick<FoundationSurfaceProps, "summary" | "suggestedNextAction" | "errorKind"> {
+  const lower = message.toLowerCase();
+  const target = `${adapter} ${provider ?? ""} ${message}`.toLowerCase();
+
+  if (target.includes("calendar")) {
+    if (lower.includes("timeout") || lower.includes("timed out")) {
+      return {
+        summary: "Calendar permission or data loading timed out.",
+        suggestedNextAction: "Retry the Calendar command. If a macOS prompt is visible, answer it before the adapter timeout.",
+        errorKind: "timeout",
+      };
+    }
+    return {
+      summary: "Calendar access is not available to the Adaptive Surface app process.",
+      suggestedNextAction: "Allow Adaptive Surface in System Settings > Privacy & Security > Calendars, then run the Calendar command again.",
+      errorKind: "permission",
+    };
+  }
+
+  if (target.includes("reminder")) {
+    if (lower.includes("timeout") || lower.includes("timed out")) {
+      return {
+        summary: "Reminders permission or data loading timed out.",
+        suggestedNextAction: "Retry the Reminders command. If a macOS prompt is visible, answer it before the adapter timeout.",
+        errorKind: "timeout",
+      };
+    }
+    return {
+      summary: "Reminders access is not available to the Adaptive Surface app process.",
+      suggestedNextAction: "Allow Adaptive Surface in System Settings > Privacy & Security > Reminders, then run the Reminders command again.",
+      errorKind: "permission",
+    };
+  }
+
+  if (target.includes("contact")) {
+    if (lower.includes("timeout") || lower.includes("timed out")) {
+      return {
+        summary: "Contacts permission or data loading timed out.",
+        suggestedNextAction: "Retry the contact search. If a macOS prompt is visible, answer it before the adapter timeout.",
+        errorKind: "timeout",
+      };
+    }
+    return {
+      summary: "Contacts access is not available to the Adaptive Surface app process.",
+      suggestedNextAction: "Allow Adaptive Surface in System Settings > Privacy & Security > Contacts, then run the contact search again.",
+      errorKind: "permission",
+    };
+  }
+
+  if (target.includes("mail") || target.includes("envelopeindex")) {
+    if (lower.includes("operation not permitted") || lower.includes("os error 1") || lower.includes("full_disk_access_missing")) {
+      return {
+        summary: "Mail metadata is blocked by macOS Full Disk Access.",
+        suggestedNextAction: "Add Adaptive Surface to System Settings > Privacy & Security > Full Disk Access. In dev, also add the terminal or dev runner used by npm run tauri:dev.",
+        errorKind: "permission",
+      };
+    }
+    if (lower.includes("not running")) {
+      return {
+        summary: "Mail fallback is available only when Mail is already running.",
+        suggestedNextAction: "Open Mail yourself if you want the AppleScript fallback, or grant Full Disk Access so Adaptive Surface can read the local Envelope Index without opening Mail.",
+        errorKind: "unavailable",
+      };
+    }
+    if (lower.includes("automation")) {
+      return {
+        summary: "Mail AppleScript fallback needs Automation permission.",
+        suggestedNextAction: "Allow Adaptive Surface to control Mail in System Settings > Privacy & Security > Automation, or use Full Disk Access for the Envelope Index path.",
+        errorKind: "permission",
+      };
+    }
+    return {
+      summary: "Mail metadata is unavailable from the local Envelope Index and the non-opening fallback did not succeed.",
+      suggestedNextAction: "Run \"Show capability status\" to inspect the Mail adapter details.",
+    };
+  }
+
+  if (target.includes("notes")) {
+    if (lower.includes("fallback_requires_notes_running")) {
+      return {
+        summary: "Local Notes database decoding is not implemented, and the fallback requires Notes to already be running.",
+        suggestedNextAction: "Open Notes yourself before retrying if you want the AppleScript fallback. Adaptive Surface will not open Notes automatically.",
+        errorKind: "unavailable",
+      };
+    }
+    if (lower.includes("fallback_requires_automation")) {
+      return {
+        summary: "Local Notes database decoding is not implemented, and the fallback needs Automation permission.",
+        suggestedNextAction: "Allow Adaptive Surface to control Notes in System Settings > Privacy & Security > Automation, then retry while Notes is running.",
+        errorKind: "permission",
+      };
+    }
+    if (lower.includes("fallback_timeout")) {
+      return {
+        summary: "Notes fallback timed out.",
+        suggestedNextAction: "Retry after confirming Notes is responsive, or wait for local Notes database decoding to be implemented.",
+        errorKind: "timeout",
+      };
+    }
+    return {
+      summary: "Local Notes database decoding is not implemented in this app yet.",
+      suggestedNextAction: "Use the Notes AppleScript fallback only when Notes is already running and Automation is allowed.",
+      errorKind: "unsupported",
+    };
+  }
+
+  return {
+    summary: "The local adapter failed before returning data.",
     suggestedNextAction: "Run \"Show capability status\" to inspect the adapter.",
   };
 }

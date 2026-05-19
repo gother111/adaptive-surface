@@ -22,6 +22,7 @@ import type {
   FileSearchQuery,
   LocalContextPreview,
   MailQuery,
+  NativePermissionDebug,
   NotesQuery,
   ReminderQuery,
   UpdateReminderRequest,
@@ -135,6 +136,11 @@ export async function loadAppleContextBundle(): Promise<AppleContextBundle> {
   }
 
   return invoke<AppleContextBundle>("load_apple_context_bundle");
+}
+
+export async function loadNativePermissionDebug(): Promise<NativePermissionDebug> {
+  ensureTauri("Native permission diagnostics are available only inside the Tauri desktop runtime.");
+  return invoke<NativePermissionDebug>("load_native_permission_debug");
 }
 
 function ensureTauri(message: string) {

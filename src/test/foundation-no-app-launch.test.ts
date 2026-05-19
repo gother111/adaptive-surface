@@ -21,4 +21,18 @@ describe("foundation adapters do not open Apple apps for read/list/search", () =
       expect(source).not.toContain("tell application \"Calendar\"\n\tlaunch");
     }
   });
+
+  it("does not implement Contacts search through /usr/bin/swift", () => {
+    const contactsProvider = readFileSync(`${root}/src-tauri/src/providers/contacts_provider.rs`, "utf8");
+    expect(contactsProvider).not.toContain("/usr/bin/swift");
+    expect(contactsProvider).not.toContain("run_swift_helper");
+  });
+
+  it("contains native permission request APIs for EventKit and Contacts", () => {
+    const eventkitBridge = readFileSync(`${root}/src-tauri/src/native_helpers/eventkit_bridge.m`, "utf8");
+    const contactsBridge = readFileSync(`${root}/src-tauri/src/native_helpers/contacts_bridge.m`, "utf8");
+    expect(eventkitBridge).toContain("requestFullAccessToEventsWithCompletion");
+    expect(eventkitBridge).toContain("requestFullAccessToRemindersWithCompletion");
+    expect(contactsBridge).toContain("requestAccessForEntityType");
+  });
 });

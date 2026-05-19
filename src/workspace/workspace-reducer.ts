@@ -127,7 +127,7 @@ function upsertSurface(surfaces: SurfaceInstance[], surface: SurfaceInstance) {
       ? {
           ...item,
           ...surface,
-          props: { ...item.props, ...surface.props },
+          props: { ...surface.props },
           status: "active" as const,
           updatedAt: surface.updatedAt,
         }

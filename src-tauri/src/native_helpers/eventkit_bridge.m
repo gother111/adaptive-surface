@@ -42,30 +42,106 @@ static NSString *ASAuthorizationName(EKAuthorizationStatus status) {
       return @"denied";
     default:
       if ((NSInteger)status == 3) {
-        return @"authorized";
+        return @"full_access";
       }
       if ((NSInteger)status == 4) {
-        return @"full_access";
+        return @"write_only";
       }
       return [NSString stringWithFormat:@"unknown_%ld", (long)status];
   }
 }
 
 static bool ASStatusAllowsAccess(EKAuthorizationStatus status) {
-  return (NSInteger)status == 3 || (NSInteger)status == 4;
+  return (NSInteger)status == 3;
+}
+
+static void ASSetPermissionError(EKEntityType entityType, EKAuthorizationStatus status, char **errorOut) {
+  if (errorOut == NULL) {
+    return;
+  }
+  NSString *name = entityType == EKEntityTypeEvent ? @"Calendar" : @"Reminders";
+  NSString *statusName = ASAuthorizationName(status);
+  NSString *extra = (NSInteger)status == 4
+    ? @" Write-only access is not enough because Adaptive Surface needs read/list access."
+    : @"";
+  *errorOut = ASCopyCString([NSString stringWithFormat:@"permission: %@ access is not authorized for Adaptive Surface. statusRaw=%ld status=%@.%@", name, (long)status, statusName, extra]);
+}
+
+static bool ASRequestAccess(EKEntityType entityType, EKEventStore *store, char **errorOut) {
+  __block BOOL granted = NO;
+  __block NSError *requestError = nil;
+  dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+
+  if (@available(macOS 14.0, *)) {
+    if (entityType == EKEntityTypeEvent && [store respondsToSelector:@selector(requestFullAccessToEventsWithCompletion:)]) {
+      [store requestFullAccessToEventsWithCompletion:^(BOOL didGrant, NSError *error) {
+        granted = didGrant;
+        requestError = error;
+        dispatch_semaphore_signal(semaphore);
+      }];
+    } else if (entityType == EKEntityTypeReminder && [store respondsToSelector:@selector(requestFullAccessToRemindersWithCompletion:)]) {
+      [store requestFullAccessToRemindersWithCompletion:^(BOOL didGrant, NSError *error) {
+        granted = didGrant;
+        requestError = error;
+        dispatch_semaphore_signal(semaphore);
+      }];
+    } else {
+      [store requestAccessToEntityType:entityType completion:^(BOOL didGrant, NSError *error) {
+        granted = didGrant;
+        requestError = error;
+        dispatch_semaphore_signal(semaphore);
+      }];
+    }
+  } else {
+    [store requestAccessToEntityType:entityType completion:^(BOOL didGrant, NSError *error) {
+      granted = didGrant;
+      requestError = error;
+      dispatch_semaphore_signal(semaphore);
+    }];
+  }
+
+  dispatch_time_t timeout = dispatch_time(DISPATCH_TIME_NOW, 60 * NSEC_PER_SEC);
+  if (dispatch_semaphore_wait(semaphore, timeout) != 0) {
+    if (errorOut != NULL) {
+      NSString *name = entityType == EKEntityTypeEvent ? @"Calendar" : @"Reminders";
+      *errorOut = ASCopyCString([NSString stringWithFormat:@"timeout: %@ permission request timed out before macOS returned a decision.", name]);
+    }
+    return false;
+  }
+
+  if (requestError != nil) {
+    if (errorOut != NULL) {
+      NSString *name = entityType == EKEntityTypeEvent ? @"Calendar" : @"Reminders";
+      *errorOut = ASCopyCString([NSString stringWithFormat:@"permission: %@ requestAccess failed before prompting or before a decision completed: %@", name, requestError.localizedDescription]);
+    }
+    return false;
+  }
+
+  if (!granted) {
+    ASSetPermissionError(entityType, [EKEventStore authorizationStatusForEntityType:entityType], errorOut);
+    return false;
+  }
+
+  return true;
 }
 
 static bool ASEnsureAccess(EKEntityType entityType, EKEventStore *store, char **errorOut) {
-  (void)store;
   EKAuthorizationStatus status = [EKEventStore authorizationStatusForEntityType:entityType];
   if (ASStatusAllowsAccess(status)) {
     return true;
   }
 
-  if (errorOut != NULL) {
-    NSString *name = entityType == EKEntityTypeEvent ? @"Calendar" : @"Reminders";
-    *errorOut = ASCopyCString([NSString stringWithFormat:@"permission: %@ access is not authorized for Adaptive Surface. statusRaw=%ld status=%@", name, (long)status, ASAuthorizationName(status)]);
+  if (status == EKAuthorizationStatusNotDetermined) {
+    if (!ASRequestAccess(entityType, store, errorOut)) {
+      return false;
+    }
+    status = [EKEventStore authorizationStatusForEntityType:entityType];
+    if (ASStatusAllowsAccess(status)) {
+      return true;
+    }
   }
+
+  ASSetPermissionError(entityType, status, errorOut);
   return false;
 }
 
