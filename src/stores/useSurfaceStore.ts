@@ -8,10 +8,11 @@ import {
 } from "@/lib/context-sources";
 import { loadAppleContextBundle } from "@/lib/context-api";
 import { initialSurfaces } from "@/lib/surface-fixtures";
+import { shouldRunFoundationBeforeWorkspace } from "@/local-context/context-routing-contract";
 import { isLocalContextUtterance } from "@/local-context/foundation-intent-router";
 import { runFoundationCommand } from "@/local-context/work-command-runner";
 import { routeFoundationCommand } from "@/local-context/work-command-router";
-import type { FoundationCommandMemory } from "@/local-context/work-command-types";
+import type { FoundationCommand, FoundationCommandMemory } from "@/local-context/work-command-types";
 import { getActiveObjective } from "@/objectives/objective-memory";
 import { applyObjectiveRouting, attachObjectsToObjectiveFrame, createObjectiveFrame } from "@/objectives/objective-reducer";
 import { routeUtteranceToObjectiveFrame } from "@/objectives/objective-router";
@@ -35,6 +36,7 @@ import type {
   CalendarPanelProps,
   MailPanelProps,
   NotesPanelProps,
+  RemindersPanelProps,
   RoutedVoiceAction,
   SurfaceInstance,
   WorkspacePatch,
@@ -127,7 +129,7 @@ interface SurfaceState {
   completeObjective: (objectiveId: string) => void;
   pauseObjective: (objectiveId: string) => void;
   switchToObjective: (objectiveId: string) => void;
-  executeFoundationCommand: (text: string) => Promise<void>;
+  executeFoundationCommand: (text: string, layoutPreference?: FoundationCommand["layoutPreference"]) => Promise<void>;
 }
 
 export const useSurfaceStore = create<SurfaceState>((set, get) => ({
@@ -225,13 +227,15 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
       return;
     }
 
+    const stateBeforeRouting = get();
+    const activeObjectiveBeforeRouting = getActiveObjective(stateBeforeRouting.objectives, stateBeforeRouting.activeObjectiveId);
     const foundationCommand = routeFoundationCommand(text);
-    if (foundationCommand) {
+    if (foundationCommand && shouldRunFoundationBeforeWorkspace(text, foundationCommand, stateBeforeRouting.workspaceSession, activeObjectiveBeforeRouting)) {
       void get().executeFoundationCommand(text);
       return;
     }
 
-    if (isLocalContextUtterance(text) && !isExplicitEmailDraftUtterance(text)) {
+    if (!activeObjectiveBeforeRouting && isLocalContextUtterance(text) && !isExplicitEmailDraftUtterance(text)) {
       void get().executeFoundationCommand(text);
       return;
     }
@@ -457,14 +461,15 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
       activeObjectiveId: objectiveId,
       objectiveHistory: [objectiveId, ...state.objectiveHistory.filter((id) => id !== objectiveId)].slice(0, 12),
     })),
-  executeFoundationCommand: async (text) => {
+  executeFoundationCommand: async (text, layoutPreference) => {
     const command = routeFoundationCommand(text);
     if (!command) {
       return;
     }
+    command.layoutPreference = layoutPreference;
 
     set((state) => {
-      const loadingPatches = createFoundationLoadingPatches(state.workspaceSession, command.surfaceKind, text, command.adapter);
+      const loadingPatches = createFoundationLoadingPatches(state.workspaceSession, command.surfaceKind, text, command.adapter, command.layoutPreference);
       return {
         partialTranscript: "",
         committedTranscript: `${state.committedTranscript} ${text}`.trim(),
@@ -548,12 +553,16 @@ function createFoundationLoadingPatches(
   surfaceKind: string,
   utteranceText: string,
   adapter: string,
+  layoutPreference?: "primary" | "supporting" | "temporary",
 ): WorkspacePatch[] {
   const now = Date.now();
-  const layout = assignWorkspaceLayout(
-    { kind: surfaceKind as SurfaceInstance["kind"] },
-    { makePrimary: shouldCommandBecomePrimary(surfaceKind as SurfaceInstance["kind"]) },
-  );
+  const layout =
+    layoutPreference === "temporary"
+      ? { role: "temporary" as const, zone: "bottomDock" as const }
+      : assignWorkspaceLayout(
+          { kind: surfaceKind as SurfaceInstance["kind"] },
+          { makePrimary: layoutPreference === "primary" || (layoutPreference !== "supporting" && shouldCommandBecomePrimary(surfaceKind as SurfaceInstance["kind"])) },
+        );
   const surface: SurfaceInstance = {
     id: `foundation-${surfaceKind}`,
     kind: surfaceKind as SurfaceInstance["kind"],
@@ -580,11 +589,11 @@ function createFoundationLoadingPatches(
 
 function routeRequestsAppleContext(action: RoutedVoiceAction) {
   if (action.kind === "add_supporting_surface") {
-    return action.surfaceKind === "calendar" || action.surfaceKind === "mail" || action.surfaceKind === "notes";
+    return action.surfaceKind === "calendar" || action.surfaceKind === "mail" || action.surfaceKind === "notes" || action.surfaceKind === "reminders";
   }
 
   if (action.kind === "add_multiple_supporting_surfaces") {
-    return action.surfaceKinds.some((kind) => kind === "calendar" || kind === "mail" || kind === "notes");
+    return action.surfaceKinds.some((kind) => kind === "calendar" || kind === "mail" || kind === "notes" || kind === "reminders");
   }
 
   return false;
@@ -701,6 +710,14 @@ function updateAppleWorkspaceSurfaces(
     });
   }
 
+  if (session.surfaces.some((surface) => surface.kind === "reminders")) {
+    patches.push({
+      type: "UPDATE_SURFACE",
+      surfaceId: "workspace-reminders",
+      props: remindersPropsFromContext(context, loading) as unknown as Record<string, unknown>,
+    });
+  }
+
   return patches.length ? applyWorkspacePatches(session, patches) : session;
 }
 
@@ -753,6 +770,24 @@ function notesPropsFromContext(context: AppleContextState, loading: boolean): No
       folder: note.folder,
       modifiedAt: note.modifiedAt ?? note.createdAt,
       excerpt: note.preview ?? "",
+    })),
+  };
+}
+
+function remindersPropsFromContext(context: AppleContextState, loading: boolean): RemindersPanelProps {
+  const warnings = context.warnings
+    .filter((warning) => warning.source === "reminders")
+    .map((warning) => warning.message);
+
+  return {
+    title: "Reminders",
+    status: statusFor(context.reminders.length, warnings.length, loading),
+    warnings,
+    reminders: context.reminders.map((reminder) => ({
+      id: reminder.id,
+      title: reminder.title,
+      detail: reminder.listName,
+      dueAt: reminder.dueAt,
     })),
   };
 }

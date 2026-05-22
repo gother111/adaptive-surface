@@ -8,7 +8,9 @@ import type { ObjectiveFrame } from "@/objectives/objective-types";
 import { requiresApproval } from "@/capabilities/approval-policy";
 import { goldenTasks } from "@/evals/golden-tasks";
 import type { GoldenEvalReport, GoldenTask, GoldenTaskResult } from "@/evals/seemless-bench-types";
+import { shouldRunFoundationBeforeWorkspace } from "@/local-context/context-routing-contract";
 import { routeFoundationCommand } from "@/local-context/work-command-router";
+import { assignWorkspaceLayout, shouldCommandBecomePrimary } from "@/workspace/layout/workspace-layout-engine";
 
 export function runGoldenTasks(tasks: GoldenTask[] = goldenTasks): GoldenEvalReport {
   const results = tasks.map(runGoldenTask);
@@ -39,10 +41,16 @@ function runGoldenTask(task: GoldenTask): GoldenTaskResult {
   let approvalRequired = false;
 
   for (const utterance of task.utterances) {
+    const activeObjective = getActiveObjective(objectives, activeObjectiveId);
     const foundationCommand = routeFoundationCommand(utterance);
-    if (foundationCommand) {
+    if (foundationCommand && shouldRunFoundationBeforeWorkspace(utterance, foundationCommand, session, activeObjective)) {
       const now = Date.now();
-      const role = foundationCommand.surfaceKind === "approval" ? "temporary" : "primary";
+      const layout = assignWorkspaceLayout(
+        { kind: foundationCommand.surfaceKind as never },
+        { makePrimary: shouldCommandBecomePrimary(foundationCommand.surfaceKind as never) },
+      );
+      const role = foundationCommand.surfaceKind === "approval" ? "temporary" : layout.role;
+      const zone = foundationCommand.surfaceKind === "approval" ? "bottomDock" : layout.zone;
       session = applyWorkspacePatches(session, [
         {
           type: "UPSERT_SURFACE",
@@ -50,7 +58,7 @@ function runGoldenTask(task: GoldenTask): GoldenTaskResult {
             id: `foundation-${foundationCommand.surfaceKind}`,
             kind: foundationCommand.surfaceKind as never,
             role,
-            zone: role === "primary" ? "main" : role === "temporary" ? "bottomDock" : "leftRail",
+            zone,
             status: "active",
             createdAt: now,
             updatedAt: now,
@@ -65,7 +73,6 @@ function runGoldenTask(task: GoldenTask): GoldenTaskResult {
       continue;
     }
 
-    const activeObjective = getActiveObjective(objectives, activeObjectiveId);
     const decision = routeUtteranceToObjectiveFrame(utterance, activeObjective, objectives);
     const objectiveUpdate = applyObjectiveRouting(objectives, activeObjectiveId, decision, utterance);
     objectives = objectiveUpdate.objectives;

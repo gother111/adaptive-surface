@@ -7,6 +7,7 @@ export type LocalCapabilityId =
   | "apple.notes"
   | "apple.contacts"
   | "local.files"
+  | "gmail"
   | "google.calendar"
   | "google.drive";
 
@@ -32,6 +33,7 @@ export const localCapabilityRegistry: Record<LocalCapabilityId, LocalCapabilityD
   "apple.notes": definition("apple.notes", "Apple Notes", "AppleScript", "needs-permission", ["read", "list", "search", "create", "update"], ["show recent notes", "open latest note fully"]),
   "apple.contacts": definition("apple.contacts", "Apple Contacts", "AppleScript", "needs-permission", ["read", "search"], ["find contacts named Yurii"]),
   "local.files": definition("local.files", "Local files", "Tauri filesystem", "available", ["read", "list", "search"], ["show files from Desktop", "search Documents for PDF files"]),
+  "gmail": definition("gmail", "Gmail", "Google OAuth", "needs-configuration", ["read", "list", "search"], []),
   "google.calendar": definition("google.calendar", "Google Calendar", "Google OAuth", "needs-configuration", ["read", "list", "search"], []),
   "google.drive": definition("google.drive", "Google Drive", "Google OAuth", "needs-configuration", ["read", "list", "search"], []),
 };

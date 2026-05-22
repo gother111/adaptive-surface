@@ -35,6 +35,20 @@ Do not launch the native app, build DMGs, replace installed apps, reset
 permissions, install dependencies, commit, push, delete, or run destructive
 commands unless explicitly asked.
 
+## Autonomy and Communication
+
+- Default to taking the next useful local step when it is reversible, repo-local,
+  and within the user's requested scope.
+- Do not ask permission for ordinary reading, searching, targeted frontend edits,
+  documentation updates, formatting, or safe local verification.
+- Ask first before native permission changes, Tauri capability changes, local data
+  writes, app launch, app replacement, dependency installation, deploys, commits,
+  pushes, or choices that materially affect user-facing behavior.
+- Keep progress updates short and practical. Mention what was found, what is
+  changing, and any blocker.
+- Keep final answers compact by default. Use the full done-definition detail for
+  native, risky, broad, or explicitly requested review work.
+
 ## Protected Zones
 
 Treat these files, directories, and capabilities as security-sensitive:

@@ -136,6 +136,11 @@ export type RoutedVoiceAction =
       instruction: string;
     }
   | {
+      kind: "focus_existing_surface";
+      targetSurfaceId: string;
+      instruction: string;
+    }
+  | {
       kind: "transform_existing_content";
       targetSurfaceId: string;
       transformation: string;
@@ -229,7 +234,7 @@ export interface FilesPanelProps {
 
 export interface FoundationSurfaceProps {
   title: string;
-  status: "loading" | "available" | "empty" | "permission_error" | "adapter_error" | "needs_approval" | "not_implemented";
+  status: "loading" | "available" | "empty" | "permission_error" | "adapter_error" | "needs_approval" | "needs-configuration" | "not_implemented";
   command: string;
   adapter: string;
   provider?: string;

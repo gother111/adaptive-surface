@@ -9,6 +9,7 @@ export type FoundationIntentName =
   | "contacts.search"
   | "files.listRoot"
   | "files.search"
+  | "connector.needsConfiguration"
   | "local.unsupported";
 
 export interface FoundationIntentResult {
@@ -26,17 +27,10 @@ const LOCAL_CONTEXT_WORDS = [
   "emails",
   "mail",
   "inbox",
-  "message",
-  "messages",
   "calendar",
-  "event",
-  "events",
   "schedule",
-  "meeting",
-  "meetings",
   "reminder",
   "reminders",
-  "todo",
   "todos",
   "note",
   "notes",
@@ -60,6 +54,17 @@ export function classifyFoundationIntent(utterance: string): FoundationIntentRes
   const original = utterance.toLowerCase().replace(/\s+/g, " ").trim();
   const localContext = isLocalContextUtterance(utterance);
 
+  const connector = scaffoldedConnectorFor(original);
+  if (connector) {
+    return {
+      intent: "connector.needsConfiguration",
+      confidence: "high",
+      reason: `${connector.label} is scaffolded but has no OAuth configuration in this app.`,
+      normalizedText,
+      query: connector.id,
+    };
+  }
+
   if (/\b(latest|last)\b.*\bnotes?\b/.test(normalizedText) || /\bnotes?\b.*\b(latest|last)\b/.test(normalizedText)) {
     return high("notes.readLatest", normalizedText, "Latest note read phrase matched.");
   }
@@ -79,7 +84,10 @@ export function classifyFoundationIntent(utterance: string): FoundationIntentRes
     return high("email.list", normalizedText, "Email list phrase matched.");
   }
 
-  if (/\b(calendar|schedule|events?|meetings?)\b/.test(normalizedText)) {
+  if (
+    /\b(calendar|schedule)\b/.test(normalizedText) ||
+    (/\b(events?|meetings?)\b/.test(normalizedText) && /\b(show|list|open|check|today|tomorrow|next)\b/.test(original))
+  ) {
     return high("calendar.today", normalizedText, "Calendar phrase matched.");
   }
 
@@ -99,11 +107,11 @@ export function classifyFoundationIntent(utterance: string): FoundationIntentRes
   }
 
   const root = extractRoot(normalizedText);
-  if (root && (/\b(search|find)\b/.test(normalizedText) || /\bpdfs?\b/.test(normalizedText))) {
+  if (root && (/\b(search|find)\b/.test(normalizedText) || /\b(pdfs?|markdown|md)\b/.test(normalizedText))) {
     return {
       ...high("files.search", normalizedText, "Trusted-root file search phrase matched."),
       root,
-      extension: /\bpdfs?\b/.test(normalizedText) ? "pdf" : undefined,
+      extension: fileExtensionFromText(normalizedText),
       query: extractFileQuery(normalizedText),
     };
   }
@@ -124,6 +132,13 @@ export function classifyFoundationIntent(utterance: string): FoundationIntentRes
     };
   }
 
+  return null;
+}
+
+function scaffoldedConnectorFor(text: string) {
+  if (/\b(gmail|google mail)\b/.test(text)) return { id: "gmail", label: "Gmail" };
+  if (/\bgoogle calendar\b/.test(text)) return { id: "google.calendar", label: "Google Calendar" };
+  if (/\b(google drive|drive files|google docs)\b/.test(text)) return { id: "google.drive", label: "Google Drive" };
   return null;
 }
 
@@ -153,6 +168,12 @@ function extractRoot(text: string): FoundationIntentResult["root"] {
   return undefined;
 }
 
+function fileExtensionFromText(text: string) {
+  if (/\bpdfs?\b/.test(text)) return "pdf";
+  if (/\b(markdown|md)\b/.test(text)) return "md";
+  return undefined;
+}
+
 function extractContactQuery(text: string) {
   return text
     .replace(/\b(find|search|for|in|contacts?|contact|named|called)\b/g, " ")
@@ -163,7 +184,7 @@ function extractContactQuery(text: string) {
 function extractFileQuery(text: string) {
   if (/\bpdfs?\b/.test(text)) return undefined;
   return text
-    .replace(/\b(search|find|show|files?|from|in|desktop|documents|downloads|folder|folders|pdfs?)\b/g, " ")
+    .replace(/\b(search|find|show|files?|from|in|desktop|documents|downloads|folder|folders|pdfs?|markdown|md)\b/g, " ")
     .replace(/\s+/g, " ")
     .trim() || undefined;
 }

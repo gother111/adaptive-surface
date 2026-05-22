@@ -51,6 +51,22 @@ describe("objective router", () => {
     expect(decisions[1].route).toBe("add_supporting_context");
   });
 
+  it("treats source mentions as supporting context instead of new objectives", () => {
+    const { activeObjective, decisions } = routeSequence([
+      "Write an email to Jacob.",
+      "Include that from the notes.",
+      "Use my calendar but keep the draft open.",
+    ]);
+    expect(activeObjective?.kind).toBe("draft_email");
+    expect(decisions[1].route).toBe("add_supporting_context");
+    expect(decisions[2].route).toBe("add_supporting_context");
+  });
+
+  it("does not treat negative approval wording as approval", () => {
+    const { decisions } = routeSequence(["Write an email to Jacob.", "Approve nothing."]);
+    expect(decisions[1].route).not.toBe("request_approval");
+  });
+
   it("switches back to a previous email objective", () => {
     const { activeObjective, decisions } = routeSequence([
       "Write an email to Jacob.",

@@ -1,4 +1,5 @@
 import type { GoldenTask } from "@/evals/seemless-bench-types";
+import { deepContextRetentionTasks } from "@/evals/deep-context-retention-tasks";
 
 export const goldenTasks: GoldenTask[] = [
   {
@@ -53,7 +54,7 @@ export const goldenTasks: GoldenTask[] = [
     id: "email-004",
     title: "Email with calendar support",
     utterances: ["Write an email to Jacob.", "Check my calendar and say I am free next Tuesday afternoon."],
-    expected: { primarySurfaceKind: "calendar_day", shouldRefreshAppleContext: true },
+    expected: { objectiveKind: "draft_email", primarySurfaceKind: "email_draft", supportingSurfaceKinds: ["calendar"], shouldRefreshAppleContext: true },
   },
   {
     id: "email-005",
@@ -125,7 +126,7 @@ export const goldenTasks: GoldenTask[] = [
     id: "files-002",
     title: "Summarize selected file",
     utterances: ["Search my project folder for the latest PDF.", "Summarize this file."],
-    expected: { primarySurfaceKind: "files", shouldPersistSurface: true },
+    expected: { primarySurfaceKind: "file_detail", shouldPersistSurface: true },
   },
   {
     id: "multi-001",
@@ -137,7 +138,7 @@ export const goldenTasks: GoldenTask[] = [
     id: "multi-002",
     title: "Go back to email",
     utterances: ["Write an email to Jacob.", "Show my calendar.", "Go back to the email."],
-    expected: { primarySurfaceKind: "unsupported_context", shouldPersistSurface: true },
+    expected: { objectiveKind: "draft_email", primarySurfaceKind: "email_draft", shouldPersistSurface: true },
   },
   {
     id: "approval-001",
@@ -151,4 +152,5 @@ export const goldenTasks: GoldenTask[] = [
     utterances: ["Purple umbrella backwards."],
     expected: { objectiveKind: "unknown" },
   },
+  ...deepContextRetentionTasks,
 ];

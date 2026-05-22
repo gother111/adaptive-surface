@@ -2,6 +2,7 @@ import type { CreateCalendarEventRequest, CreateNoteRequest, CreateReminderReque
 
 export type FoundationCommandKind =
   | "show_capability_status"
+  | "show_scaffolded_connector_status"
   | "show_recent_emails"
   | "open_latest_email"
   | "show_today_calendar"
@@ -25,6 +26,7 @@ export interface FoundationCommand {
   adapter: string;
   requiresApproval: boolean;
   payload: Record<string, unknown>;
+  layoutPreference?: "primary" | "supporting" | "temporary";
 }
 
 export type PendingApproval =

@@ -32,7 +32,7 @@ export async function runFoundationCommand(
     const pendingApproval = pendingFromCommand(command);
     return {
       memory: { ...memory, pendingApproval },
-      patches: surfacePatches(session, command.surfaceKind, approvalProps(command, pendingApproval), command.utterance),
+        patches: surfacePatches(session, command.surfaceKind, approvalProps(command, pendingApproval), command.utterance, command.layoutPreference),
     };
   }
 
@@ -52,6 +52,32 @@ export async function runFoundationCommand(
           adapter: command.adapter,
           summary: "Real local capability diagnostics. Google connectors are configuration-only.",
           items: capabilities.map((capability) => ({ ...capability })),
+        });
+      }
+      case "show_scaffolded_connector_status": {
+        const connectorId = String(command.payload.connectorId ?? "unknown");
+        const label = connectorLabel(connectorId);
+        return result(session, command, memory, {
+          title: `${label} connector`,
+          status: "needs-configuration",
+          command: command.utterance,
+          adapter: command.adapter,
+          provider: connectorId,
+          summary: `${label} is not connected in this local app. It needs OAuth/client configuration before Adaptive Surface can load real data.`,
+          detail: {
+            connectorId,
+            status: "needs-configuration",
+            realDataLoaded: false,
+          },
+          items: [
+            {
+              label,
+              status: "needs-configuration",
+              provider: connectorId,
+              doesNotWork: "No OAuth flow or token storage is configured in this repo.",
+            },
+          ],
+          suggestedNextAction: "Use Apple/local sources for now, or add a verified OAuth connector before enabling this source.",
         });
       }
       case "show_recent_emails": {
@@ -187,7 +213,7 @@ export async function runFoundationCommand(
   } catch (error) {
     return {
       memory,
-      patches: surfacePatches(session, command.surfaceKind, errorProps(command, error), command.utterance),
+      patches: surfacePatches(session, command.surfaceKind, errorProps(command, error), command.utterance, command.layoutPreference),
     };
   }
 }
@@ -201,14 +227,14 @@ async function approvePendingAction(
   if (!pending) {
     return {
       memory,
-      patches: surfacePatches(session, "command_error", {
+        patches: surfacePatches(session, "command_error", {
         title: "No pending approval",
         status: "adapter_error",
         command: command.utterance,
         adapter: "approval",
         error: "There is no pending write action to approve.",
         permissionHint: "Start a create command first.",
-      }, command.utterance),
+      }, command.utterance, command.layoutPreference),
     };
   }
 
@@ -229,12 +255,12 @@ async function approvePendingAction(
         adapter: pending.kind,
         summary: response.message,
         detail: { ...response },
-      }, command.utterance),
+      }, command.utterance, command.layoutPreference),
     };
   } catch (error) {
     return {
       memory,
-      patches: surfacePatches(session, "command_error", errorProps({ ...command, adapter: pending.kind }, error), command.utterance),
+      patches: surfacePatches(session, "command_error", errorProps({ ...command, adapter: pending.kind }, error), command.utterance, command.layoutPreference),
     };
   }
 }
@@ -250,7 +276,7 @@ function result(
     patches: surfacePatches(session, command.surfaceKind, {
       didOpenExternalApp: false,
       ...props,
-    }, command.utterance),
+    }, command.utterance, command.layoutPreference),
   };
 }
 
@@ -424,9 +450,10 @@ function surfacePatches(
   surfaceKind: string,
   props: FoundationSurfaceProps,
   utterance: string,
+  layoutPreference?: FoundationCommand["layoutPreference"],
 ): WorkspacePatch[] {
   const now = Date.now();
-  const surface = createFoundationSurface(session, surfaceKind, props, now, utterance);
+  const surface = createFoundationSurface(session, surfaceKind, props, now, utterance, layoutPreference);
   const shouldBecomePrimary = surface.role === "primary";
   return [
     {
@@ -444,10 +471,10 @@ function createFoundationSurface(
   props: FoundationSurfaceProps,
   now: number,
   utterance: string,
+  layoutPreference?: FoundationCommand["layoutPreference"],
 ): SurfaceInstance {
   const startOver = /\b(start over|clear|new workspace)\b/i.test(utterance);
-  const makePrimary = startOver || shouldCommandBecomePrimary(surfaceKind as SurfaceInstance["kind"]);
-  const layout = assignWorkspaceLayout({ kind: surfaceKind as SurfaceInstance["kind"] }, { makePrimary });
+  const layout = commandLayout(surfaceKind, layoutPreference, startOver);
 
   return {
     id: `foundation-${surfaceKind}`,
@@ -459,6 +486,21 @@ function createFoundationSurface(
     updatedAt: now,
     props: { ...props },
   };
+}
+
+function commandLayout(surfaceKind: string, layoutPreference: FoundationCommand["layoutPreference"] | undefined, startOver: boolean) {
+  if (layoutPreference === "supporting") return assignWorkspaceLayout({ kind: surfaceKind as SurfaceInstance["kind"] }, { makePrimary: false });
+  if (layoutPreference === "temporary") return { role: "temporary" as const, zone: "bottomDock" as const };
+  return assignWorkspaceLayout({ kind: surfaceKind as SurfaceInstance["kind"] }, {
+    makePrimary: startOver || shouldCommandBecomePrimary(surfaceKind as SurfaceInstance["kind"]),
+  });
+}
+
+function connectorLabel(connectorId: string) {
+  if (connectorId === "gmail") return "Gmail";
+  if (connectorId === "google.calendar") return "Google Calendar";
+  if (connectorId === "google.drive") return "Google Drive";
+  return "Connector";
 }
 
 async function withTimeout<T>(promise: Promise<T>, adapter: string, timeoutMs = 12_000): Promise<T> {

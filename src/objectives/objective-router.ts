@@ -1,11 +1,12 @@
 import { createContextRequirements } from "@/objectives/objective-registry";
 import type { ObjectiveFrame, ObjectiveKind, ObjectiveRoutingDecision } from "@/objectives/objective-types";
 
-const CONTINUATION_RE = /\b(also|mention|add|include|use the calendar|check notes|don't send yet|dont send yet|keep this open|continue)\b/;
+const CONTINUATION_RE = /\b(also|mention|add|include|use (the|my) calendar|check notes|don't send yet|dont send yet|keep .* open|continue)\b/;
 const REFINEMENT_RE = /\b(make it|make this|shorter|warmer|more formal|friendlier|clearer|more concise)\b/;
 const SWITCH_RE = /\b(new task|start over|switch to|go back to|close this|forget this|open calendar instead)\b/;
 const COMPLETE_RE = /\b(done|complete|finish|close this|forget this)\b/;
 const APPROVAL_RE = /\b(send it|send this|approve|yes send|create event|create reminder)\b/;
+const APPROVAL_NEGATION_RE = /\b(approve nothing|approve none|approve no|approve only if|do not approve|don't approve|do not send|don't send|dont send)\b/;
 
 export function routeUtteranceToObjectiveFrame(
   utterance: string,
@@ -16,7 +17,7 @@ export function routeUtteranceToObjectiveFrame(
   const explicitKind = classifyObjectiveKind(text);
   const previousObjective = findPreviousObjective(text, activeObjective, objectives);
 
-  if (APPROVAL_RE.test(text)) {
+  if (APPROVAL_RE.test(text) && !APPROVAL_NEGATION_RE.test(text)) {
     return decision("request_approval", activeObjective?.kind ?? explicitKind, "User requested an approval-gated action.", 0.88, activeObjective?.id);
   }
 
@@ -70,6 +71,8 @@ export function routeUtteranceToObjectiveFrame(
 
 export function classifyObjectiveKind(text: string): ObjectiveKind {
   if (/\b(write|draft|compose|start).*\b(email|mail|message)\b/.test(text)) return "draft_email";
+  if (/\b(draft|write|compose).*\breply\b/.test(text)) return "draft_email";
+  if (/\b(go back to|return to|keep).*\b(reply|email draft|draft)\b/.test(text)) return "draft_email";
   if (/\b(reply|respond).*\b(email|mail|message)\b/.test(text)) return "reply_to_email";
   if (/\b(summarize|summary).*\b(email|thread|message)\b/.test(text)) return "summarize_email_or_thread";
   if (/\b(show|open|check|look at).*\b(calendar|schedule|events?|meetings?)\b/.test(text)) return "show_calendar";

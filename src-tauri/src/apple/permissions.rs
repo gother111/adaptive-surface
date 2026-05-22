@@ -52,6 +52,7 @@ pub fn capability_diagnostics() -> Vec<CapabilityDiagnostic> {
             vec!["name/email/phone/organization search", "contact notes are not requested"],
         ),
         local_files_capability(),
+        scaffolded_google("gmail", "Gmail"),
         scaffolded_google("google.calendar", "Google Calendar"),
         scaffolded_google("google.drive", "Google Drive"),
     ]

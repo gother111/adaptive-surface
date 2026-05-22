@@ -4,7 +4,7 @@ import type { FoundationCommand } from "@/local-context/work-command-types";
 export function routeFoundationCommand(utterance: string): FoundationCommand | null {
   const text = utterance.toLowerCase().replace(/\s+/g, " ").trim();
 
-  if (/\b(approve|confirm|yes create|go ahead)\b/.test(text)) {
+  if (/\b(approve|confirm|yes create|go ahead)\b/.test(text) && !/\b(approve nothing|approve none|approve no|approve only if|do not approve|don't approve)\b/.test(text)) {
     return command("approve_pending_action", utterance, "approval", "approval", false, {});
   }
 
@@ -12,7 +12,7 @@ export function routeFoundationCommand(utterance: string): FoundationCommand | n
     return null;
   }
 
-  if (/\b(create|add).*\b(calendar event|event)\b/.test(text) || /\b(schedule|book).*\b(meeting|event)\b/.test(text)) {
+  if (/\b(create|add).*\bcalendar event\b/.test(text) || /\b(schedule|book).*\b(meeting|event)\b/.test(text)) {
     return command("create_calendar_event", utterance, "approval", "create_calendar_event", true, {
       title: extractCalledTitle(utterance) ?? "Test Event",
       startAt: extractDatePhrase(text) ?? "tomorrow at 10:00 AM",
@@ -34,6 +34,10 @@ export function routeFoundationCommand(utterance: string): FoundationCommand | n
     });
   }
 
+  if (/\b(open|read|summarize|summary)\b.*\b(latest|selected|readable|this)\b.*\b(file|document|pdf|markdown|md)\b/.test(text) || /\b(open|read|summarize|summary)\b.*\b(file|document)\b/.test(text)) {
+    return command("open_file_summary", utterance, "file_detail", "read_local_file", false, {});
+  }
+
   const intent = classifyFoundationIntent(utterance);
   if (!intent) {
     return null;
@@ -42,6 +46,10 @@ export function routeFoundationCommand(utterance: string): FoundationCommand | n
   switch (intent.intent) {
     case "capability.status":
       return command("show_capability_status", utterance, "capability_status", "load_capability_diagnostics", false, {});
+    case "connector.needsConfiguration":
+      return command("show_scaffolded_connector_status", utterance, "capability_status", "connector_status", false, {
+        connectorId: intent.query,
+      });
     case "email.list":
       return command("show_recent_emails", utterance, "email_list", "load_mail_messages", false, { limit: 25 });
     case "email.readLatest":

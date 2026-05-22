@@ -13,9 +13,15 @@ import type {
   WorkspacePatch,
   WorkspaceSession,
 } from "@/workspace/types";
+import { isExplicitPrimaryContextSwitch, requestedSupportSurfaceKinds } from "@/local-context/context-routing-contract";
 
 const EMAIL_SURFACE_ID = "workspace-email-draft";
 const SUPPORTING_SURFACE_IDS: Partial<Record<SurfaceKind, string>> = {
+  calendar: "workspace-calendar",
+  mail: "workspace-mail",
+  notes: "workspace-notes",
+  reminders: "workspace-reminders",
+  files: "workspace-files",
   table: "workspace-table",
   chart: "workspace-chart",
 };
@@ -49,6 +55,18 @@ export function routeVoiceAction(session: WorkspaceSession, utterance: string): 
     return { kind: "create_new_primary_surface", surfaceKind: "email_draft", instruction: utterance };
   }
 
+  const emailDraft = findSurfaceByKind(session, "email_draft");
+  if (emailDraft && /\b(go back to|return to).*\b(email|draft|reply)\b/.test(text)) {
+    return { kind: "focus_existing_surface", targetSurfaceId: emailDraft.id, instruction: utterance };
+  }
+
+  const supportKinds = requestedSupportSurfaceKinds(text);
+  if (primary?.kind === "email_draft" && supportKinds.length && beginsWithSupportLookup(text) && !isExplicitPrimaryContextSwitch(text)) {
+    return supportKinds.length === 1
+      ? { kind: "add_supporting_surface", surfaceKind: supportKinds[0], instruction: utterance }
+      : { kind: "add_multiple_supporting_surfaces", surfaceKinds: supportKinds, instruction: utterance };
+  }
+
   if (primary?.kind === "email_draft" && isEmailDraftFollowup(text)) {
     if (isCompletion(text)) {
       return { kind: "complete_task", targetSurfaceId: primary.id, action: completionAction(text) };
@@ -71,6 +89,16 @@ export function routeVoiceAction(session: WorkspaceSession, utterance: string): 
 
   if (isCreateEmailDraft(text)) {
     return { kind: "create_new_primary_surface", surfaceKind: "email_draft", instruction: utterance };
+  }
+
+  if (session.primarySurfaceId && supportKinds.length && !isExplicitPrimaryContextSwitch(text)) {
+    return supportKinds.length === 1
+      ? { kind: "add_supporting_surface", surfaceKind: supportKinds[0], instruction: utterance }
+      : { kind: "add_multiple_supporting_surfaces", surfaceKinds: supportKinds, instruction: utterance };
+  }
+
+  if (emailDraft && /\bkeep.*\b(email|draft|reply)\b/.test(text)) {
+    return { kind: "focus_existing_surface", targetSurfaceId: emailDraft.id, instruction: utterance };
   }
 
   return { kind: "unknown", instruction: utterance };
@@ -136,6 +164,11 @@ export function routedActionToPatches(
         },
       ];
     }
+    case "focus_existing_surface":
+      return [
+        ...patches,
+        { type: "SET_PRIMARY_SURFACE", surfaceId: action.targetSurfaceId },
+      ];
     case "transform_existing_content": {
       const surface = session.surfaces.find((item) => item.id === action.targetSurfaceId);
       if (surface?.kind !== "email_draft") {
@@ -325,7 +358,7 @@ function buildBody(currentBody: string, sentence: string | null, recipient: stri
 function sentenceFromInstruction(instruction: string) {
   const text = normalize(instruction);
 
-  if (/\b(draft|compose|start).*\b(email|mail|message)\b/.test(text) && !/\b(that|say|write|tell|mention|include)\b/.test(text)) {
+  if (/\b(write|draft|compose|start).*\b(email|mail|message)\b/.test(text) && !/\b(that|saying|say|tell|mention|include|about)\b/.test(text)) {
     return null;
   }
 
@@ -464,13 +497,17 @@ function findSurfaceByKind(session: WorkspaceSession, kind: SurfaceKind) {
 }
 
 function isCreateEmailDraft(text: string) {
-  return /\b(draft|write|compose|start).*\b(email|mail|message)\b/.test(text) || /^draft an email\b/.test(text);
+  return /\b(draft|write|compose|start).*\b(email|mail|message)\b/.test(text) || /^draft an email\b/.test(text) || /\b(draft|write|compose).*\breply\b/.test(text);
 }
 
 function isSupportingRequest(text: string, kind: SurfaceKind) {
   if (kind === "chart") return /\b(draw|show|create|make).*\b(graph|chart)\b/.test(text);
-  if (kind === "table") return /\b(show|create|make|draw).*\b(table|spreadsheet)\b/.test(text);
+  if (kind === "table") return /\b(show|create|make|draw|add).*\b(table|spreadsheet)\b/.test(text);
   return false;
+}
+
+function beginsWithSupportLookup(text: string) {
+  return /^(check|show|use|open|pull up|bring up)\b/.test(text) || /\b(as supporting|supporting context|context only)\b/.test(text);
 }
 
 function isTransformation(text: string) {

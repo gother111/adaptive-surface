@@ -104,7 +104,7 @@ function renderWorkspaceSurface(surface: SurfaceInstance) {
     return <RemindersPanel props={surface.props as unknown as RemindersPanelProps} />;
   }
 
-  if (surface.kind === "files" || surface.kind === "document") {
+  if ((surface.kind === "files" || surface.kind === "document") && Array.isArray((surface.props as Partial<FilesPanelProps>).files)) {
     return <FilesPanel props={surface.props as unknown as FilesPanelProps} />;
   }
 
@@ -504,6 +504,7 @@ function isFoundationSurface(kind: SurfaceInstance["kind"]) {
     "notes_list",
     "note_detail",
     "contacts",
+    "files",
     "file_detail",
     "command_error",
     "unsupported_context",

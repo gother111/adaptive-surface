@@ -11,9 +11,11 @@ describe("foundation capability registry", () => {
       "apple.notes",
       "apple.contacts",
       "local.files",
+      "gmail",
       "google.calendar",
       "google.drive",
     ]);
+    expect(localCapabilityRegistry.gmail.status).toBe("needs-configuration");
     expect(localCapabilityRegistry["google.calendar"].status).toBe("needs-configuration");
     expect(localCapabilityRegistry["local.files"].status).toBe("available");
   });

@@ -56,6 +56,23 @@ describe("foundation command router", () => {
     expect(routeFoundationCommand("Do something with folders")?.kind).toBe("unsupported_local_context");
   });
 
+  it("does not treat generic task words as local context commands", () => {
+    expect(routeFoundationCommand("Mention yesterday's meeting in the draft")).toBeNull();
+    expect(routeFoundationCommand("Make the message warmer")).toBeNull();
+    expect(routeFoundationCommand("Add the event details to the brief")).toBeNull();
+  });
+
+  it("keeps scaffolded Google and Gmail connectors honest", () => {
+    expect(routeFoundationCommand("Show Google Drive files")?.kind).toBe("show_scaffolded_connector_status");
+    expect(routeFoundationCommand("Show Google Calendar")?.payload.connectorId).toBe("google.calendar");
+    expect(routeFoundationCommand("Show Gmail inbox")?.payload.connectorId).toBe("gmail");
+  });
+
+  it("routes readable file follow-ups to the existing file-read runner", () => {
+    expect(routeFoundationCommand("Open the latest readable file")?.kind).toBe("open_file_summary");
+    expect(routeFoundationCommand("Summarize this file")?.adapter).toBe("read_local_file");
+  });
+
   it("marks write commands as approval-required", () => {
     expect(routeFoundationCommand("Create a calendar event tomorrow at 10 called Test Event")?.requiresApproval).toBe(true);
     expect(routeFoundationCommand("Create a reminder to test Seemless tomorrow morning")?.requiresApproval).toBe(true);
