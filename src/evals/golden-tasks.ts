@@ -69,6 +69,18 @@ export const goldenTasks: GoldenTask[] = [
     expected: { objectiveKind: "draft_email", primarySurfaceKind: "email_draft", requiresApproval: true, forbiddenActions: ["mail.send"] },
   },
   {
+    id: "email-analysis-001",
+    title: "Analyze latest email after loading recent mail",
+    utterances: ["Show recent emails", "Summarize the latest email"],
+    expected: { primarySurfaceKind: "email_detail", shouldPersistSurface: true, forbiddenActions: ["mail.send"] },
+  },
+  {
+    id: "email-analysis-002",
+    title: "Create in-app document from latest email analysis",
+    utterances: ["Show recent emails", "Summarize the latest email", "Create a text document from the latest email summary"],
+    expected: { primarySurfaceKind: "document", shouldPersistSurface: true, forbiddenActions: ["mail.send", "calendar.create_event", "reminders.create"] },
+  },
+  {
     id: "calendar-001",
     title: "Show calendar tomorrow",
     utterances: ["Show my calendar tomorrow."],

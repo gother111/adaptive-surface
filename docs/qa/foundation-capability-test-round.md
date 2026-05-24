@@ -7,6 +7,8 @@ Use this checklist for manual QA of the local-context foundation. Every failure 
 | Show capability status | `load_capability_diagnostics` | `CapabilityStatusSurface` | Cards for Mail, Calendar, Reminders, Notes, Contacts, Files, Google Calendar, Google Drive with true status. Diagnostics must not open Apple apps. | Card shows `needs-permission`, last error, and native macOS privacy instructions | Not applicable |
 | Show recent emails | `load_mail_messages` | `EmailListSurface` | Real Apple Mail metadata from Envelope Index with sender, subject, mailbox, date, preview. Mail must remain closed. | `CommandErrorSurface` names provider and shows exact error. Mail must remain closed. | Email list says no messages or unavailable without opening Mail |
 | Open the latest email fully | `read_mail_message` using latest loaded id | `EmailDetailSurface` | Full email body, not the short preview | `CommandErrorSurface` shows exact Apple Mail read error | If no prior email list, visible error says to show recent emails first |
+| Summarize the latest email | `analyze_mail_message` using latest loaded id | `EmailDetailSurface` | Source-grounded summary with sender, subject, requested action, relevance judgment, and evidence snippets. It must not invent facts outside the readable message. | `CommandErrorSurface` shows exact Apple Mail read or analysis error | If no prior email list, visible error says to show recent emails first |
+| Create a text document from the latest email summary | `create_email_summary_artifact` | `DocumentSurface` | In-app Markdown artifact based only on the latest email analysis. It must show `writesToDisk: false` unless export is explicitly built and approved. | `CommandErrorSurface` shows exact artifact creation error | If no prior email analysis, visible error says to summarize the latest email first |
 | Show today's calendar | `load_calendar_events` with `daysAhead: 1` | `CalendarDaySurface` | Real Calendar events with title/time/calendar/location. Calendar must remain closed. | `CommandErrorSurface` names EventKit provider and shows Calendar privacy permission hint | Calendar surface says no events for today |
 | Create a calendar event tomorrow at 10 called Test Event | `create_calendar_event` after approval | `ApprovalSurface`, then `CalendarDaySurface` | Approval preview appears; saying approve creates real event | `CommandErrorSurface` shows Calendar write error | Not applicable |
 | Show my reminders | `load_reminders` | `ReminderListSurface` | Real open reminders with list and due date. Reminders must remain closed. | `CommandErrorSurface` names EventKit provider and shows Reminders privacy permission hint | Reminder list says no open reminders |
@@ -24,6 +26,8 @@ Use this checklist for manual QA of the local-context foundation. Every failure 
 These short forms should route to the same adapters as the fuller spoken phrases:
 
 - `recent emails`
+- `summarize latest email`
+- `create document from email summary`
 - `calendar today`
 - `reminders`
 - `notes`

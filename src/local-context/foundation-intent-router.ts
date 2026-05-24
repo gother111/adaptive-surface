@@ -2,6 +2,8 @@ export type FoundationIntentName =
   | "capability.status"
   | "email.list"
   | "email.readLatest"
+  | "email.summarizeLatest"
+  | "email.createSummaryArtifact"
   | "calendar.today"
   | "reminder.list"
   | "notes.list"
@@ -69,8 +71,22 @@ export function classifyFoundationIntent(utterance: string): FoundationIntentRes
     return high("notes.readLatest", normalizedText, "Latest note read phrase matched.");
   }
 
+  if (
+    /\b(create|make|turn|produce|build)\b.*\b(artifact|document|doc|writeup|write up|brief)\b/.test(normalizedText) &&
+    /\b(email|mail|message|summary|analysis)\b/.test(normalizedText)
+  ) {
+    return high("email.createSummaryArtifact", normalizedText, "Email summary artifact phrase matched.");
+  }
+
   if (/\b(capability status|app permissions|what can you access)\b/.test(normalizedText)) {
     return high("capability.status", normalizedText, "Capability status phrase matched.");
+  }
+
+  if (
+    /\b(summarize|summary|analyze|analyse|what is|what's|what does|extract|tell me)\b/.test(normalizedText) &&
+    /\b(latest|last|recent|this|selected)?\s*(email|mail|message)\b/.test(normalizedText)
+  ) {
+    return high("email.summarizeLatest", normalizedText, "Latest email analysis phrase matched.");
   }
 
   if (/\b(latest|last)\b.*\b(email|mail|message)\b/.test(normalizedText) && /\b(open|read|full|fully|body)\b/.test(normalizedText)) {

@@ -13,6 +13,9 @@ describe("foundation command router", () => {
     expect(routeFoundationCommand("Can you pull up my recent emails")?.kind).toBe("show_recent_emails");
     expect(routeFoundationCommand("Open my inbox")?.kind).toBe("show_recent_emails");
     expect(routeFoundationCommand("Open the latest email fully")?.adapter).toBe("read_mail_message");
+    expect(routeFoundationCommand("Summarize the latest email")?.kind).toBe("summarize_latest_email");
+    expect(routeFoundationCommand("Analyze this email")?.adapter).toBe("analyze_mail_message");
+    expect(routeFoundationCommand("Create a text document from the latest email summary")?.kind).toBe("create_email_summary_artifact");
     expect(routeFoundationCommand("Show today's calendar")?.adapter).toBe("load_calendar_events");
     expect(routeFoundationCommand("Show me my calendar")?.kind).toBe("show_today_calendar");
     expect(routeFoundationCommand("Can you pull up my calendar")?.kind).toBe("show_today_calendar");

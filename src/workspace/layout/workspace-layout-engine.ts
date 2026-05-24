@@ -6,7 +6,7 @@ export interface LayoutAssignment {
 }
 
 const LIST_KINDS = new Set<SurfaceInstance["kind"]>(["email_list", "notes_list", "reminder_list", "files", "contacts"]);
-const DETAIL_KINDS = new Set<SurfaceInstance["kind"]>(["email_detail", "note_detail", "file_detail", "calendar_day", "unsupported_context"]);
+const DETAIL_KINDS = new Set<SurfaceInstance["kind"]>(["email_detail", "note_detail", "file_detail", "calendar_day", "document", "unsupported_context"]);
 const ERROR_KINDS = new Set<SurfaceInstance["kind"]>(["command_error", "capability_status"]);
 const DOCK_KINDS = new Set<SurfaceInstance["kind"]>(["approval"]);
 

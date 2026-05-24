@@ -54,6 +54,10 @@ export function routeFoundationCommand(utterance: string): FoundationCommand | n
       return command("show_recent_emails", utterance, "email_list", "load_mail_messages", false, { limit: 25 });
     case "email.readLatest":
       return command("open_latest_email", utterance, "email_detail", "read_mail_message", false, {});
+    case "email.summarizeLatest":
+      return command("summarize_latest_email", utterance, "email_detail", "analyze_mail_message", false, {});
+    case "email.createSummaryArtifact":
+      return command("create_email_summary_artifact", utterance, "document", "create_email_summary_artifact", false, {});
     case "calendar.today":
       return command("show_today_calendar", utterance, "calendar_day", "load_calendar_events", false, { daysAhead: 1, limit: 30 });
     case "reminder.list":

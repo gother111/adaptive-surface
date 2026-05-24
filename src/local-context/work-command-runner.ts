@@ -13,6 +13,7 @@ import {
   searchContacts,
   searchLocalFiles,
 } from "@/lib/context-api";
+import { analyzeEmailMessage } from "@/local-context/email-analysis";
 import { mergeCapabilityDiagnostics } from "@/local-context/capability-registry";
 import type { FoundationCommand, FoundationCommandMemory, PendingApproval } from "@/local-context/work-command-types";
 import { assignWorkspaceLayout, shouldCommandBecomePrimary } from "@/workspace/layout/workspace-layout-engine";
@@ -104,6 +105,54 @@ export async function runFoundationCommand(
           summary: `From ${message.sender}`,
           detail: { ...message, body: undefined },
           body: message.body,
+        });
+      }
+      case "summarize_latest_email": {
+        if (!memory.latestEmailId) {
+          throw new Error("No latest email is loaded yet. Say \"Show recent emails\" first.");
+        }
+        const message = await withTimeout(readMailMessage(memory.latestEmailId), "read_mail_message");
+        const analysis = analyzeEmailMessage(message);
+        return result(session, command, { ...memory, latestEmailAnalysis: analysis }, {
+          title: "Latest email analysis",
+          status: "available",
+          command: command.utterance,
+          adapter: command.adapter,
+          summary: analysis.summary,
+          detail: {
+            subject: analysis.subject,
+            sender: analysis.sender,
+            receivedAt: analysis.receivedAt,
+            mailbox: analysis.mailbox,
+            requestedAction: analysis.requestedAction,
+            relevanceJudgment: analysis.relevanceJudgment,
+          },
+          items: analysis.evidence.map((evidence, index) => ({
+            title: `Evidence ${index + 1}`,
+            preview: evidence,
+          })),
+          body: analysis.artifactBody,
+        });
+      }
+      case "create_email_summary_artifact": {
+        if (!memory.latestEmailAnalysis) {
+          throw new Error("No latest email analysis is available yet. Say \"Summarize the latest email\" first.");
+        }
+        const analysis = memory.latestEmailAnalysis;
+        return result(session, command, memory, {
+          title: "Email analysis document",
+          status: "available",
+          command: command.utterance,
+          adapter: command.adapter,
+          summary: `Created an in-app text artifact from "${analysis.subject || "the latest email"}".`,
+          detail: {
+            sourceEmailId: analysis.sourceEmailId,
+            sender: analysis.sender,
+            subject: analysis.subject,
+            artifactType: "text/markdown",
+            writesToDisk: false,
+          },
+          body: analysis.artifactBody,
         });
       }
       case "show_today_calendar": {

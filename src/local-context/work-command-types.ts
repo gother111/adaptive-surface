@@ -5,6 +5,8 @@ export type FoundationCommandKind =
   | "show_scaffolded_connector_status"
   | "show_recent_emails"
   | "open_latest_email"
+  | "summarize_latest_email"
+  | "create_email_summary_artifact"
   | "show_today_calendar"
   | "create_calendar_event"
   | "show_reminders"
@@ -36,9 +38,23 @@ export type PendingApproval =
 
 export interface FoundationCommandMemory {
   latestEmailId?: string;
+  latestEmailAnalysis?: EmailAnalysisMemory;
   latestNoteId?: string;
   latestFilePath?: string;
   pendingApproval?: PendingApproval;
+}
+
+export interface EmailAnalysisMemory {
+  sourceEmailId: string;
+  subject: string;
+  sender: string;
+  receivedAt?: string | null;
+  mailbox: string;
+  summary: string;
+  requestedAction: string;
+  relevanceJudgment: string;
+  evidence: string[];
+  artifactBody: string;
 }
 
 export interface FileCommandPayload extends FileSearchQuery {

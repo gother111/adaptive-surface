@@ -506,6 +506,7 @@ function isFoundationSurface(kind: SurfaceInstance["kind"]) {
     "contacts",
     "files",
     "file_detail",
+    "document",
     "command_error",
     "unsupported_context",
     "approval",
