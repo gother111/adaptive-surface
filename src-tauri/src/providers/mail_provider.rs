@@ -440,10 +440,7 @@ tell application "Mail"
 		try
 			if read status of msg is true then set readText to "true"
 		end try
-		try
-			set previewText to content of msg as text
-			if (length of previewText) > 240 then set previewText to text 1 thru 240 of previewText
-		end try
+			set previewText to "Metadata loaded from Apple Mail while Mail was already running. Open the latest email fully to read the body."
 		try
 			set nativeId to id of msg as text
 		end try
@@ -496,5 +493,13 @@ mod tests {
     fn classifies_operation_not_permitted_as_full_disk_access_missing() {
         assert!(is_full_disk_access_error("Operation not permitted (os error 1)"));
         assert!(is_full_disk_access_error("full_disk_access_missing: Apple Mail metadata exists"));
+    }
+
+    #[test]
+    fn mail_list_fallback_does_not_read_message_bodies() {
+        let script = mail_script(25);
+
+        assert!(script.contains("Metadata loaded from Apple Mail while Mail was already running."));
+        assert!(!script.contains("content of msg as text"));
     }
 }
