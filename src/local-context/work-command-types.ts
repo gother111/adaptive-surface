@@ -3,6 +3,9 @@ import type { CreateCalendarEventRequest, CreateNoteRequest, CreateReminderReque
 export type FoundationCommandKind =
   | "show_capability_status"
   | "show_scaffolded_connector_status"
+  | "show_daily_briefing"
+  | "show_payment_items"
+  | "prepare_next_meeting"
   | "show_recent_emails"
   | "open_latest_email"
   | "summarize_latest_email"
@@ -19,6 +22,7 @@ export type FoundationCommandKind =
   | "search_files"
   | "open_file_summary"
   | "unsupported_local_context"
+  | "cancel_pending_action"
   | "approve_pending_action";
 
 export interface FoundationCommand {

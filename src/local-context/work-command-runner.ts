@@ -17,6 +17,7 @@ import { analyzeEmailMessage } from "@/local-context/email-analysis";
 import { mergeCapabilityDiagnostics } from "@/local-context/capability-registry";
 import type { FoundationCommand, FoundationCommandMemory, PendingApproval } from "@/local-context/work-command-types";
 import { assignWorkspaceLayout, shouldCommandBecomePrimary } from "@/workspace/layout/workspace-layout-engine";
+import type { AppleCalendarEvent, AppleMailMessage, AppleNotePreview, AppleReminder } from "@/types/context";
 import type { FoundationSurfaceProps, SurfaceInstance, WorkspacePatch, WorkspaceSession } from "@/workspace/types";
 
 export interface FoundationCommandRunResult {
@@ -39,6 +40,26 @@ export async function runFoundationCommand(
 
   if (command.kind === "approve_pending_action") {
     return approvePendingAction(command, session, memory);
+  }
+
+  if (command.kind === "cancel_pending_action") {
+    return {
+      memory: { ...memory, pendingApproval: undefined },
+      patches: surfacePatches(session, command.surfaceKind, {
+        title: "Pending action canceled",
+        status: "available",
+        command: command.utterance,
+        adapter: command.adapter,
+        summary: memory.pendingApproval
+          ? "The pending local write action was cleared. Nothing was created."
+          : "No pending approval was active. Nothing was created.",
+        detail: {
+          clearedAction: memory.pendingApproval?.kind ?? null,
+          writesToDisk: false,
+          externalWrite: false,
+        },
+      }, command.utterance, command.layoutPreference),
+    };
   }
 
   try {
@@ -79,6 +100,80 @@ export async function runFoundationCommand(
             },
           ],
           suggestedNextAction: "Use Apple/local sources for now, or add a verified OAuth connector before enabling this source.",
+        });
+      }
+      case "show_daily_briefing": {
+        const [messages, events, reminders] = await Promise.all([
+          withTimeout(loadMailMessages({ limit: 5, unreadFirst: true }), "load_mail_messages"),
+          withTimeout(loadCalendarEvents({ daysAhead: 1, limit: 10 }), "load_calendar_events"),
+          withTimeout(loadReminders({ includeCompleted: false, limit: 10 }), "load_reminders"),
+        ]);
+        const body = dailyBriefingBody(messages, events, reminders);
+        return result(session, command, {
+          ...memory,
+          latestEmailId: messages[0]?.id ?? memory.latestEmailId,
+        }, {
+          title: "Morning Briefing",
+          status: "available",
+          command: command.utterance,
+          adapter: command.adapter,
+          summary: `${messages.length} mail items, ${events.length} calendar events, and ${reminders.length} reminders checked.`,
+          detail: {
+            artifactType: "text/markdown",
+            writesToDisk: false,
+            mailCount: messages.length,
+            calendarCount: events.length,
+            reminderCount: reminders.length,
+          },
+          body,
+        });
+      }
+      case "show_payment_items": {
+        const [messages, reminders] = await Promise.all([
+          withTimeout(loadMailMessages({ limit: 25, unreadFirst: true }), "load_mail_messages"),
+          withTimeout(loadReminders({ includeCompleted: false, limit: 50 }), "load_reminders"),
+        ]);
+        const body = paymentAttentionBody(messages, reminders);
+        return result(session, command, {
+          ...memory,
+          latestEmailId: messages[0]?.id ?? memory.latestEmailId,
+        }, {
+          title: "Payment Attention",
+          status: "available",
+          command: command.utterance,
+          adapter: command.adapter,
+          summary: "Recent mail and reminders were checked for payment, bill, invoice, receipt, and subscription signals.",
+          detail: {
+            artifactType: "text/markdown",
+            writesToDisk: false,
+            mailMatches: filterPaymentSignals(messages).length,
+            reminderMatches: filterPaymentSignals(reminders).length,
+          },
+          body,
+        });
+      }
+      case "prepare_next_meeting": {
+        const [events, notes] = await Promise.all([
+          withTimeout(loadCalendarEvents({ daysAhead: 1, limit: 10 }), "load_calendar_events"),
+          withTimeout(loadNotes({ limit: 5 }), "load_notes"),
+        ]);
+        const body = meetingPrepBody(events[0], notes[0]);
+        return result(session, command, {
+          ...memory,
+          latestNoteId: notes[0]?.id ?? memory.latestNoteId,
+        }, {
+          title: "Meeting Prep",
+          status: events.length ? "available" : "empty",
+          command: command.utterance,
+          adapter: command.adapter,
+          summary: events.length ? `Prepared a brief for ${String(events[0]?.title ?? "the next meeting")}.` : "No calendar event found for the next meeting window.",
+          detail: {
+            artifactType: "text/markdown",
+            writesToDisk: false,
+            eventId: events[0]?.id,
+            noteId: notes[0]?.id,
+          },
+          body,
         });
       }
       case "show_recent_emails": {
@@ -265,6 +360,79 @@ export async function runFoundationCommand(
       patches: surfacePatches(session, command.surfaceKind, errorProps(command, error), command.utterance, command.layoutPreference),
     };
   }
+}
+
+function dailyBriefingBody(
+  messages: AppleMailMessage[],
+  events: AppleCalendarEvent[],
+  reminders: AppleReminder[],
+) {
+  return [
+    "# Morning Briefing",
+    "",
+    "Source: Apple Mail, Apple Calendar, Apple Reminders",
+    "Artifact: in-app only",
+    "writesToDisk: false",
+    "",
+    "## Mail",
+    ...briefingLines(messages, (message) => `${String(message.subject ?? "Untitled email")} - ${String(message.sender ?? "Unknown sender")}`),
+    "",
+    "## Calendar",
+    ...briefingLines(events, (event) => `${String(event.title ?? "Untitled event")} - ${String(event.startAt ?? "No start time")}`),
+    "",
+    "## Reminders",
+    ...briefingLines(reminders, (reminder) => `${String(reminder.title ?? "Untitled reminder")} - ${String(reminder.dueAt ?? "No due date")}`),
+  ].join("\n");
+}
+
+function briefingLines<T>(items: T[], format: (item: T) => string) {
+  if (!items.length) return ["- Nothing found."];
+  return items.slice(0, 5).map((item) => `- ${format(item)}`);
+}
+
+function paymentAttentionBody(messages: AppleMailMessage[], reminders: AppleReminder[]) {
+  const mailMatches = filterPaymentSignals(messages);
+  const reminderMatches = filterPaymentSignals(reminders);
+  return [
+    "# Payment Attention",
+    "",
+    "Source: Apple Mail, Apple Reminders",
+    "Artifact: in-app only",
+    "writesToDisk: false",
+    "",
+    "## Mail Matches",
+    ...briefingLines(mailMatches, (message) => `${String(message.subject ?? "Untitled email")} - ${String(message.sender ?? "Unknown sender")}`),
+    "",
+    "## Reminder Matches",
+    ...briefingLines(reminderMatches, (reminder) => `${String(reminder.title ?? "Untitled reminder")} - ${String(reminder.dueAt ?? "No due date")}`),
+  ].join("\n");
+}
+
+function filterPaymentSignals<T extends object>(items: T[]) {
+  return items.filter((item) => /\b(payment|bill|invoice|receipt|subscription|klarna|due|amount)\b/i.test(JSON.stringify(item)));
+}
+
+function meetingPrepBody(event: AppleCalendarEvent | undefined, note: AppleNotePreview | undefined) {
+  return [
+    "# Meeting Prep",
+    "",
+    "Source: Apple Calendar, Apple Notes",
+    "Artifact: in-app only",
+    "writesToDisk: false",
+    "",
+    "## Next Meeting",
+    event ? `- ${String(event.title ?? "Untitled event")} at ${String(event.startAt ?? "unknown time")}` : "- No upcoming meeting found.",
+    event?.location ? `- Location: ${String(event.location)}` : "- Location: not provided.",
+    event?.notes ? `- Calendar notes: ${String(event.notes)}` : "- Calendar notes: none.",
+    "",
+    "## Relevant Note",
+    note ? `- ${String(note.title ?? "Untitled note")}: ${String(note.preview ?? "")}` : "- No recent note found.",
+    "",
+    "## Suggested Focus",
+    "- Confirm the meeting purpose.",
+    "- Bring up unresolved blockers.",
+    "- Capture follow-up tasks before leaving the meeting.",
+  ].join("\n");
 }
 
 async function approvePendingAction(

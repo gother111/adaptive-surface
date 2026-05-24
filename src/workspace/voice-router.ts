@@ -60,6 +60,11 @@ export function routeVoiceAction(session: WorkspaceSession, utterance: string): 
     return { kind: "focus_existing_surface", targetSurfaceId: emailDraft.id, instruction: utterance };
   }
 
+  const documentSurface = findSurfaceByKind(session, "document");
+  if (documentSurface && /\b(go back to|return to|show).*\b(briefing|brief|payment|bill|invoice|meeting prep|document|artifact)\b/.test(text)) {
+    return { kind: "focus_existing_surface", targetSurfaceId: documentSurface.id, instruction: utterance };
+  }
+
   const supportKinds = requestedSupportSurfaceKinds(text);
   if (primary?.kind === "email_draft" && supportKinds.length && beginsWithSupportLookup(text) && !isExplicitPrimaryContextSwitch(text)) {
     return supportKinds.length === 1

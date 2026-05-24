@@ -114,7 +114,7 @@ export const goldenTasks: GoldenTask[] = [
     id: "notes-003",
     title: "Prepare meeting with notes",
     utterances: ["Prepare for my meeting with Jacob and check notes."],
-    expected: { primarySurfaceKind: "calendar_day", shouldRefreshAppleContext: true },
+    expected: { primarySurfaceKind: "document", shouldRefreshAppleContext: true },
   },
   {
     id: "reminders-001",

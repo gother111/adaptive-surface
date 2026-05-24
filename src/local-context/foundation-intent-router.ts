@@ -1,5 +1,8 @@
 export type FoundationIntentName =
   | "capability.status"
+  | "briefing.daily"
+  | "payment.items"
+  | "meeting.prep"
   | "email.list"
   | "email.readLatest"
   | "email.summarizeLatest"
@@ -49,6 +52,22 @@ const LOCAL_CONTEXT_WORDS = [
   "pdfs",
   "catch up",
   "catch me up",
+  "briefing",
+  "morning",
+  "today",
+  "attention",
+  "bill",
+  "bills",
+  "payment",
+  "payments",
+  "invoice",
+  "invoices",
+  "meeting",
+  "meetings",
+  "prep",
+  "task",
+  "tasks",
+  "due",
 ];
 
 export function classifyFoundationIntent(utterance: string): FoundationIntentResult | null {
@@ -57,6 +76,14 @@ export function classifyFoundationIntent(utterance: string): FoundationIntentRes
   const localContext = isLocalContextUtterance(utterance);
 
   if (/\b(go back to|return to|keep)\b.*\b(email|draft|reply)\b/.test(original)) {
+    return null;
+  }
+
+  if (/\b(go back to|return to|show)\b.*\b(briefing|brief|payment|bill|invoice|meeting prep|document|artifact)\b/.test(original)) {
+    return null;
+  }
+
+  if (/^(mention|include|add|tell|say)\b/.test(original) || /\b(mention|include|add|tell|say)\b.*\b(draft|email|mail|message|reply|brief)\b/.test(original)) {
     return null;
   }
 
@@ -87,6 +114,21 @@ export function classifyFoundationIntent(utterance: string): FoundationIntentRes
   }
 
   if (
+    /\b(morning briefing|daily briefing|brief me|what needs my attention|what should i focus on|what is on my plate|what's on my plate)\b/.test(original) ||
+    (/\b(today|morning)\b/.test(normalizedText) && /\b(brief|briefing|attention|focus)\b/.test(normalizedText))
+  ) {
+    return high("briefing.daily", normalizedText, "Daily briefing phrase matched.");
+  }
+
+  if (/\b(bills?|payments?|invoices?|receipts?|subscriptions?)\b/.test(normalizedText) && /\b(show|list|what|which|review|attention|due|need)\b/.test(normalizedText)) {
+    return high("payment.items", normalizedText, "Payment triage phrase matched.");
+  }
+
+  if (/\b(prep|prepare|brief)\b.*\b(next )?(meeting|call|standup)\b/.test(normalizedText) || /\b(next )?(meeting|call|standup)\b.*\b(prep|prepare|brief)\b/.test(normalizedText)) {
+    return high("meeting.prep", normalizedText, "Meeting prep phrase matched.");
+  }
+
+  if (
     /\b(summarize|summary|analyze|analyse|what is|what's|what does|extract|tell me)\b/.test(normalizedText) &&
     /\b(latest|last|recent|this|selected)?\s*(email|mail|message)\b/.test(normalizedText)
   ) {
@@ -111,7 +153,11 @@ export function classifyFoundationIntent(utterance: string): FoundationIntentRes
     return high("calendar.today", normalizedText, "Calendar phrase matched.");
   }
 
-  if (/\b(reminders?|todos?)\b/.test(normalizedText)) {
+  if (
+    /\b(reminders?|todos?|tasks?)\b/.test(normalizedText) ||
+    /\b(what|which).*\b(due|need to do|should do)\b.*\b(today|tomorrow)\b/.test(normalizedText) ||
+    /\b(due today|due tomorrow)\b/.test(normalizedText)
+  ) {
     return high("reminder.list", normalizedText, "Reminder phrase matched.");
   }
 

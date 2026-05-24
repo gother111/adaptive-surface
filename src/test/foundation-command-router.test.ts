@@ -47,11 +47,19 @@ describe("foundation command router", () => {
     expect(routeFoundationCommand("recent emails")?.kind).toBe("show_recent_emails");
     expect(routeFoundationCommand("calendar today")?.kind).toBe("show_today_calendar");
     expect(routeFoundationCommand("reminders")?.kind).toBe("show_reminders");
+    expect(routeFoundationCommand("what's due today")?.kind).toBe("show_reminders");
+    expect(routeFoundationCommand("what do I need to do today")?.kind).toBe("show_reminders");
     expect(routeFoundationCommand("notes")?.kind).toBe("show_recent_notes");
     expect(routeFoundationCommand("latest note")?.kind).toBe("open_latest_note");
     expect(routeFoundationCommand("find Yurii")?.payload.query).toBe("yurii");
     expect(routeFoundationCommand("desktop files")?.payload.root).toBe("Desktop");
     expect(routeFoundationCommand("documents pdf")?.payload.extension).toBe("pdf");
+  });
+
+  it("routes daily briefing, payment triage, and meeting prep commands", () => {
+    expect(routeFoundationCommand("give me a morning briefing")?.kind).toBe("show_daily_briefing");
+    expect(routeFoundationCommand("what bills or payments need attention")?.kind).toBe("show_payment_items");
+    expect(routeFoundationCommand("prep me for my next meeting")?.kind).toBe("prepare_next_meeting");
   });
 
   it("keeps local context phrases in the foundation path even when unsupported", () => {
@@ -65,6 +73,8 @@ describe("foundation command router", () => {
     expect(routeFoundationCommand("Add the event details to the brief")).toBeNull();
     expect(routeFoundationCommand("Go back to the email")).toBeNull();
     expect(routeFoundationCommand("Return to the reply draft")).toBeNull();
+    expect(routeFoundationCommand("Go back to the briefing")).toBeNull();
+    expect(routeFoundationCommand("Go back to the payment list")).toBeNull();
   });
 
   it("keeps scaffolded Google and Gmail connectors honest", () => {
@@ -82,5 +92,11 @@ describe("foundation command router", () => {
     expect(routeFoundationCommand("Create a calendar event tomorrow at 10 called Test Event")?.requiresApproval).toBe(true);
     expect(routeFoundationCommand("Create a reminder to test Seemless tomorrow morning")?.requiresApproval).toBe(true);
     expect(routeFoundationCommand("Create a note called Seemless Test Note")?.requiresApproval).toBe(true);
+  });
+
+  it("routes cancellation before a later approval can run", () => {
+    const cancel = routeFoundationCommand("cancel that");
+    expect(cancel?.kind).toBe("cancel_pending_action");
+    expect(cancel?.requiresApproval).toBe(false);
   });
 });

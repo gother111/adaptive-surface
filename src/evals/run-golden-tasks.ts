@@ -68,7 +68,17 @@ function runGoldenTask(task: GoldenTask): GoldenTaskResult {
         ...(role === "primary" || !session.primarySurfaceId ? [{ type: "SET_PRIMARY_SURFACE" as const, surfaceId: `foundation-${foundationCommand.surfaceKind}` }] : []),
         { type: "STORE_CONTEXT_RESULT", key: foundationCommand.surfaceKind, value: foundationCommand.payload },
       ]);
-      refreshedContext = refreshedContext || ["load_calendar_events", "load_mail_messages", "load_notes", "load_reminders", "search_contacts", "search_local_files"].includes(foundationCommand.adapter);
+      refreshedContext = refreshedContext || [
+        "load_calendar_events",
+        "load_mail_messages",
+        "load_notes",
+        "load_reminders",
+        "search_contacts",
+        "search_local_files",
+        "daily_briefing",
+        "payment_triage",
+        "meeting_prep",
+      ].includes(foundationCommand.adapter);
       approvalRequired = approvalRequired || foundationCommand.requiresApproval;
       continue;
     }

@@ -8,6 +8,10 @@ export function routeFoundationCommand(utterance: string): FoundationCommand | n
     return command("approve_pending_action", utterance, "approval", "approval", false, {});
   }
 
+  if (/\b(cancel|stop|never mind|nevermind|do not create|don't create|do not do it|don't do it|discard)\b/.test(text)) {
+    return command("cancel_pending_action", utterance, "approval", "approval", false, {});
+  }
+
   if (/\b(draft|write|compose|start).*\b(email|mail|message)\b/.test(text)) {
     return null;
   }
@@ -46,6 +50,12 @@ export function routeFoundationCommand(utterance: string): FoundationCommand | n
   switch (intent.intent) {
     case "capability.status":
       return command("show_capability_status", utterance, "capability_status", "load_capability_diagnostics", false, {});
+    case "briefing.daily":
+      return command("show_daily_briefing", utterance, "document", "daily_briefing", false, {});
+    case "payment.items":
+      return command("show_payment_items", utterance, "document", "payment_triage", false, {});
+    case "meeting.prep":
+      return command("prepare_next_meeting", utterance, "document", "meeting_prep", false, {});
     case "connector.needsConfiguration":
       return command("show_scaffolded_connector_status", utterance, "capability_status", "connector_status", false, {
         connectorId: intent.query,

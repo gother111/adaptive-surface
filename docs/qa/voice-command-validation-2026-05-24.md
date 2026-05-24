@@ -228,6 +228,42 @@ npm test -- src/test/voice-workflow-quality-audit.test.ts
 
 Passed after one real routing fix and two expectation corrections. The real fix was the `go back to the email` routing issue; the expectation corrections were about diagnostics staying supporting instead of stealing the primary surface.
 
+## Five Additional Daily Workflow Cycles
+
+Added `src/test/daily-voice-workflow-cycles.test.ts`.
+
+Each cycle was run red first, then fixed, then re-run green:
+
+1. Morning briefing
+   - Prompt chain: `give me a morning briefing`, `show recent emails`, `show today's calendar`, `show reminders`, `go back to the briefing`.
+   - Initial result: failed. The app had no true briefing command and ended on reminders.
+   - Fix: added `show_daily_briefing`, which creates an in-app Markdown brief from Mail, Calendar, and Reminders with `writesToDisk false`.
+
+2. Bills and payments
+   - Prompt chain: `what bills or payments need attention`, `show recent emails`, `show reminders`, `go back to the payment list`, `summarize the latest email`.
+   - Initial result: failed. Payment language fell into unsupported local context.
+   - Fix: added `show_payment_items`, which filters Mail and Reminders for bill/payment/invoice signals and displays a source-labeled in-app artifact.
+
+3. Meeting preparation
+   - Prompt chain: `prep me for my next meeting`, `show recent notes`, `open the latest note`, `go back to the meeting prep`, `make a table from it`.
+   - Initial result: failed. The app degraded into raw notes/calendar context instead of preserving a meeting-prep output.
+   - Fix: added `prepare_next_meeting`, which creates a meeting-prep artifact from Calendar and Notes, and added focus handling for `meeting prep`.
+
+4. Natural due-today language
+   - Prompt chain: `what's due today`, `what do I need to do today`, `show recent emails`, `go back to reminders`, `show capability status`.
+   - Initial result: failed. `what do I need to do today` produced an unsupported-context surface.
+   - Fix: expanded reminder routing for natural task language such as `what's due today` and `what do I need to do today`.
+
+5. Cancel pending approval
+   - Prompt chain: `create a reminder to call the dentist tomorrow morning`, `cancel that`, `approve`, `show reminders`, `what's due today`.
+   - Initial result: failed. The pending approval was cleared, but the cancellation was not visibly preserved and the UX did not prove the later approve was harmless.
+   - Fix: added `cancel_pending_action`; it clears the pending write, leaves a visible canceled approval surface, and a later `approve` returns `No pending approval` instead of creating anything.
+
+Regression found during broad verification:
+
+- Adding `meeting` as a local-context word initially caused `include the first meeting` inside an email draft to become unsupported context. Fixed by letting draft follow-up verbs such as `mention`, `include`, `add`, `tell`, and `say` fall through to the workspace draft router.
+- The golden eval expectation for `Prepare meeting with notes` was updated from raw `calendar_day` to `document`, because the improved behavior now creates a meeting-prep artifact while still refreshing Apple context.
+
 ## Final Verification Bundle
 
 Commands run after all fixes:
@@ -243,6 +279,24 @@ cargo check
 Results:
 
 - `npm test`: passed, 13 files and 48 tests.
+- `npm run typecheck`: passed.
+- `npm run eval:golden`: passed, 37/37 tasks.
+- `cargo test mail_list_fallback_does_not_read_message_bodies`: passed.
+- `cargo check`: passed with the existing EventKit deprecation warning.
+
+Additional verification after the five daily workflow cycles:
+
+```bash
+npm test
+npm run typecheck
+npm run eval:golden
+cargo test mail_list_fallback_does_not_read_message_bodies
+cargo check
+```
+
+Results:
+
+- `npm test`: passed, 14 files and 55 tests.
 - `npm run typecheck`: passed.
 - `npm run eval:golden`: passed, 37/37 tasks.
 - `cargo test mail_list_fallback_does_not_read_message_bodies`: passed.
