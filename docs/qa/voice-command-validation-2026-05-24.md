@@ -141,3 +141,116 @@ Create a uniquely named dev/test bundle, or intentionally install the tested bui
 4. Verify the summary uses only the displayed/loaded email.
 5. `create a text document from the latest email summary`
 6. Verify the document body preserves source metadata and does not write externally.
+
+## Follow-Up Installed-App Validation
+
+After the initial commit, the tested release bundle was built with:
+
+```bash
+npm run tauri:app
+```
+
+The bundle was installed into `/Applications/Adaptive Surface.app`, launched, and verified by comparing the SHA-256 hash of:
+
+- `/Applications/Adaptive Surface.app/Contents/MacOS/adaptive-surface`
+- `src-tauri/target/release/bundle/macos/Adaptive Surface.app/Contents/MacOS/adaptive-surface`
+
+The hashes matched, so Computer Use was testing the current installed app rather than a stale app.
+
+### Installed-App Findings
+
+1. `show capability status`
+   - Result: passed.
+   - Displayed: `Capability status`, `available`, `External app opened: no`, and the expected local/source cards.
+   - Judgment: relevant and accurate for a diagnostics command.
+
+2. `show recent emails`
+   - Initial result after install: failed by timeout.
+   - Displayed: `provider=load_mail_messages errorKind=timeout`.
+   - Root cause: the Apple Mail fallback list script read message bodies while listing messages, which made a simple list command too slow.
+   - Fix: list fallback now loads metadata only and instructs the user to open the latest email fully when body text is needed.
+
+3. `show recent emails` after fix and reinstall
+   - Result: passed.
+   - Displayed: `Recent emails`, `available`, `25 real Apple Mail messages loaded`.
+   - Visible first message: `[Task Update] Daily Command Center` from `ChatGPT <noreply@tm.openai.com>`.
+   - Judgment: relevant and accurate. It showed real local Mail metadata without opening another app.
+
+4. `summarize the latest email`
+   - Result: passed mechanically.
+   - Displayed: source, sender, received date, requested action, relevance judgment, evidence, and Markdown body.
+   - Quality judgment: source-grounded but still rough. It correctly avoided inventing an action, but the email body contains newsletter/footer boilerplate and non-text glyphs, so the summary is cluttered. This is acceptable as a first safety-preserving pass, not a polished LLM-quality summary.
+
+5. `create a text document from the latest email summary`
+   - Result: passed.
+   - Displayed: `Email analysis document`, `artifactType text/markdown`, `writesToDisk false`.
+   - Judgment: relevant and safe. It created an in-app artifact only, with source metadata preserved and no external write.
+
+### Iteration Fixes From Installed-App Testing
+
+- Fixed Mail list fallback to avoid body reads in `mail_script`.
+- Added Rust regression coverage proving the list fallback script does not contain `content of msg as text`.
+- Fixed the foundation router so `go back to the email` and `return to the reply draft` are not misrouted into unsupported local-context handling. Those phrases now fall through to workspace focus logic.
+
+## 20-Workflow Sequential Audit
+
+Added `src/test/voice-workflow-quality-audit.test.ts`.
+
+The audit runs 20 workflows. Each workflow contains at least 5 sequential prompts. The scenarios cover:
+
+- email analysis and artifact creation
+- full email read followed by analysis
+- email draft continuation and refinement
+- email draft plus calendar context
+- notes and mail context switching
+- calendar prep
+- reminders and approval safety
+- local file search and file detail
+- connector honesty for Gmail and Google Drive
+- contacts to email drafting
+- unsupported command recovery
+- artifact persistence while switching context
+
+Validation criteria:
+
+- every scenario executes all prompts in order
+- no adapter or permission error surfaces are produced in the controlled audit
+- expected primary surface is preserved
+- expected supporting surfaces are present
+- generated email documents include source metadata, requested action, relevance judgment, and `writesToDisk false`
+- email analysis stays grounded in the fixture body and evidence
+
+Audit result:
+
+```bash
+npm test -- src/test/voice-workflow-quality-audit.test.ts
+```
+
+Passed after one real routing fix and two expectation corrections. The real fix was the `go back to the email` routing issue; the expectation corrections were about diagnostics staying supporting instead of stealing the primary surface.
+
+## Final Verification Bundle
+
+Commands run after all fixes:
+
+```bash
+npm test
+npm run typecheck
+npm run eval:golden
+cargo test mail_list_fallback_does_not_read_message_bodies
+cargo check
+```
+
+Results:
+
+- `npm test`: passed, 13 files and 48 tests.
+- `npm run typecheck`: passed.
+- `npm run eval:golden`: passed, 37/37 tasks.
+- `cargo test mail_list_fallback_does_not_read_message_bodies`: passed.
+- `cargo check`: passed with the existing EventKit deprecation warning.
+
+Remaining quality gaps:
+
+- The analyzer is deterministic and safe, but not yet a true high-quality LLM summarizer.
+- Real voice audio was not stress-tested for 100 spoken utterances; the typed command bar validates the same post-transcription path.
+- Mail body cleanup needs improvement to strip boilerplate, tracking glyphs, and legal footers before summarization.
+- Installed-app testing confirmed the core Mail workflow works, but the 20-workflow audit is automated with controlled fixture data rather than 100 manual UI interactions.

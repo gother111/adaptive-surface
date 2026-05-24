@@ -56,6 +56,10 @@ export function classifyFoundationIntent(utterance: string): FoundationIntentRes
   const original = utterance.toLowerCase().replace(/\s+/g, " ").trim();
   const localContext = isLocalContextUtterance(utterance);
 
+  if (/\b(go back to|return to|keep)\b.*\b(email|draft|reply)\b/.test(original)) {
+    return null;
+  }
+
   const connector = scaffoldedConnectorFor(original);
   if (connector) {
     return {

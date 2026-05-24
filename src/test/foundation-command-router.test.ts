@@ -63,6 +63,8 @@ describe("foundation command router", () => {
     expect(routeFoundationCommand("Mention yesterday's meeting in the draft")).toBeNull();
     expect(routeFoundationCommand("Make the message warmer")).toBeNull();
     expect(routeFoundationCommand("Add the event details to the brief")).toBeNull();
+    expect(routeFoundationCommand("Go back to the email")).toBeNull();
+    expect(routeFoundationCommand("Return to the reply draft")).toBeNull();
   });
 
   it("keeps scaffolded Google and Gmail connectors honest", () => {
