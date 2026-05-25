@@ -1,4 +1,5 @@
 mod apple;
+mod desktop_control;
 mod local_files;
 mod providers;
 
@@ -6,6 +7,10 @@ use apple::{
     create_calendar_event, create_note, create_reminder, load_apple_context_bundle,
     load_calendar_events, load_capability_diagnostics, load_mail_messages, load_notes,
     load_reminders, read_mail_message, read_note, search_contacts, update_reminder,
+};
+use desktop_control::{
+    desktop_observe, desktop_open_app, desktop_paste_text, desktop_permission_status,
+    desktop_read_selected_text, desktop_replace_selection,
 };
 use local_files::{FileReadQuery, FileReadResult, FileSearchQuery, WorkFileRecord};
 use serde::Serialize;
@@ -345,7 +350,13 @@ pub fn run() {
             read_local_file,
             load_apple_context_bundle,
             load_external_auth_requirements,
-            load_native_permission_debug
+            load_native_permission_debug,
+            desktop_permission_status,
+            desktop_observe,
+            desktop_read_selected_text,
+            desktop_paste_text,
+            desktop_replace_selection,
+            desktop_open_app
         ])
         .run(tauri::generate_context!())
         .expect("error while running Adaptive Surface");

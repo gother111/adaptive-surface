@@ -1,4 +1,5 @@
 import { Bot, X } from "lucide-react";
+import { DeviceControlPanel } from "@/components/device-control/DeviceControlPanel";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { surfaceMetas } from "@/lib/surface-fixtures";
@@ -37,6 +38,7 @@ export function DevDrawer({ open, activeSurfaceId, onOpenChange }: DevDrawerProp
           </Button>
         </div>
         <ScrollArea className="min-h-0 flex-1 p-3">
+          <DeviceControlPanel />
           <div className="mb-4 rounded-lg border border-white/10 bg-white/[0.035] p-3">
             <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Blueprint patch demo</div>
             <div className="mt-3 grid grid-cols-2 gap-2">
