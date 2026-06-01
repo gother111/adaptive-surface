@@ -43,7 +43,8 @@ this local copy you can start at installation.
 ## Install
 
 ```bash
-cd "/Users/pavlosamoshko/Documents/New project"
+git clone https://github.com/gother111/adaptive-surface.git
+cd adaptive-surface
 npm install
 ```
 
@@ -122,6 +123,29 @@ The DMG is typically in:
 ```text
 src-tauri/target/release/bundle/dmg/
 ```
+
+## Contributing
+
+Contributions are welcome. Good first areas are documentation, deterministic
+tests, frontend-only UI refinements, and small improvements that preserve the
+native permission and approval boundaries.
+
+Before opening a pull request, please run the relevant checks:
+
+```bash
+npm run typecheck
+npm test
+```
+
+For Rust or Tauri bridge changes, also run the smallest relevant Rust check:
+
+```bash
+cargo check --manifest-path src-tauri/Cargo.toml
+```
+
+Avoid broadening macOS permissions, local file access, Apple Events, microphone
+access, or external app automation without documenting the privacy impact and
+the approval flow.
 
 ## Next engineering steps
 
