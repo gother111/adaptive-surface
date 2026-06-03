@@ -10,7 +10,7 @@
 
 ## Local Apple context flow
 
-`src/lib/context-api.ts` calls Tauri commands for Apple Calendar, Apple Mail, and Apple Notes. The Rust side lives under `src-tauri/src/apple/*` and returns an `AppleContextBundle`. Reminders are present as a planned context source but do not have a real adapter in this checkout. File-directory context is available through `load_local_context_preview` and respects trusted roots.
+`src/lib/context-api.ts` calls Tauri commands for Apple Calendar, Apple Mail, Apple Notes, and Apple Reminders. The Rust side lives under `src-tauri/src/apple/*` and returns an `AppleContextBundle`. Reminders use an EventKit-backed provider for list, create, and update flows without opening the Reminders app. File-directory context is available through `load_local_context_preview` and respects trusted roots.
 
 ## Surface rendering flow
 
@@ -22,7 +22,7 @@
 - Local app data stayed in app-specific raw shapes instead of canonical WorkObjects.
 - Approval policy was visual but not enforced by a typed capability registry.
 - No deterministic golden eval suite existed for routing, persistence, context refresh, or approval safety.
-- Reminders and file summarization are not backed by real write/read adapters yet.
+- File summarization beyond supported text previews is not backed by a full document parser yet.
 
 ## No-regression areas
 
