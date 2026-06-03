@@ -42,11 +42,15 @@ this local copy you can start at installation.
 
 ## Install
 
+Use Node.js 20.20.0 or newer for local development.
+
 ```bash
 git clone https://github.com/gother111/adaptive-surface.git
 cd adaptive-surface
 npm install
 ```
+
+If you use `nvm`, run `nvm install` after entering the repository.
 
 ## Run in development
 
