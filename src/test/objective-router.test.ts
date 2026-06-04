@@ -21,6 +21,20 @@ function routeSequence(utterances: string[]) {
 }
 
 describe("objective router", () => {
+  it("creates an unknown fallback objective when no objective is active", () => {
+    const { activeObjective, objectives, decisions } = routeSequence(["Maybe later."]);
+    expect(objectives).toHaveLength(1);
+    expect(activeObjective?.kind).toBe("unknown");
+    expect(decisions[0].route).toBe("unknown");
+  });
+
+  it("does not create an approval objective when nothing is active", () => {
+    const { activeObjective, objectives, decisions } = routeSequence(["Send it."]);
+    expect(objectives).toHaveLength(0);
+    expect(activeObjective).toBeNull();
+    expect(decisions[0].route).toBe("request_approval");
+  });
+
   it("creates an email draft objective", () => {
     const { activeObjective } = routeSequence(["Write an email to Jacob."]);
     expect(activeObjective?.kind).toBe("draft_email");
@@ -74,6 +88,18 @@ describe("objective router", () => {
       "Go back to the email.",
     ]);
     expect(activeObjective?.kind).toBe("draft_email");
+    expect(decisions[2].route).toBe("switch_to_previous_objective");
+  });
+
+  it("switches back to a completed objective without duplicating it", () => {
+    const { activeObjective, objectives, decisions } = routeSequence([
+      "Write an email to Jacob.",
+      "Close this.",
+      "Go back to the email.",
+    ]);
+    expect(objectives).toHaveLength(1);
+    expect(activeObjective?.kind).toBe("draft_email");
+    expect(activeObjective?.status).toBe("active");
     expect(decisions[2].route).toBe("switch_to_previous_objective");
   });
 

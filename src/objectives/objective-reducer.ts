@@ -30,15 +30,6 @@ export function applyObjectiveRouting(
   utterance: string,
   now = Date.now(),
 ): { objectives: ObjectiveFrame[]; activeObjectiveId: string | null; objectiveHistory: string[] } {
-  if (decision.route === "create_new_objective" || !activeObjectiveId) {
-    const objective = createObjectiveFrame(utterance, decision, now);
-    return {
-      objectives: [...objectives, objective],
-      activeObjectiveId: objective.id,
-      objectiveHistory: [objective.id, ...objectives.map((item) => item.id)].slice(0, 12),
-    };
-  }
-
   if (decision.route === "switch_to_previous_objective" && decision.targetObjectiveId) {
     return {
       objectives: objectives.map((objective) =>
@@ -52,6 +43,23 @@ export function applyObjectiveRouting(
       objectiveHistory: [decision.targetObjectiveId, activeObjectiveId, ...objectives.map((item) => item.id)]
         .filter((id, index, all): id is string => Boolean(id) && all.indexOf(id) === index)
         .slice(0, 12),
+    };
+  }
+
+  if (decision.route === "create_new_objective" || (!activeObjectiveId && decision.route === "unknown")) {
+    const objective = createObjectiveFrame(utterance, decision, now);
+    return {
+      objectives: [...objectives, objective],
+      activeObjectiveId: objective.id,
+      objectiveHistory: [objective.id, ...objectives.map((item) => item.id)].slice(0, 12),
+    };
+  }
+
+  if (!activeObjectiveId) {
+    return {
+      objectives,
+      activeObjectiveId: null,
+      objectiveHistory: objectives.map((item) => item.id).slice(0, 12),
     };
   }
 
