@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { cn } from "@/lib/utils";
+import { History, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { SurfaceInstance, WorkspaceSession } from "@/workspace/types";
 
 interface WorkspaceGridProps {
@@ -17,22 +17,53 @@ export function WorkspaceGrid({ session, renderSurface }: WorkspaceGridProps) {
   const leftRail = sideSurfaces.filter((surface) => normalizeZone(surface.zone) === "leftRail").sort(sortByUpdated);
   const rightRail = sideSurfaces.filter((surface) => normalizeZone(surface.zone) === "rightRail").sort(sortByUpdated);
   const bottomDock = sideSurfaces.filter((surface) => normalizeZone(surface.zone) === "bottomDock").sort(sortByUpdated);
+  const [contextOpen, setContextOpen] = useStoredBoolean("adaptive-surface.context-rail-open", true);
+  const [inspectorOpen, setInspectorOpen] = useStoredBoolean("adaptive-surface.inspector-rail-open", Boolean(rightRail.length));
+  const modeLabel = modeToOccupation(session.mode, Boolean(mainSurface), Boolean(bottomDock.length));
+
+  useEffect(() => {
+    if (rightRail.length) {
+      setInspectorOpen(true);
+    }
+  }, [rightRail.length, setInspectorOpen]);
 
   return (
-    <section className="h-screen min-h-0 overflow-hidden px-4 pb-24 pt-16 sm:px-5 lg:px-6">
+    <section className="grid h-screen min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden px-4 pb-40 pt-16 sm:px-5 lg:px-6">
+      <ContinuityBar
+        goal={session.currentGoal}
+        modeLabel={modeLabel}
+        historyCount={session.transcriptHistory.length}
+        contextOpen={contextOpen}
+        inspectorOpen={inspectorOpen}
+        onToggleContext={() => setContextOpen(!contextOpen)}
+        onToggleInspector={() => setInspectorOpen(!inspectorOpen)}
+      />
       <div
-        className={cn(
-          "mx-auto grid h-full max-w-[1680px] grid-cols-1 grid-rows-[minmax(0,1fr)_auto] gap-4",
-          "xl:grid-cols-[minmax(240px,340px)_minmax(0,1fr)_minmax(260px,380px)]",
-        )}
+        className="adaptive-workspace-grid mx-auto h-full w-full max-w-[1680px]"
+        data-context={contextOpen ? "open" : "closed"}
+        data-inspector={inspectorOpen ? "open" : "closed"}
       >
-        <Rail className="xl:col-start-1 xl:row-start-1" surfaces={leftRail} renderSurface={renderSurface} />
-        <main className="no-drag min-h-0 xl:col-start-2 xl:row-start-1">
-          {mainSurface ? renderSurface(mainSurface) : null}
+        <Rail
+          title="Context"
+          description="Sources, constraints, and pinned work"
+          emptyLabel="No supporting context is pinned yet."
+          zone="context"
+          surfaces={leftRail}
+          renderSurface={renderSurface}
+        />
+        <main data-zone="stage" className="no-drag min-h-0">
+          <StageViewport surface={mainSurface} renderSurface={renderSurface} />
         </main>
-        <Rail className="xl:col-start-3 xl:row-start-1" surfaces={rightRail} renderSurface={renderSurface} />
+        <Rail
+          title="Inspector"
+          description="Why, assumptions, and next action"
+          emptyLabel="Inspector stays quiet until details or approval matter."
+          zone="inspector"
+          surfaces={rightRail}
+          renderSurface={renderSurface}
+        />
         {bottomDock.length ? (
-          <div className="no-drag grid max-h-52 gap-3 overflow-auto xl:col-span-3 xl:row-start-2 xl:grid-cols-2">
+          <div data-zone="interaction" className="no-drag grid max-h-52 gap-3 overflow-auto xl:col-span-full xl:grid-cols-2">
             {bottomDock.map((surface) => (
               <div key={surface.id}>{renderSurface(surface)}</div>
             ))}
@@ -43,20 +74,113 @@ export function WorkspaceGrid({ session, renderSurface }: WorkspaceGridProps) {
   );
 }
 
+function ContinuityBar({
+  goal,
+  modeLabel,
+  historyCount,
+  contextOpen,
+  inspectorOpen,
+  onToggleContext,
+  onToggleInspector,
+}: {
+  goal: string | null;
+  modeLabel: string;
+  historyCount: number;
+  contextOpen: boolean;
+  inspectorOpen: boolean;
+  onToggleContext: () => void;
+  onToggleInspector: () => void;
+}) {
+  return (
+    <header className="no-drag mx-auto mb-3 flex w-full max-w-[1680px] items-center justify-between gap-3 rounded-md border border-border-subtle bg-surface-1/70 px-3 py-2 shadow-[var(--shadow-surface)] backdrop-blur-md">
+      <div className="min-w-0">
+        <div className="truncate text-sm font-medium">{goal ?? "Ready for a surface"}</div>
+        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs surface-muted-text">
+          <span>{modeLabel}</span>
+          <span aria-hidden="true">/</span>
+          <span>Local-first scope</span>
+          <span aria-hidden="true">/</span>
+          <span className="inline-flex items-center gap-1">
+            <History className="size-3" />
+            {historyCount} checkpoints
+          </span>
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        <button
+          type="button"
+          className="surface-segmented-item"
+          aria-label={contextOpen ? "Collapse context rail" : "Open context rail"}
+          aria-pressed={contextOpen}
+          onClick={onToggleContext}
+        >
+          {contextOpen ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
+        </button>
+        <button
+          type="button"
+          className="surface-segmented-item"
+          aria-label={inspectorOpen ? "Collapse inspector rail" : "Open inspector rail"}
+          aria-pressed={inspectorOpen}
+          onClick={onToggleInspector}
+        >
+          {inspectorOpen ? <PanelRightClose className="size-4" /> : <PanelRightOpen className="size-4" />}
+        </button>
+      </div>
+    </header>
+  );
+}
+
+function StageViewport({
+  surface,
+  renderSurface,
+}: {
+  surface: SurfaceInstance | undefined;
+  renderSurface: (surface: SurfaceInstance) => ReactNode;
+}) {
+  if (!surface) {
+    return (
+      <div className="surface-panel grid h-full place-items-center p-8 text-center">
+        <div className="max-w-sm">
+          <p className="text-sm font-medium">Stage is reserved</p>
+          <p className="mt-2 text-sm leading-6 surface-muted-text">
+            The primary artifact will render here without moving context or inspector regions.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return <div className="h-full min-h-0 motion-structural">{renderSurface(surface)}</div>;
+}
+
 function Rail({
   surfaces,
   renderSurface,
-  className,
+  title,
+  description,
+  emptyLabel,
+  zone,
 }: {
   surfaces: SurfaceInstance[];
   renderSurface: (surface: SurfaceInstance) => ReactNode;
-  className?: string;
+  title: string;
+  description: string;
+  emptyLabel: string;
+  zone: "context" | "inspector";
 }) {
   return (
-    <aside className={cn("no-drag flex min-h-0 flex-col gap-3 overflow-auto pr-1", className)}>
-      {surfaces.map((surface) => (
-        <div key={surface.id}>{renderSurface(surface)}</div>
-      ))}
+    <aside data-zone={zone} className="no-drag min-h-0 flex-col gap-3 overflow-auto pr-1">
+      <div className="surface-panel p-3">
+        <h2 className="text-sm font-medium">{title}</h2>
+        <p className="mt-1 text-xs leading-5 surface-muted-text">{description}</p>
+      </div>
+      {surfaces.length ? (
+        surfaces.map((surface) => (
+          <div key={surface.id}>{renderSurface(surface)}</div>
+        ))
+      ) : (
+        <div className="surface-subpanel p-3 text-xs leading-5 surface-muted-text">{emptyLabel}</div>
+      )}
     </aside>
   );
 }
@@ -70,4 +194,37 @@ function normalizeZone(zone: SurfaceInstance["zone"]) {
 
 function sortByUpdated(a: SurfaceInstance, b: SurfaceInstance) {
   return b.updatedAt - a.updatedAt || b.createdAt - a.createdAt;
+}
+
+function modeToOccupation(mode: WorkspaceSession["mode"], hasStage: boolean, hasCommit: boolean) {
+  if (hasCommit) return "Commit boundary";
+  if (!hasStage) return "Ambient";
+  if (mode === "researching") return "Focus / research";
+  if (mode === "drafting" || mode === "composing") return "Focus / composing";
+  if (mode === "reviewing") return "Review";
+  return "Focus";
+}
+
+function useStoredBoolean(key: string, initialValue: boolean) {
+  const [value, setValue] = useState(() => {
+    try {
+      const stored = globalThis.window?.localStorage.getItem(key);
+      if (stored === "true") return true;
+      if (stored === "false") return false;
+    } catch {
+      return initialValue;
+    }
+
+    return initialValue;
+  });
+
+  useEffect(() => {
+    try {
+      globalThis.window?.localStorage.setItem(key, String(value));
+    } catch {
+      // Local storage can be unavailable in restricted WebView contexts.
+    }
+  }, [key, value]);
+
+  return [value, setValue] as const;
 }

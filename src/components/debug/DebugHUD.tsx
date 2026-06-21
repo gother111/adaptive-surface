@@ -35,8 +35,8 @@ export function DebugHUD() {
   }
 
   return (
-    <aside className="fixed bottom-5 right-5 z-50 flex h-[min(620px,calc(100vh-40px))] w-[420px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-xl border border-white/10 bg-popover/95 shadow-2xl backdrop-blur-xl">
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+    <aside className="surface-panel-elevated fixed bottom-5 right-5 z-50 flex h-[min(620px,calc(100vh-40px))] w-[420px] max-w-[calc(100vw-32px)] flex-col overflow-hidden">
+      <div className="flex items-center justify-between border-b border-border-subtle px-4 py-3">
         <div>
           <h2 className="text-sm font-semibold">Debug HUD</h2>
           <p className="mt-1 text-xs text-muted-foreground">Intent, transcript, session, patches</p>
@@ -58,7 +58,7 @@ export function DebugHUD() {
             <div className="text-muted-foreground">committed: {committedTranscript || "none"}</div>
             <div className="mt-2 space-y-1">
               {transcript.slice(0, 6).map((entry) => (
-                <div key={entry.id} className="rounded-md border border-white/10 bg-white/[0.035] p-2">
+                <div key={entry.id} className="surface-row p-2">
                   <span className={entry.status === "partial" ? "text-primary" : "text-foreground"}>{entry.status}</span>
                   <span className="ml-2 text-muted-foreground">{entry.text}</span>
                 </div>
@@ -134,7 +134,7 @@ export function DebugHUD() {
 
 function DebugBlock({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border border-white/10 bg-white/[0.035] p-3">
+    <section className="surface-subpanel p-3">
       <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</h3>
       {children}
     </section>

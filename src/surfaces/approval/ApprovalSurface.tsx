@@ -28,7 +28,7 @@ export function ApprovalSurface({ config }: ApprovalSurfaceProps) {
         ))}
       </div>
 
-      <div className="rounded-lg border border-white/10 bg-white/[0.04] p-5 text-sm leading-6 text-muted-foreground">
+      <div className="surface-panel p-5 text-sm leading-6 text-muted-foreground">
         TODO: Add audit log persistence, undo previews, entitlement checks, and Accessibility
         permission status before enabling production AppleScript or app-control actions.
       </div>
@@ -42,7 +42,7 @@ function ApprovalRow({ action }: { action: ApprovalAction }) {
   };
 
   return (
-    <article className="grid gap-4 rounded-lg border border-white/10 bg-card/70 p-5 shadow-xl shadow-black/10 md:grid-cols-[1fr_auto] md:items-center">
+    <article className="surface-panel grid gap-4 p-5 md:grid-cols-[1fr_auto] md:items-center">
       <div>
         <div className="flex flex-wrap items-center gap-3">
           <h4 className="text-base font-semibold">{action.label}</h4>

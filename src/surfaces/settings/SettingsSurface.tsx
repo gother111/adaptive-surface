@@ -116,7 +116,7 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
       <SurfaceHeader title={config.title} subtitle={config.subtitle} status={config.streamStatus} />
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <section className="rounded-lg border border-white/10 bg-card/70 p-5">
+        <section className="surface-panel p-5">
           <div className="flex items-center gap-3">
             <Network className="size-5 text-primary" />
             <h4 className="text-sm font-semibold">Model routing</h4>
@@ -135,7 +135,7 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
           </p>
         </section>
 
-        <section className="rounded-lg border border-white/10 bg-card/70 p-5">
+        <section className="surface-panel p-5">
           <div className="flex items-center gap-3">
             <Mic2 className="size-5 text-primary" />
             <h4 className="text-sm font-semibold">Voice</h4>
@@ -150,7 +150,7 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
           />
         </section>
 
-        <section className="rounded-lg border border-white/10 bg-card/70 p-5">
+        <section className="surface-panel p-5">
           <div className="flex items-center gap-3">
             <KeyRound className="size-5 text-primary" />
             <h4 className="text-sm font-semibold">Permissions</h4>
@@ -169,7 +169,7 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
           />
         </section>
 
-        <section className="rounded-lg border border-white/10 bg-card/70 p-5">
+        <section className="surface-panel p-5">
           <div className="flex items-center gap-3">
             <FolderCog className="size-5 text-primary" />
             <h4 className="text-sm font-semibold">Local file context</h4>
@@ -184,11 +184,11 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
             />
           </div>
 
-          <div className="mt-5 rounded-md border border-white/10 bg-white/[0.04] p-4">
+          <div className="mt-5 surface-subpanel p-4">
             <p className="text-sm font-medium">Trusted folders</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {settings.trustedFileRoots.map((path) => (
-                <Badge key={path} variant="secondary" className="bg-white/10 text-foreground">
+                <Badge key={path} variant="secondary" className="bg-surface-2 text-foreground">
                   {path}
                 </Badge>
               ))}
@@ -210,7 +210,7 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
         </section>
       </div>
 
-      <section className="rounded-lg border border-white/10 bg-card/70 p-5">
+      <section className="surface-panel p-5">
         <div className="flex items-center gap-3">
           <DatabaseZap className="size-5 text-primary" />
           <div>
@@ -229,7 +229,7 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
-        <section className="rounded-lg border border-white/10 bg-card/70 p-5">
+        <section className="surface-panel p-5">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <ScrollText className="size-5 text-primary" />
@@ -284,7 +284,7 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
           )}
         </section>
 
-        <section className="rounded-lg border border-white/10 bg-card/70 p-5">
+        <section className="surface-panel p-5">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <CalendarDays className="size-5 text-primary" />
@@ -333,12 +333,12 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
               />
 
               {applePreview.warnings.length ? (
-                <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-4">
-                  <div className="flex items-center gap-2 text-sm font-medium text-amber-100">
+                <div className="rounded-md border border-warning/30 bg-warning/10 p-4">
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                     <BadgeAlert className="size-4" />
                     macOS permission warnings
                   </div>
-                  <div className="mt-3 space-y-2 text-sm text-amber-50/85">
+                  <div className="mt-3 space-y-2 text-sm text-muted-foreground">
                     {groupWarnings(applePreview.warnings).map((warningGroup) => (
                       <div key={warningGroup.source}>
                         <p className="font-medium capitalize">{warningGroup.source}</p>
@@ -357,7 +357,7 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
         </section>
       </div>
 
-      <section className="rounded-lg border border-white/10 bg-card/70 p-5">
+      <section className="surface-panel p-5">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <BadgeAlert className="size-5 text-primary" />
@@ -390,7 +390,7 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
           {authRequirements.map((requirement) => (
             <article
               key={requirement.id}
-              className="rounded-md border border-white/10 bg-white/[0.04] p-4"
+              className="surface-subpanel p-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -405,7 +405,7 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
               <p className="mt-4 text-sm font-medium">Required values</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {requirement.requiredValues.map((item) => (
-                  <Badge key={item} variant="secondary" className="bg-white/10 text-foreground">
+                  <Badge key={item} variant="secondary" className="bg-surface-2 text-foreground">
                     {item}
                   </Badge>
                 ))}
@@ -438,7 +438,7 @@ interface SettingToggleProps {
 
 function SettingToggle({ label, description, checked, onCheckedChange }: SettingToggleProps) {
   return (
-    <div className="mt-5 flex items-start justify-between gap-4 rounded-md border border-white/10 bg-white/[0.04] p-4">
+    <div className="mt-5 flex items-start justify-between gap-4 surface-subpanel p-4">
       <div>
         <p className="text-sm font-medium">{label}</p>
         <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
@@ -450,7 +450,7 @@ function SettingToggle({ label, description, checked, onCheckedChange }: Setting
 
 function ContextSourceCard({ source }: { source: ContextSourceConfig }) {
   return (
-    <article className="rounded-md border border-white/10 bg-white/[0.04] p-4">
+    <article className="surface-subpanel p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium">{source.label}</p>
@@ -478,7 +478,7 @@ function ContextSourceCard({ source }: { source: ContextSourceConfig }) {
 
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border border-white/10 bg-white/[0.04] p-4">
+    <div className="surface-subpanel p-4">
       <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
       <p className="mt-2 text-xl font-semibold text-foreground">{value}</p>
     </div>
@@ -495,7 +495,7 @@ function PreviewListCard({
   emptyLabel: string;
 }) {
   return (
-    <div className="rounded-md border border-white/10 bg-white/[0.04] p-4">
+    <div className="surface-subpanel p-4">
       <p className="text-sm font-medium">{title}</p>
       <div className="mt-3 space-y-2 text-sm text-muted-foreground">
         {items.length ? items.map((item) => <p key={item}>{item}</p>) : <p>{emptyLabel}</p>}
@@ -518,7 +518,7 @@ function AppleSourceCard<T extends { id: string }>({
   renderItem: (item: T) => ReactNode;
 }) {
   return (
-    <div className="rounded-md border border-white/10 bg-white/[0.04] p-4">
+    <div className="surface-subpanel p-4">
       <div className="flex items-center gap-2 text-sm font-medium">
         <Icon className="size-4 text-primary" />
         {title}
@@ -532,7 +532,7 @@ function AppleSourceCard<T extends { id: string }>({
 
 function CalendarPreviewItem({ event }: { event: AppleCalendarEvent }) {
   return (
-    <article className="rounded-md border border-white/10 bg-background/30 p-3">
+    <article className="surface-row p-3">
       <p className="font-medium text-foreground">{event.title}</p>
       <p className="mt-1 text-xs">{event.startAt}</p>
       <p className="mt-1 text-xs">{event.calendarName}</p>
@@ -543,7 +543,7 @@ function CalendarPreviewItem({ event }: { event: AppleCalendarEvent }) {
 
 function MailPreviewItem({ message }: { message: AppleMailMessage }) {
   return (
-    <article className="rounded-md border border-white/10 bg-background/30 p-3">
+    <article className="surface-row p-3">
       <div className="flex items-start justify-between gap-3">
         <p className="font-medium text-foreground">{message.subject}</p>
         <Badge variant={message.isRead ? "outline" : "secondary"}>
@@ -560,7 +560,7 @@ function MailPreviewItem({ message }: { message: AppleMailMessage }) {
 
 function NotePreviewItem({ note }: { note: AppleNotePreview }) {
   return (
-    <article className="rounded-md border border-white/10 bg-background/30 p-3">
+    <article className="surface-row p-3">
       <p className="font-medium text-foreground">{note.title}</p>
       <p className="mt-1 text-xs">{note.folder}</p>
       {note.modifiedAt ? <p className="mt-1 text-xs">Modified: {note.modifiedAt}</p> : null}
@@ -579,7 +579,7 @@ function groupWarnings(warnings: AppleContextWarning[]) {
 
 function EmptyState({ body }: { body: string }) {
   return (
-    <div className="mt-5 rounded-md border border-dashed border-white/10 bg-white/[0.03] p-4 text-sm leading-6 text-muted-foreground">
+    <div className="mt-5 surface-subpanel border-dashed p-4 text-sm leading-6 text-muted-foreground">
       {body}
     </div>
   );

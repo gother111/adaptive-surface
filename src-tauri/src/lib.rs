@@ -1,3 +1,4 @@
+pub mod control_plane;
 mod apple;
 mod desktop_control;
 mod local_files;
@@ -8,6 +9,7 @@ use apple::{
     load_calendar_events, load_capability_diagnostics, load_mail_messages, load_notes,
     load_reminders, read_mail_message, read_note, search_contacts, update_reminder,
 };
+use control_plane::ControlPlaneDemoInput;
 use desktop_control::{
     desktop_observe, desktop_open_app, desktop_paste_text, desktop_permission_status,
     desktop_read_selected_text, desktop_replace_selection,
@@ -324,6 +326,13 @@ fn read_local_file(query: FileReadQuery) -> Result<FileReadResult, String> {
     local_files::read_file(query)
 }
 
+#[tauri::command]
+fn run_control_plane_demo(
+    input: ControlPlaneDemoInput,
+) -> Result<control_plane::ControlPlaneRunResult, String> {
+    control_plane::run_control_plane_demo(input).map_err(|error| error.message)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -356,7 +365,8 @@ pub fn run() {
             desktop_read_selected_text,
             desktop_paste_text,
             desktop_replace_selection,
-            desktop_open_app
+            desktop_open_app,
+            run_control_plane_demo
         ])
         .run(tauri::generate_context!())
         .expect("error while running Adaptive Surface");

@@ -181,3 +181,43 @@ A task is done only when:
   status, deviations from plan, remaining risks, and rollback guidance.
 - Application code, generated build output, installed apps, dependencies, git
   history, and system permissions were not changed unless explicitly requested.
+
+## Backend Control Plane Rules
+
+- Adaptive Surface owns the experience, context references, intent frames,
+  delegation state, approvals, activity normalization, and provenance. Native
+  apps, websites, OS services, specialist tools, and external agents own the
+  authoritative work and storage.
+- Do not let model output or heuristic intent directly invoke OS, network,
+  connector, shell, filesystem, AppleScript, or native actions. Bind every
+  executable action to a typed declared capability first.
+- Do not add untyped IPC payloads for backend-control-plane work. Keep command
+  inputs and outputs versioned, serializable, and documented.
+- Mutating operations must pass policy evaluation before dispatch. External,
+  destructive, unknown-side-effect, or non-idempotent operations require an
+  approval record tied to the exact plan revision.
+- Treat workflow-atlas documents as build-time corpus inputs only. Do not load
+  raw atlas content on the runtime hot path or inject it wholesale into prompts.
+- For backend-only tasks, do not change frontend visuals unless the user asks
+  for a visual change.
+
+## Frontend Surface Runtime Rules
+
+- The surface owns the experience; native apps, websites, OS services, and
+  specialist agents own the authoritative work and storage.
+- Do not render arbitrary model-generated HTML, CSS, React components, or
+  geometry at runtime. Bind every rendered surface to typed contracts and an
+  allowlisted renderer.
+- Stable semantic IDs must survive surface morphs so source objects, artifacts,
+  focus, selection, scroll, pins, and user sizing can be preserved.
+- Keep backend/domain state separate from local presentation state. Backend
+  patches must not overwrite focused, edited, selected, dragged, pinned, or
+  manually sized presentation state unless a documented safety rule requires it.
+- Do not hard-code theme-specific colors in visual components. Use semantic
+  tokens and verify light and dark themes.
+- Do not use `transition: all`. Motion must explain local change, respect
+  reduced motion, and avoid structural movement during protected interaction.
+- Keyboard access, visible focus, contrast, zoom/reflow, and reduced-motion
+  behavior are release requirements, not cleanup tasks.
+- Frontend agents must verify the repository root, working directory, branch,
+  package path, and Tauri config path before editing.

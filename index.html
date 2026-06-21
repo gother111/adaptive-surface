@@ -5,6 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/src-tauri/icons/32x32.png" />
     <title>Adaptive Surface</title>
+    <script>
+      (() => {
+        try {
+          const preference = localStorage.getItem("adaptive-surface.theme") || "system";
+          const safePreference = ["system", "light", "dark"].includes(preference)
+            ? preference
+            : "system";
+          const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          const resolvedTheme = safePreference === "system" ? (systemDark ? "dark" : "light") : safePreference;
+          document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
+          document.documentElement.classList.toggle("light", resolvedTheme === "light");
+          document.documentElement.dataset.theme = resolvedTheme;
+          document.documentElement.dataset.themePreference = safePreference;
+          document.documentElement.style.colorScheme = resolvedTheme;
+        } catch {
+          document.documentElement.classList.add("dark");
+          document.documentElement.dataset.theme = "dark";
+          document.documentElement.style.colorScheme = "dark";
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

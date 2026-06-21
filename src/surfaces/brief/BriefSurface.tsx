@@ -27,16 +27,16 @@ export function BriefSurface({ config }: BriefSurfaceProps) {
           ))}
         </div>
 
-        <section className="rounded-lg border border-white/10 bg-white/[0.04] p-6">
+        <section className="surface-panel p-6">
           <div className="flex items-center gap-2 text-sm font-medium">
             <span className="size-2 rounded-full bg-primary" />
             Agent stream placeholder
           </div>
           <div className="mt-5 space-y-3">
             {[0, 1, 2].map((index) => (
-              <div key={index} className="h-3 rounded-full bg-white/[0.08]">
+              <div key={index} className="h-3 rounded-sm bg-surface-2">
                 <div
-                  className="h-full rounded-full bg-primary/60"
+                  className="h-full rounded-sm bg-primary/60"
                   style={{ width: `${72 - index * 18}%` }}
                 />
               </div>
@@ -56,7 +56,7 @@ function BriefCard({ block }: { block: BriefBlock }) {
   const Icon = statusIcon[block.status ?? "fresh"];
 
   return (
-    <article className="rounded-lg border border-white/10 bg-card/70 p-5 shadow-xl shadow-black/10">
+    <article className="surface-panel p-5">
       <div className="flex items-center justify-between gap-3">
         <h4 className="text-sm font-semibold">{block.title}</h4>
         <Icon className="size-4 text-primary" />

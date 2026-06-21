@@ -146,7 +146,7 @@ export function DeviceControlPanel() {
   }
 
   return (
-    <section className="mb-4 rounded-lg border border-white/10 bg-white/[0.035] p-3">
+    <section className="mb-4 surface-subpanel p-3">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
@@ -188,14 +188,14 @@ export function DeviceControlPanel() {
         </Button>
       </div>
 
-      <div className="mt-3 space-y-2 rounded-md border border-white/10 bg-black/20 p-3 text-xs">
+      <div className="mt-3 space-y-2 surface-subpanel p-3 text-xs">
         <RuntimeRow label="Active app" value={observation?.activeApp?.name ?? "not observed"} icon={<Monitor className="size-3.5" />} />
         <RuntimeRow label="Bundle ID" value={observation?.activeApp?.bundleId ?? "n/a"} />
         <RuntimeRow label="Window" value={observation?.activeWindow?.title ?? "n/a"} />
         <RuntimeRow label="Observed" value={observation ? new Date(observation.capturedAtMs).toLocaleTimeString() : "never"} />
       </div>
 
-      <div className="mt-3 rounded-md border border-white/10 bg-black/20 p-3">
+      <div className="mt-3 surface-subpanel p-3">
         <div className="flex items-center justify-between gap-3">
           <div className="text-xs font-medium text-muted-foreground">Selected text preview</div>
           {latestSelectedText?.text && latestSelectedText.text.length > 360 ? (
@@ -204,7 +204,7 @@ export function DeviceControlPanel() {
             </Button>
           ) : null}
         </div>
-        <pre className="mt-2 max-h-40 whitespace-pre-wrap break-words rounded-md bg-black/25 p-2 text-xs leading-5 text-muted-foreground">
+        <pre className="mt-2 max-h-40 whitespace-pre-wrap break-words rounded-md bg-surface-2 p-2 text-xs leading-5 text-muted-foreground">
           {selectedPreview || "No selected text captured."}
         </pre>
         {latestSelectedText ? (
@@ -222,7 +222,7 @@ export function DeviceControlPanel() {
           id="device-control-action-text"
           value={actionText}
           onChange={(event) => setActionText(event.target.value)}
-          className="mt-2 min-h-24 w-full resize-y rounded-md border border-white/10 bg-black/20 px-3 py-2 text-sm leading-5 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="mt-2 min-h-24 w-full resize-y surface-subpanel px-3 py-2 text-sm leading-5 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
         />
         <div className="mt-2 grid grid-cols-2 gap-2">
           <Button variant="secondary" size="sm" onClick={() => requestMutation("paste")} disabled={isLoading}>
@@ -238,7 +238,7 @@ export function DeviceControlPanel() {
 
       {error ? <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">{error}</div> : null}
       {lastActionResult ? (
-        <div className="mt-3 rounded-md border border-white/10 bg-black/20 p-2 text-xs text-muted-foreground">
+        <div className="mt-3 surface-subpanel p-2 text-xs text-muted-foreground">
           <div className="font-medium text-foreground">{lastActionResult.message}</div>
           {lastActionResult.warnings.length ? (
             <ul className="mt-2 list-disc space-y-1 pl-4">
@@ -271,7 +271,7 @@ export function DeviceControlPanel() {
 
 function PermissionRow({ check, suffix }: { check: PermissionCheck; suffix?: string }) {
   return (
-    <div className="flex items-center justify-between gap-2 rounded-md border border-white/10 bg-black/20 px-2 py-2">
+    <div className="flex items-center justify-between gap-2 surface-subpanel px-2 py-2">
       <div className="min-w-0">
         <div className="truncate text-muted-foreground">
           {check.label}
@@ -315,8 +315,8 @@ function ConfirmationDialog({
   return (
     <Dialog.Root open={kind !== null} onOpenChange={(open) => (!open ? onCancel() : undefined)}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[70] bg-black/55 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-[71] w-[min(420px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-white/10 bg-popover p-4 shadow-2xl">
+        <Dialog.Overlay className="fixed inset-0 z-[70] bg-scrim backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-[71] w-[min(420px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 surface-panel-elevated p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
               <Dialog.Title className="text-sm font-semibold">{descriptor?.label ?? "Confirm action"}</Dialog.Title>
@@ -330,7 +330,7 @@ function ConfirmationDialog({
               </Button>
             </Dialog.Close>
           </div>
-          <pre className="mt-3 max-h-40 whitespace-pre-wrap break-words rounded-md border border-white/10 bg-black/20 p-3 text-xs leading-5 text-muted-foreground">
+          <pre className="mt-3 max-h-40 whitespace-pre-wrap break-words surface-subpanel p-3 text-xs leading-5 text-muted-foreground">
             {truncate(text, 700) || "No text provided."}
           </pre>
           <div className="mt-4 flex justify-end gap-2">

@@ -15,14 +15,14 @@ export function CommandPalette() {
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-start bg-black/45 px-4 pt-[14vh] backdrop-blur-sm"
+      className="fixed inset-0 z-50 grid place-items-start bg-scrim px-4 pt-[14vh] backdrop-blur-sm"
       onMouseDown={() => setOpen(false)}
     >
       <Command
-        className="mx-auto w-full max-w-2xl overflow-hidden rounded-lg border border-white/10 bg-popover shadow-2xl"
+        className="surface-panel-elevated mx-auto w-full max-w-2xl overflow-hidden"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+        <div className="flex items-center gap-3 border-b border-border-subtle px-4 py-3">
           <Search className="size-4 text-muted-foreground" />
           <Command.Input
             autoFocus
@@ -43,7 +43,7 @@ export function CommandPalette() {
                   key={surface.id}
                   value={`${surface.title} ${surface.description}`}
                   className={cn(
-                    "flex cursor-pointer items-center gap-3 rounded-md px-3 py-3 text-sm outline-none",
+                    "motion-control flex cursor-pointer items-center gap-3 rounded-md px-3 py-3 text-sm outline-none",
                     "data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground",
                   )}
                   onSelect={() => setActiveSurface(surface.id)}

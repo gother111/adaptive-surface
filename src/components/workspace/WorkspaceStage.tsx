@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
+import { GazeTarget } from "@/gaze/react/GazeTarget";
 import { WorkspaceGrid } from "@/components/workspace/WorkspaceGrid";
 import type {
   CalendarPanelProps,
@@ -34,17 +35,29 @@ export function WorkspaceStage({ session }: WorkspaceStageProps) {
 
   if (!primarySurface && !hasActiveSurface) {
     return (
-      <section className="drag-region grid h-screen place-items-center px-6">
-        <div className="max-w-md text-center">
-          <div className="mx-auto mb-5 flex size-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-primary shadow-[0_0_42px_var(--surface-glow)]">
-            <Sparkles className="size-5" />
+      <GazeTarget
+        id="surface:workspace-empty"
+        type="surface-region"
+        priority={4}
+        className="h-screen"
+        metadata={{
+          label: "Workspace",
+          entityId: "workspace-empty",
+          actionHints: ["focus", "start"],
+        }}
+      >
+        <section className="drag-region grid h-full place-items-center px-6">
+          <div className="max-w-md text-center">
+            <div className="surface-subpanel mx-auto mb-5 flex size-12 items-center justify-center text-primary shadow-[var(--shadow-surface)]">
+              <Sparkles className="size-5" />
+            </div>
+            <h1 className="text-lg font-medium">Speak or type a command</h1>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              A workspace will stay open once there is something useful to work on.
+            </p>
           </div>
-          <h1 className="text-lg font-medium">Speak or type a command</h1>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            A workspace will stay open once there is something useful to work on.
-          </p>
-        </div>
-      </section>
+        </section>
+      </GazeTarget>
     );
   }
 
@@ -65,8 +78,24 @@ export function WorkspaceStage({ session }: WorkspaceStageProps) {
 function WorkspaceSurface({ surface, debugVisible, primary }: { surface: SurfaceInstance; debugVisible: boolean; primary: boolean }) {
   const content = renderWorkspaceSurface(surface);
 
+  const wrappedContent = content ? (
+    <GazeTarget
+      id={`surface:${surface.id}`}
+      type={surface.kind === "document" ? "document" : surface.kind === "table" ? "table" : "surface"}
+      priority={primary ? 20 : 10}
+      metadata={{
+        label: surfaceLabel(surface),
+        entityId: surface.id,
+        actionHints: ["open", "summarize", "compare", "focus"],
+        surfaceKind: surface.kind,
+      }}
+    >
+      {content}
+    </GazeTarget>
+  ) : null;
+
   if (!debugVisible || !content) {
-    return content;
+    return wrappedContent;
   }
 
   return (
@@ -74,7 +103,7 @@ function WorkspaceSurface({ surface, debugVisible, primary }: { surface: Surface
       <div className="mb-1 rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-[11px] text-primary">
         {surface.id} | {surface.kind} | {surface.role} | {surface.zone} | primary {primary ? "yes" : "no"}
       </div>
-      {content}
+      {wrappedContent}
     </div>
   );
 }
@@ -125,8 +154,8 @@ function renderWorkspaceSurface(surface: SurfaceInstance) {
 
 function EmailDraftSurface({ props }: { props: EmailDraftSurfaceProps }) {
   return (
-    <section className="flex h-full min-h-[520px] flex-col overflow-hidden rounded-lg border border-white/10 bg-card/82 shadow-[0_28px_90px_rgba(0,0,0,0.28)] backdrop-blur-xl">
-      <div className="border-b border-white/10 px-5 py-4">
+    <section className="surface-panel flex h-full min-h-[520px] flex-col overflow-hidden">
+      <div className="border-b border-border-subtle px-5 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Mail className="size-4 text-primary" />
@@ -141,7 +170,7 @@ function EmailDraftSurface({ props }: { props: EmailDraftSurfaceProps }) {
         {props.sourceChips?.length ? (
           <div className="mt-4 flex flex-wrap gap-2">
             {props.sourceChips.map((chip) => (
-              <Badge key={chip} variant="outline" className="border-white/10 bg-white/[0.04] text-muted-foreground">
+              <Badge key={chip} variant="outline" className="border-border-subtle bg-surface-2 text-muted-foreground">
                 {chip}
               </Badge>
             ))}
@@ -149,7 +178,7 @@ function EmailDraftSurface({ props }: { props: EmailDraftSurfaceProps }) {
         ) : null}
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-5">
-        <div className="min-h-full whitespace-pre-wrap rounded-lg border border-white/[0.08] bg-white/[0.035] p-5 text-[15px] leading-7 text-foreground">
+        <div className="surface-subpanel min-h-full whitespace-pre-wrap p-5 text-[15px] leading-7 text-foreground">
           {props.body}
         </div>
       </div>
@@ -163,7 +192,7 @@ function CalendarPanel({ props }: { props: CalendarPanelProps }) {
       <div className="space-y-3">
         {props.items.length ? (
           props.items.map((item) => (
-            <div key={item.id} className="rounded-md border border-white/10 bg-background/35 p-3 text-sm">
+            <div key={item.id} className="surface-row p-3 text-sm">
               <div className="font-medium">{item.label}</div>
               <div className="mt-1 text-xs leading-5 text-muted-foreground">{item.detail}</div>
               <div className="mt-1 text-xs leading-5 text-muted-foreground">{item.calendarName}</div>
@@ -185,7 +214,7 @@ function MailPanel({ props }: { props: MailPanelProps }) {
       <div className="space-y-3">
         {props.messages.length ? (
           props.messages.map((message) => (
-            <article key={message.id} className="rounded-md border border-white/10 bg-background/35 p-3 text-sm">
+            <article key={message.id} className="surface-row p-3 text-sm">
               <div className="flex items-start justify-between gap-3">
                 <h3 className="font-medium">{message.subject}</h3>
                 <Badge variant={message.isRead ? "outline" : "secondary"}>
@@ -213,7 +242,7 @@ function NotesPanel({ props }: { props: NotesPanelProps }) {
       <div className="space-y-3">
         {props.notes.length ? (
           props.notes.map((note) => (
-            <article key={note.id} className="rounded-md border border-white/10 bg-background/35 p-3 text-sm">
+            <article key={note.id} className="surface-row p-3 text-sm">
               <h3 className="font-medium">{note.title}</h3>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">{note.folder}</p>
               {note.modifiedAt ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{note.modifiedAt}</p> : null}
@@ -235,7 +264,7 @@ function RemindersPanel({ props }: { props: RemindersPanelProps }) {
       <div className="space-y-3">
         {props.reminders.length ? (
           props.reminders.map((reminder) => (
-            <article key={reminder.id} className="rounded-md border border-white/10 bg-background/35 p-3 text-sm">
+            <article key={reminder.id} className="surface-row p-3 text-sm">
               <h3 className="font-medium">{reminder.title}</h3>
               {reminder.detail ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{reminder.detail}</p> : null}
               {reminder.dueAt ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{reminder.dueAt}</p> : null}
@@ -256,7 +285,7 @@ function FilesPanel({ props }: { props: FilesPanelProps }) {
       <div className="space-y-3">
         {props.files.length ? (
           props.files.map((file) => (
-            <article key={file.id} className="rounded-md border border-white/10 bg-background/35 p-3 text-sm">
+            <article key={file.id} className="surface-row p-3 text-sm">
               <h3 className="font-medium">{file.label}</h3>
               <p className="mt-1 break-words text-xs leading-5 text-muted-foreground">{file.path}</p>
               {file.detail ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{file.detail}</p> : null}
@@ -278,7 +307,7 @@ function FoundationPanel({ props }: { props: FoundationSurfaceProps }) {
   return (
     <PanelShell icon={<Sparkles className="size-4 text-primary" />} title={props.title} badge={props.status}>
       <div className="space-y-3">
-        <div className="rounded-md border border-white/10 bg-background/35 p-3 text-xs leading-5 text-muted-foreground">
+        <div className="surface-row p-3 text-xs leading-5 text-muted-foreground">
           <div><span className="text-foreground">Command:</span> {props.command}</div>
           <div><span className="text-foreground">Adapter:</span> {props.adapter}</div>
           {props.provider ? <div><span className="text-foreground">Provider:</span> {props.provider}</div> : null}
@@ -290,9 +319,9 @@ function FoundationPanel({ props }: { props: FoundationSurfaceProps }) {
         </div>
 
         {props.approval ? (
-          <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 text-sm">
-            <div className="font-medium text-amber-50">Approval needed: {props.approval.label}</div>
-            <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-amber-50/85">
+          <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm">
+            <div className="font-medium text-foreground">Approval needed: {props.approval.label}</div>
+            <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-muted-foreground">
               {JSON.stringify(props.approval.preview, null, 2)}
             </pre>
           </div>
@@ -301,7 +330,7 @@ function FoundationPanel({ props }: { props: FoundationSurfaceProps }) {
         {items.length ? (
           <div className="space-y-2">
             {items.map((item, index) => (
-              <article key={`${props.title}-${index}`} className="rounded-md border border-white/10 bg-background/35 p-3 text-sm">
+              <article key={`${props.title}-${index}`} className="surface-row p-3 text-sm">
                 <ObjectPreview item={item} />
               </article>
             ))}
@@ -311,7 +340,7 @@ function FoundationPanel({ props }: { props: FoundationSurfaceProps }) {
         ) : null}
 
         {detailEntries.length ? (
-          <div className="rounded-md border border-white/10 bg-background/35 p-3 text-xs leading-5 text-muted-foreground">
+          <div className="surface-row p-3 text-xs leading-5 text-muted-foreground">
             {detailEntries.map(([key, value]) => (
               <div key={key} className="grid grid-cols-[120px_minmax(0,1fr)] gap-2">
                 <span className="text-foreground">{key}</span>
@@ -322,7 +351,7 @@ function FoundationPanel({ props }: { props: FoundationSurfaceProps }) {
         ) : null}
 
         {props.body ? (
-          <div className="max-h-[46vh] overflow-auto whitespace-pre-wrap rounded-md border border-white/10 bg-white/[0.035] p-4 text-sm leading-6">
+          <div className="surface-subpanel max-h-[46vh] overflow-auto whitespace-pre-wrap p-4 text-sm leading-6">
             {props.body}
           </div>
         ) : null}
@@ -335,7 +364,7 @@ function FoundationPanel({ props }: { props: FoundationSurfaceProps }) {
         ) : null}
 
         {props.permissionHint || props.suggestedNextAction ? (
-          <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 text-xs leading-5 text-amber-50/85">
+          <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-xs leading-5 text-muted-foreground">
             {props.permissionHint ? <p>{props.permissionHint}</p> : null}
             {props.suggestedNextAction ? <p className="mt-1">{props.suggestedNextAction}</p> : null}
           </div>
@@ -361,7 +390,7 @@ function ObjectPreview({ item }: { item: Record<string, unknown> }) {
 
 function EmptyPanelText({ status, label }: { status: string; label: string }) {
   return (
-    <p className="rounded-md border border-white/10 bg-background/35 p-3 text-xs leading-5 text-muted-foreground">
+    <p className="surface-row p-3 text-xs leading-5 text-muted-foreground">
       {status === "loading" ? "Loading real local Apple context..." : label}
     </p>
   );
@@ -373,7 +402,7 @@ function PanelWarnings({ warnings }: { warnings?: string[] }) {
   }
 
   return (
-    <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 text-xs leading-5 text-amber-50/85">
+    <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-xs leading-5 text-muted-foreground">
       {warnings.map((warning) => (
         <p key={warning}>{warning}</p>
       ))}
@@ -383,19 +412,19 @@ function PanelWarnings({ warnings }: { warnings?: string[] }) {
 
 function TableFrame({ props }: { props: TableFrameProps }) {
   return (
-    <PanelShell icon={<FileSpreadsheet className="size-4 text-primary" />} title={props.title} badge="mock">
-      <div className="overflow-hidden rounded-md border border-white/10 text-xs">
-        <div className="grid bg-white/[0.045] font-medium" style={{ gridTemplateColumns: `repeat(${props.columns.length}, minmax(0, 1fr))` }}>
+    <PanelShell icon={<FileSpreadsheet className="size-4 text-primary" />} title={props.title} badge="fixture">
+      <div className="overflow-hidden rounded-md border border-border-subtle text-xs">
+        <div className="grid bg-surface-2 font-medium" style={{ gridTemplateColumns: `repeat(${props.columns.length}, minmax(0, 1fr))` }}>
           {props.columns.map((column) => (
-            <div key={column} className="border-r border-white/10 p-2 last:border-r-0">
+            <div key={column} className="border-r border-border-subtle p-2 last:border-r-0">
               {column}
             </div>
           ))}
         </div>
         {props.rows.map((row, index) => (
-          <div key={index} className="grid border-t border-white/10" style={{ gridTemplateColumns: `repeat(${props.columns.length}, minmax(0, 1fr))` }}>
+          <div key={index} className="grid border-t border-border-subtle" style={{ gridTemplateColumns: `repeat(${props.columns.length}, minmax(0, 1fr))` }}>
             {props.columns.map((column) => (
-              <div key={column} className="min-w-0 border-r border-white/10 p-2 text-muted-foreground last:border-r-0">
+              <div key={column} className="min-w-0 border-r border-border-subtle p-2 text-muted-foreground last:border-r-0">
                 {row[column]}
               </div>
             ))}
@@ -410,12 +439,12 @@ function ChartFrame({ props }: { props: ChartFrameProps }) {
   const max = Math.max(...props.series.map((item) => item.value), 1);
 
   return (
-    <PanelShell icon={<BarChart3 className="size-4 text-primary" />} title={props.title} badge="mock">
-      <div className="flex h-44 items-end gap-2 rounded-md border border-white/10 bg-background/35 p-3">
+    <PanelShell icon={<BarChart3 className="size-4 text-primary" />} title={props.title} badge="fixture">
+      <div className="surface-subpanel flex h-44 items-end gap-2 p-3">
         {props.series.map((item) => (
           <div key={item.label} className="flex min-w-0 flex-1 flex-col items-center gap-2">
             <div
-              className="w-full rounded-t-sm bg-primary/75 shadow-[0_0_18px_var(--surface-glow)]"
+              className="w-full rounded-t-sm bg-primary/75"
               style={{ height: `${Math.max(14, (item.value / max) * 124)}px` }}
             />
             <span className="text-[11px] text-muted-foreground">{item.label}</span>
@@ -438,7 +467,7 @@ function PanelShell({
   children: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-lg border border-white/10 bg-card/78 p-4 shadow-xl backdrop-blur-xl">
+    <section className="surface-panel overflow-hidden p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
           {icon}
@@ -453,7 +482,7 @@ function PanelShell({
 
 function CollapsedSurface({ surface }: { surface: SurfaceInstance }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-card/70 px-3 py-2 text-xs text-muted-foreground">
+    <div className="surface-row flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
       <PanelLeftClose className="size-3.5 text-primary" />
       <span className="min-w-0 flex-1 truncate">{surfaceLabel(surface)} collapsed</span>
     </div>

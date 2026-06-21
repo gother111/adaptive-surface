@@ -2,6 +2,7 @@ import { Bot, X } from "lucide-react";
 import { DeviceControlPanel } from "@/components/device-control/DeviceControlPanel";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { GazeSettingsPanel } from "@/gaze/react/GazeSettingsPanel";
 import { surfaceMetas } from "@/lib/surface-fixtures";
 import { cn } from "@/lib/utils";
 import { useSurfaceStore } from "@/stores/useSurfaceStore";
@@ -23,12 +24,12 @@ export function DevDrawer({ open, activeSurfaceId, onOpenChange }: DevDrawerProp
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm" onMouseDown={() => onOpenChange(false)}>
+    <div className="fixed inset-0 z-50 bg-scrim backdrop-blur-sm" onMouseDown={() => onOpenChange(false)}>
       <aside
         className="glass-panel no-drag ml-auto flex h-full w-[340px] max-w-[calc(100vw-24px)] flex-col"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-white/10 p-4">
+        <div className="flex items-center justify-between border-b border-border-subtle p-4">
           <div>
             <h2 className="text-sm font-semibold">Developer surfaces</h2>
             <p className="mt-1 text-xs text-muted-foreground">Hidden from the default canvas.</p>
@@ -38,8 +39,9 @@ export function DevDrawer({ open, activeSurfaceId, onOpenChange }: DevDrawerProp
           </Button>
         </div>
         <ScrollArea className="min-h-0 flex-1 p-3">
+          <GazeSettingsPanel className="mb-4" />
           <DeviceControlPanel />
-          <div className="mb-4 rounded-lg border border-white/10 bg-white/[0.035] p-3">
+          <div className="surface-subpanel mb-4 p-3">
             <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Blueprint patch demo</div>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <Button variant="secondary" size="sm" onClick={toggleDebugHud}>
@@ -87,10 +89,10 @@ export function DevDrawer({ open, activeSurfaceId, onOpenChange }: DevDrawerProp
                   key={surface.id}
                   type="button"
                   className={cn(
-                    "grid w-full grid-cols-[32px_minmax(0,1fr)] gap-3 rounded-md px-3 py-3 text-left transition-colors",
+                    "motion-control grid w-full grid-cols-[32px_minmax(0,1fr)] gap-3 rounded-md px-3 py-3 text-left",
                     selected
                       ? "bg-primary/15 text-foreground ring-1 ring-primary/25"
-                      : "text-muted-foreground hover:bg-white/[0.07] hover:text-foreground",
+                      : "text-muted-foreground hover:bg-surface-selected hover:text-foreground",
                   )}
                   onClick={() => {
                     setActiveSurface(surface.id);
@@ -100,7 +102,7 @@ export function DevDrawer({ open, activeSurfaceId, onOpenChange }: DevDrawerProp
                   <span
                     className={cn(
                       "flex size-8 items-center justify-center rounded-md border",
-                      selected ? "border-primary/30 bg-primary/15 text-primary" : "border-white/[0.08] bg-white/5",
+                      selected ? "border-primary/30 bg-primary/15 text-primary" : "border-border-subtle bg-surface-2",
                     )}
                   >
                     <Icon className="size-4" />

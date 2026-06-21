@@ -129,7 +129,7 @@ function Panel({ node, children }: SurfaceComponentRenderProps) {
   const props = node.props as PanelProps;
 
   return (
-    <section className={cn("h-full overflow-hidden rounded-lg border p-5", panelToneClass(props.tone), node.streaming && "shadow-[0_0_30px_var(--surface-glow)]")}>
+    <section className={cn("h-full overflow-hidden rounded-lg border p-5", panelToneClass(props.tone), node.streaming && "shadow-[var(--shadow-surface)]")}>
       {(props.title || props.subtitle) && (
         <div className="mb-4">
           {props.title ? <h3 className="text-sm font-semibold text-foreground">{props.title}</h3> : null}
@@ -180,7 +180,7 @@ function InsightCard({ node }: SurfaceComponentRenderProps) {
   const props = node.props as InsightCardProps;
 
   return (
-    <article className={cn("rounded-lg border border-white/10 bg-card/70 p-4", insightToneClass(props.tone))}>
+    <article className={cn("rounded-lg border border-border-subtle bg-card/70 p-4", insightToneClass(props.tone))}>
       <div className="flex items-start justify-between gap-3">
         <h4 className="text-sm font-semibold">{props.title}</h4>
         <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" />
@@ -206,7 +206,7 @@ function ConfidenceBadge({ node }: SurfaceComponentRenderProps) {
   const value = Math.max(0, Math.min(100, Math.round(props.value)));
 
   return (
-    <div className="flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-muted-foreground">
+    <div className="flex w-fit items-center gap-2 rounded-full border border-border-subtle bg-surface-2 px-3 py-1.5 text-xs text-muted-foreground">
       <Gauge className="size-3.5 text-primary" />
       <span className="font-medium text-foreground">{value}%</span>
       {props.label ?? "confidence"}
@@ -218,7 +218,7 @@ function ActionList({ node }: SurfaceComponentRenderProps) {
   const props = node.props as ActionListProps;
 
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.035] p-4">
+    <div className="rounded-lg border border-border-subtle bg-surface-2 p-4">
       {props.title ? <h4 className="text-sm font-semibold">{props.title}</h4> : null}
       <div className="mt-3 space-y-2">
         {props.items.map((item) => (
@@ -226,7 +226,7 @@ function ActionList({ node }: SurfaceComponentRenderProps) {
             key={item.id}
             type="button"
             disabled={item.disabled}
-            className="flex w-full items-center justify-between gap-3 rounded-md border border-white/[0.08] bg-card/60 px-3 py-2 text-left text-sm transition hover:border-primary/30 disabled:opacity-50"
+            className="flex w-full items-center justify-between gap-3 rounded-md border border-border-subtle bg-card/60 px-3 py-2 text-left text-sm transition hover:border-primary/30 disabled:opacity-50"
           >
             <span>
               <span className="block font-medium">{item.label}</span>
@@ -246,7 +246,7 @@ function QuestionQueue({ node }: SurfaceComponentRenderProps) {
   return (
     <div className="space-y-2">
       {props.questions.map((question, index) => (
-        <div key={`${question}-${index}`} className="flex gap-3 rounded-md border border-white/10 bg-white/[0.035] p-3 text-sm">
+        <div key={`${question}-${index}`} className="flex gap-3 rounded-md border border-border-subtle bg-surface-2 p-3 text-sm">
           <FileQuestion className="mt-0.5 size-4 shrink-0 text-primary" />
           <span className="leading-6 text-muted-foreground">{question}</span>
         </div>
@@ -259,7 +259,7 @@ function EvidenceBlock({ node }: SurfaceComponentRenderProps) {
   const props = node.props as EvidenceBlockProps;
 
   return (
-    <article className="rounded-lg border border-white/10 bg-card/70 p-4">
+    <article className="rounded-lg border border-border-subtle bg-card/70 p-4">
       <div className="flex items-center gap-2 text-sm font-semibold">
         <Search className="size-4 text-primary" />
         {props.title}
@@ -274,7 +274,7 @@ function SourceChip({ node }: SurfaceComponentRenderProps) {
   const props = node.props as SourceChipProps;
 
   return (
-    <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-muted-foreground">
+    <span className="inline-flex w-fit items-center gap-2 rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-xs text-muted-foreground">
       <span className={cn("size-1.5 rounded-full", props.status === "available" ? "bg-primary" : "bg-muted-foreground")} />
       {props.label}
     </span>
@@ -290,7 +290,7 @@ function DataBindingChip({ node }: SurfaceComponentRenderProps) {
   const preview = props.preview ?? binding?.preview;
 
   return (
-    <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-xs text-muted-foreground">
+    <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-border-subtle bg-surface-2 px-3 py-1.5 text-xs text-muted-foreground">
       <Link2 className="size-3.5 shrink-0 text-primary" />
       <span className="truncate font-medium text-foreground">{label}</span>
       <span className={cn("shrink-0 rounded-full px-2 py-0.5", bindingStatusClass(status))}>
@@ -305,8 +305,8 @@ function EmailDraftSurface({ node, children }: SurfaceComponentRenderProps) {
   const props = node.props as EmailDraftSurfaceProps;
 
   return (
-    <section className="flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-card/80 shadow-[0_28px_90px_rgba(0,0,0,0.28)] backdrop-blur-xl">
-      <div className="border-b border-white/10 px-5 py-4">
+    <section className="flex h-full flex-col overflow-hidden rounded-xl border border-border-subtle bg-card/80 shadow-[var(--shadow-elevated)] backdrop-blur-xl">
+      <div className="border-b border-border-subtle px-5 py-4">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <Mail className="size-4 text-primary" />
           Email draft
@@ -332,7 +332,7 @@ function EmailBody({ node }: SurfaceComponentRenderProps) {
   const body = props.body || props.placeholder || "Start speaking and the email will form here.";
 
   return (
-    <div className="min-h-[260px] whitespace-pre-wrap rounded-lg border border-white/[0.08] bg-white/[0.035] p-5 text-[15px] leading-7 text-foreground">
+    <div className="min-h-[260px] whitespace-pre-wrap rounded-lg border border-border-subtle bg-surface-2 p-5 text-[15px] leading-7 text-foreground">
       {body}
     </div>
   );
@@ -342,17 +342,17 @@ function CalendarContext({ node }: SurfaceComponentRenderProps) {
   const props = node.props as CalendarContextProps;
 
   return (
-    <aside className="h-full overflow-hidden rounded-xl border border-primary/20 bg-primary/[0.065] p-4 shadow-[0_0_36px_var(--surface-glow)]">
+    <aside className="h-full overflow-hidden rounded-xl border border-primary/20 bg-primary/[0.065] p-4 shadow-[var(--shadow-surface)]">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <CalendarDays className="size-4 text-primary" />
           {props.title}
         </div>
-        <Badge variant="secondary">{props.status ?? "mock"}</Badge>
+        <Badge variant="secondary">{props.status ?? "fixture"}</Badge>
       </div>
       <div className="mt-4 space-y-3">
         {props.items.map((item) => (
-          <div key={item.id} className="rounded-md border border-white/10 bg-background/35 p-3 text-sm">
+          <div key={item.id} className="rounded-md border border-border-subtle bg-background/35 p-3 text-sm">
             <div className="font-medium">{item.label}</div>
             {item.detail ? <div className="mt-1 text-xs leading-5 text-muted-foreground">{item.detail}</div> : null}
           </div>
@@ -366,7 +366,7 @@ function RiskBadge({ node }: SurfaceComponentRenderProps) {
   const props = node.props as RiskBadgeProps;
 
   return (
-    <Badge className={cn("w-fit", props.level === "high" ? "bg-destructive text-white" : props.level === "medium" ? "bg-amber-500/20 text-amber-100" : "bg-primary/20 text-primary")}>
+    <Badge className={cn("w-fit", props.level === "high" ? "bg-destructive text-white" : props.level === "medium" ? "bg-warning/15 text-foreground" : "bg-primary/20 text-primary")}>
       {props.label ?? `${props.level} risk`}
     </Badge>
   );
@@ -376,7 +376,7 @@ function DecisionOptionCard({ node }: SurfaceComponentRenderProps) {
   const props = node.props as DecisionOptionCardProps;
 
   return (
-    <article className={cn("rounded-lg border bg-card/70 p-4", props.recommendation ? "border-primary/40 shadow-[0_0_30px_var(--surface-glow)]" : "border-white/10")}>
+    <article className={cn("rounded-lg border bg-card/70 p-4", props.recommendation ? "border-primary/40 shadow-[var(--shadow-surface)]" : "border-border-subtle")}>
       <div className="flex items-center justify-between gap-3">
         <h4 className="text-sm font-semibold">{props.label}</h4>
         {props.recommendation ? <Badge className="bg-primary text-primary-foreground">Best current read</Badge> : null}
@@ -392,25 +392,25 @@ function ComparisonTable({ node }: SurfaceComponentRenderProps) {
   const options = props.options.length ? props.options.slice(0, 4) : ["Option A", "Option B"];
 
   return (
-    <div className="overflow-hidden rounded-lg border border-white/10 bg-card/70">
+    <div className="overflow-hidden rounded-lg border border-border-subtle bg-card/70">
       <div
-        className="grid border-b border-white/10 bg-white/[0.04] text-sm font-medium"
+        className="grid border-b border-border-subtle bg-surface-2 text-sm font-medium"
         style={{ gridTemplateColumns: `minmax(130px, 0.7fr) repeat(${options.length}, minmax(120px, 1fr))` }}
       >
         <div className="p-3 text-muted-foreground">Criteria</div>
         {options.map((option) => (
-          <div key={option} className="border-l border-white/10 p-3">{option}</div>
+          <div key={option} className="border-l border-border-subtle p-3">{option}</div>
         ))}
       </div>
       {props.criteria.map((criterion) => (
         <div
           key={criterion}
-          className="grid border-b border-white/[0.08] last:border-b-0"
+          className="grid border-b border-border-subtle last:border-b-0"
           style={{ gridTemplateColumns: `minmax(130px, 0.7fr) repeat(${options.length}, minmax(120px, 1fr))` }}
         >
           <div className="p-3 text-sm font-medium">{criterion}</div>
           {options.map((option, index) => (
-            <div key={`${criterion}-${option}`} className="border-l border-white/10 p-3">
+            <div key={`${criterion}-${option}`} className="border-l border-border-subtle p-3">
               <div className="text-sm leading-6 text-muted-foreground">
                 {props.cells?.[`${criterion}:${option}`] ?? <SkeletonLine wide={index % 2 === 0} />}
               </div>
@@ -428,7 +428,7 @@ function DecisionMatrix({ node }: SurfaceComponentRenderProps) {
   return (
     <div className="space-y-3">
       {props.options.map((option) => (
-        <div key={option.id} className="rounded-lg border border-white/10 bg-card/70 p-4">
+        <div key={option.id} className="rounded-lg border border-border-subtle bg-card/70 p-4">
           <div className="flex items-center justify-between gap-3 text-sm font-medium">
             {option.label}
             {typeof option.score === "number" ? <span className="text-primary">{option.score}/100</span> : <CircleDashed className="size-4 animate-spin text-primary" />}
@@ -473,7 +473,7 @@ function LoadingSkeleton({ node }: SurfaceComponentRenderProps) {
   const rows = Math.max(1, Math.min(8, props.rows ?? 3));
 
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.035] p-4">
+    <div className="rounded-lg border border-border-subtle bg-surface-2 p-4">
       {props.label ? <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground"><CircleDashed className="size-4 animate-spin text-primary" />{props.label}</div> : null}
       <div className="space-y-2">
         {Array.from({ length: rows }).map((_, index) => (
@@ -488,7 +488,7 @@ function EmptyState({ node }: SurfaceComponentRenderProps) {
   const props = node.props as EmptyStateProps;
 
   return (
-    <div className="rounded-lg border border-dashed border-white/15 bg-white/[0.025] p-5 text-center">
+    <div className="rounded-lg border border-dashed border-border-subtle bg-surface-2 p-5 text-center">
       <ShieldAlert className="mx-auto size-5 text-muted-foreground" />
       <h4 className="mt-3 text-sm font-semibold">{props.title}</h4>
       {props.body ? <p className="mt-2 text-sm leading-6 text-muted-foreground">{props.body}</p> : null}
@@ -522,29 +522,29 @@ function toChildArray(children: ReactNode) {
 function panelToneClass(tone: PanelProps["tone"]) {
   if (tone === "accent") return "border-primary/20 bg-primary/[0.06]";
   if (tone === "danger") return "border-destructive/25 bg-destructive/10";
-  if (tone === "muted") return "border-white/[0.08] bg-white/[0.035]";
-  return "border-white/10 bg-card/70";
+  if (tone === "muted") return "border-border-subtle bg-surface-2";
+  return "border-border-subtle bg-card/70";
 }
 
 function insightToneClass(tone: InsightCardProps["tone"]) {
   if (tone === "positive") return "border-primary/25";
-  if (tone === "warning") return "border-amber-400/25 bg-amber-400/[0.06]";
+  if (tone === "warning") return "border-warning/25 bg-warning/10";
   if (tone === "danger") return "border-destructive/25 bg-destructive/10";
   return "";
 }
 
 function pillToneClass(tone: StatusPillProps["tone"]) {
   if (tone === "active") return "bg-primary/20 text-primary";
-  if (tone === "success") return "bg-emerald-400/15 text-emerald-100";
-  if (tone === "warning") return "bg-amber-400/15 text-amber-100";
-  if (tone === "danger") return "bg-destructive/20 text-red-100";
+  if (tone === "success") return "bg-success/15 text-foreground";
+  if (tone === "warning") return "bg-warning/15 text-foreground";
+  if (tone === "danger") return "bg-destructive/20 text-foreground";
   return "";
 }
 
 function bindingStatusClass(status: NonNullable<DataBindingChipProps["status"]>) {
   if (status === "available") return "bg-primary/20 text-primary";
-  if (status === "needs_permission") return "bg-amber-400/15 text-amber-100";
-  if (status === "error") return "bg-destructive/20 text-red-100";
-  if (status === "loading") return "bg-white/10 text-foreground";
-  return "bg-white/[0.06] text-muted-foreground";
+  if (status === "needs_permission") return "bg-warning/15 text-foreground";
+  if (status === "error") return "bg-destructive/20 text-foreground";
+  if (status === "loading") return "bg-surface-2 text-foreground";
+  return "bg-surface-2 text-muted-foreground";
 }

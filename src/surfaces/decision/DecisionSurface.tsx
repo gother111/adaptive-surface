@@ -18,7 +18,7 @@ export function DecisionSurface({ config }: DecisionSurfaceProps) {
         {options.map((option) => (
           <article
             key={option.id}
-            className="grid gap-5 rounded-lg border border-white/10 bg-card/70 p-5 shadow-xl shadow-black/10 md:grid-cols-[1fr_180px]"
+            className="surface-panel grid gap-5 p-5 md:grid-cols-[1fr_180px]"
           >
             <div>
               <h4 className="text-base font-semibold">{option.label}</h4>
@@ -37,7 +37,7 @@ export function DecisionSurface({ config }: DecisionSurfaceProps) {
         ))}
       </div>
 
-      <div className="rounded-lg border border-primary/20 bg-primary/10 p-5">
+      <div className="rounded-md border border-primary/20 bg-primary/10 p-5">
         <p className="text-sm leading-6 text-primary">
           TODO: Model routing should write typed decision objects here, then wait for an explicit
           user choice before any external mutation runs.

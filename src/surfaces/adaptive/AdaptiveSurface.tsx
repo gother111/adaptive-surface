@@ -38,7 +38,7 @@ export function AdaptiveSurface({ config }: AdaptiveSurfaceProps) {
         <div className="rounded-xl border border-primary/20 bg-primary/[0.07] p-5 shadow-[0_24px_90px_rgba(0,0,0,0.18)]">
           <div className="flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-4">
-              <div className="flex size-12 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-[0_0_34px_var(--surface-glow)]">
+              <div className="surface-subpanel flex size-12 items-center justify-center text-primary">
                 <Icon className="size-6" />
               </div>
               <SurfaceHeader
@@ -60,7 +60,7 @@ export function AdaptiveSurface({ config }: AdaptiveSurfaceProps) {
         )}
 
         <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
-          <div className="rounded-lg border border-white/10 bg-card/70 p-5">
+          <div className="surface-panel p-5">
             <div className="flex items-center gap-2 text-sm font-medium">
               <Sparkles className="size-4 text-primary" />
               Live transcript
@@ -69,7 +69,7 @@ export function AdaptiveSurface({ config }: AdaptiveSurfaceProps) {
               {config.liveTranscript || "Start speaking and this text will stream in here."}
             </p>
           </div>
-          <div className="rounded-lg border border-white/10 bg-white/[0.04] p-5">
+          <div className="surface-panel p-5">
             <div className="flex items-center gap-2 text-sm font-medium">
               <CircleDashed className="size-4 animate-spin text-primary" />
               Agent-ready next
@@ -91,7 +91,7 @@ function SectionGrid({ sections }: { sections: NonNullable<SurfaceConfig["sectio
       {sections.map((section, index) => (
         <article
           key={section.id}
-          className="rounded-lg border border-white/10 bg-card/70 p-5 transition-all duration-300 animate-in fade-in-0 slide-in-from-bottom-2"
+          className="surface-panel motion-content-update p-5 animate-in fade-in-0 slide-in-from-bottom-2"
           style={{ animationDelay: `${index * 35}ms` }}
         >
           <div className="flex items-center justify-between gap-3">
@@ -117,20 +117,20 @@ function ComparisonSkeleton({ sections }: { sections: NonNullable<SurfaceConfig[
   const criteria = sections.find((section) => section.id === "criteria")?.items ?? ["Cost", "Speed", "Risk", "Fit"];
 
   return (
-    <div className="overflow-hidden rounded-lg border border-white/10 bg-card/70">
-      <div className="grid grid-cols-[180px_repeat(2,minmax(0,1fr))] border-b border-white/10 bg-white/[0.04] text-sm font-medium">
+    <div className="surface-panel overflow-hidden">
+      <div className="grid grid-cols-[180px_repeat(2,minmax(0,1fr))] border-b border-border-subtle bg-surface-2 text-sm font-medium">
         <div className="p-4 text-muted-foreground">Criteria</div>
         {optionItems.slice(0, 2).map((option, index) => (
-          <div key={`${option}-${index}`} className="border-l border-white/10 p-4">
+          <div key={`${option}-${index}`} className="border-l border-border-subtle p-4">
             {option}
           </div>
         ))}
       </div>
       {criteria.map((criterion, rowIndex) => (
-        <div key={criterion} className="grid grid-cols-[180px_repeat(2,minmax(0,1fr))] border-b border-white/[0.08] last:border-b-0">
+        <div key={criterion} className="grid grid-cols-[180px_repeat(2,minmax(0,1fr))] border-b border-border-subtle last:border-b-0">
           <div className="p-4 text-sm font-medium">{criterion}</div>
           {[0, 1].map((column) => (
-            <div key={column} className="border-l border-white/10 p-4">
+            <div key={column} className="border-l border-border-subtle p-4">
               <div
                 className={cn("h-3 rounded-full bg-primary/50", rowIndex % 2 === column ? "w-3/4" : "w-1/2")}
               />

@@ -19,7 +19,7 @@ export function FoundationCommandBar() {
   return (
     <form
       onSubmit={submit}
-      className="no-drag fixed bottom-24 left-1/2 z-40 flex w-[min(780px,calc(100vw-32px))] -translate-x-1/2 items-center gap-2 rounded-lg border border-white/10 bg-popover/95 p-2 shadow-2xl backdrop-blur"
+      className="surface-panel-elevated no-drag fixed bottom-24 left-1/2 z-40 flex w-[min(780px,calc(100vw-32px))] -translate-x-1/2 items-center gap-2 p-2"
     >
       <input
         aria-label="Type a local command"

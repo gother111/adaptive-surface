@@ -111,7 +111,7 @@ const SurfaceRuntimeNode = memo(function SurfaceRuntimeNode({
       {minimized ? (
         <button
           type="button"
-          className="rounded-lg border border-white/10 bg-card/80 px-4 py-3 text-left text-sm text-muted-foreground"
+          className="rounded-lg border border-border-subtle bg-card/80 px-4 py-3 text-left text-sm text-muted-foreground"
           onClick={() => surfaceId && onSelectNode?.(surfaceId, node.id)}
         >
           {node.name ?? node.semanticText ?? "Minimized surface object"}
@@ -131,7 +131,7 @@ const SurfaceRuntimeNode = memo(function SurfaceRuntimeNode({
       className={cn(
         "absolute transition-[left,top,width,height,box-shadow,opacity,transform] duration-200 ease-out",
         selected && "rounded-xl ring-1 ring-primary/55",
-        focused && "rounded-xl shadow-[0_0_0_1px_var(--primary),0_0_42px_var(--surface-glow)]",
+        focused && "rounded-xl shadow-[var(--shadow-surface)] ring-1 ring-primary/45",
       )}
       style={geometryStyle(node)}
       role={node.interaction?.selectable ? "button" : undefined}
@@ -165,7 +165,7 @@ class NodeErrorBoundary extends Component<
 
 function RuntimeHeader({ blueprint }: SurfaceRuntimeProps) {
   return (
-    <div className="border-b border-white/[0.06] bg-background/70 px-6 py-4 backdrop-blur-xl lg:px-8">
+    <div className="border-b border-border-subtle bg-background/70 px-6 py-4 backdrop-blur-xl lg:px-8">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
@@ -176,7 +176,7 @@ function RuntimeHeader({ blueprint }: SurfaceRuntimeProps) {
             <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{blueprint.subtitle}</p>
           ) : null}
         </div>
-        <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-muted-foreground">
+        <div className="rounded-full border border-border-subtle bg-surface-2 px-3 py-1 text-xs text-muted-foreground">
           {blueprint.mode.replace(/_/g, " ")}
         </div>
       </div>

@@ -6,6 +6,8 @@
   <string>Adaptive Surface uses the microphone for voice input on the work surface.</string>
   <key>NSSpeechRecognitionUsageDescription</key>
   <string>Adaptive Surface uses speech recognition to turn your voice into adaptive local work surfaces.</string>
+  <key>NSCameraUsageDescription</key>
+  <string>Adaptive Surface uses the camera only when you enable gaze attention, to estimate what surface element you are looking at. Video stays on this device.</string>
   <key>NSAppleEventsUsageDescription</key>
   <string>Adaptive Surface uses AppleScript only as an optional fallback when an Apple app is already running.</string>
   <key>NSCalendarsFullAccessUsageDescription</key>
