@@ -1,0 +1,3102 @@
+[
+  {
+    "id": "VJ-04-01-01",
+    "title": "Catch me up on inbox triage",
+    "group_id": "04.01",
+    "group_name": "inbox triage",
+    "intention": "The user wants to get caught up on inbox triage by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For inbox triage, the system gathers the most relevant and current context, separates confirmed facts from inference, highlights changes, decisions, deadlines, and unresolved items, and presents a concise overview without modifying source systems.",
+    "undesired": "For inbox triage, the system gives a confident summary from stale or incomplete context, misses urgent items, confuses inference with fact, or changes source records while merely being asked to explain them. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Catch me up on inbox triage."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Can you catch me up on inbox triage?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, catch me up on inbox triage, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clear and current picture of inbox triage. Catch me up on inbox triage."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Catch me up on inbox triage, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-01-02",
+    "title": "Find the key decisions, records, and open requests for inbox triage",
+    "group_id": "04.01",
+    "group_name": "inbox triage",
+    "intention": "The user wants to find the key decisions, records, and open requests for inbox triage by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For inbox triage, the system searches only authorized sources, returns the most likely matching items with provenance, dates, versions, and surrounding context, and asks for disambiguation when identity or scope is uncertain.",
+    "undesired": "For inbox triage, the system returns the wrong person, record, version, date range, or account; searches beyond authorized scope; or exposes sensitive information without making the ambiguity visible. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Find the key decisions, records, and open requests for inbox triage."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you find the key decisions, records, and open requests for inbox triage?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, find the key decisions, records, and open requests for inbox triage, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the correct information or item for inbox triage. Find the key decisions, records, and open requests for inbox triage."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Find the key decisions, records, and open requests for inbox triage, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-01-03",
+    "title": "Organize the work and context for inbox triage",
+    "group_id": "04.01",
+    "group_name": "inbox triage",
+    "intention": "The user wants to organize the work and context for inbox triage by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For inbox triage, the system proposes a clear structure, labels and groups related material, preserves originals and provenance, and previews moves, merges, renames, or classifications before committing them.",
+    "undesired": "For inbox triage, the system misclassifies material, merges unrelated items, destroys provenance, or silently moves, renames, overwrites, or deletes source content. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Organize the work and context for inbox triage."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you organize the work and context for inbox triage?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, organize the work and context for inbox triage, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clean, usable structure for inbox triage. Organize the work and context for inbox triage."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Organize the work and context for inbox triage, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-01-04",
+    "title": "Compare the available options for inbox triage",
+    "group_id": "04.01",
+    "group_name": "inbox triage",
+    "intention": "The user wants to compare the available options for inbox triage by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For inbox triage, the system aligns alternatives against explicit criteria, normalizes incompatible measures, exposes missing information and assumptions, and produces a decision-ready comparison without silently choosing for the user.",
+    "undesired": "For inbox triage, the system compares unlike options as though they were equivalent, hides weighting or missing data, fabricates values, or presents a recommendation with unjustified certainty. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Compare the available options for inbox triage."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you compare the available options for inbox triage?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, compare the available options for inbox triage, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a decision-ready comparison for inbox triage. Compare the available options for inbox triage."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Compare the available options for inbox triage, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-01-05",
+    "title": "Plan the next steps for inbox triage",
+    "group_id": "04.01",
+    "group_name": "inbox triage",
+    "intention": "The user wants to plan the next steps for inbox triage by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For inbox triage, the system produces an actionable plan with ordered steps, owners, dates, dependencies, constraints, checkpoints, and fallback paths, while distinguishing proposals from confirmed commitments.",
+    "undesired": "For inbox triage, the system invents deadlines, owners, budgets, approvals, or commitments; ignores dependencies and constraints; or treats a draft plan as authorization to execute. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Plan the next steps for inbox triage."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you plan the next steps for inbox triage?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, plan the next steps for inbox triage, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need an actionable plan for inbox triage. Plan the next steps for inbox triage."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Plan the next steps for inbox triage, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-01-06",
+    "title": "Draft the main business artifact for inbox triage",
+    "group_id": "04.01",
+    "group_name": "inbox triage",
+    "intention": "The user wants to draft the main business artifact for inbox triage by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For inbox triage, the system creates a reviewable draft, configuration, calculation, or first version grounded in the available context, preserves the user\u2019s meaning and source material, and keeps the result in preview until approved.",
+    "undesired": "For inbox triage, the system invents facts, changes the user\u2019s intent, overwrites the authoritative source, or sends, publishes, files, pays, deploys, or submits the draft without approval. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Draft the main business artifact for inbox triage."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you draft the main business artifact for inbox triage?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, draft the main business artifact for inbox triage, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reviewable first result for inbox triage. Draft the main business artifact for inbox triage."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Draft the main business artifact for inbox triage, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-01-07",
+    "title": "Review and approve the proposed work for inbox triage",
+    "group_id": "04.01",
+    "group_name": "inbox triage",
+    "intention": "The user wants to review and approve the proposed work for inbox triage by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For inbox triage, the system checks the work against explicit criteria, identifies defects, omissions, risks, and uncertainty, links each finding to evidence, and proposes corrections without silently approving or altering the source.",
+    "undesired": "For inbox triage, the system rubber-stamps the work, misses a material error, applies hidden criteria, alters evidence during review, or claims that compliance, quality, or correctness has been proven when it has not. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Review and approve the proposed work for inbox triage."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you review and approve the proposed work for inbox triage?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, review and approve the proposed work for inbox triage, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a trustworthy quality and risk check for inbox triage. Review and approve the proposed work for inbox triage."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Review and approve the proposed work for inbox triage, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-01-08",
+    "title": "Coordinate and carry out the approved action for inbox triage",
+    "group_id": "04.01",
+    "group_name": "inbox triage",
+    "intention": "The user wants to coordinate and carry out the approved action for inbox triage by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For inbox triage, the system displays the exact scope, targets, recipients, values, permissions, and timing; obtains the required confirmation; executes only the approved action; and records a clear result, exception log, and rollback path when available.",
+    "undesired": "For inbox triage, the system acts on the wrong target, recipient, amount, account, environment, or time; proceeds without confirmation; or hides partial failure and leaves downstream systems inconsistent. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Coordinate and carry out the approved action for inbox triage."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you coordinate and carry out the approved action for inbox triage?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, coordinate and carry out the approved action for inbox triage, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the requested action completed correctly for inbox triage. Coordinate and carry out the approved action for inbox triage."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Coordinate and carry out the approved action for inbox triage, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-01-09",
+    "title": "Track progress, risks, and exceptions for inbox triage",
+    "group_id": "04.01",
+    "group_name": "inbox triage",
+    "intention": "The user wants to track progress, risks, and exceptions for inbox triage by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For inbox triage, the system uses authoritative signals and explicit thresholds to show current status, emerging exceptions, trends, and required follow-ups, while distinguishing stale data, noise, and uncertain alerts.",
+    "undesired": "For inbox triage, the system relies on stale or non-authoritative signals, floods the user with noise, misses a meaningful threshold breach, or performs automated remediation beyond the authority granted. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Track progress, risks, and exceptions for inbox triage."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you track progress, risks, and exceptions for inbox triage?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, track progress, risks, and exceptions for inbox triage, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reliable status and exception view for inbox triage. Track progress, risks, and exceptions for inbox triage."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Track progress, risks, and exceptions for inbox triage, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-01-10",
+    "title": "Close the work and capture lessons for inbox triage",
+    "group_id": "04.01",
+    "group_name": "inbox triage",
+    "intention": "The user wants to close the work and capture lessons for inbox triage by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For inbox triage, the system confirms completion and dependencies, applies retention and access rules, preserves required evidence, and archives, restores, cancels, retires, or disposes of material only through a reviewable and recoverable process where possible.",
+    "undesired": "For inbox triage, the system closes the work prematurely, deletes or retires the wrong material, violates a hold or retention requirement, breaks dependent workflows, or creates irreversible loss without an explicit final review. It must not create unauthorized commitments, misassign ownership, or expose confidential business information. ### 04.02 email drafting",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Close the work and capture lessons for inbox triage."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you close the work and capture lessons for inbox triage?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, close the work and capture lessons for inbox triage, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a safe, documented lifecycle outcome for inbox triage. Close the work and capture lessons for inbox triage."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Close the work and capture lessons for inbox triage, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-02-01",
+    "title": "Catch me up on email drafting",
+    "group_id": "04.02",
+    "group_name": "email drafting",
+    "intention": "The user wants to get caught up on email drafting by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For email drafting, the system gathers the most relevant and current context, separates confirmed facts from inference, highlights changes, decisions, deadlines, and unresolved items, and presents a concise overview without modifying source systems.",
+    "undesired": "For email drafting, the system gives a confident summary from stale or incomplete context, misses urgent items, confuses inference with fact, or changes source records while merely being asked to explain them. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Catch me up on email drafting."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Can you catch me up on email drafting?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, catch me up on email drafting, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clear and current picture of email drafting. Catch me up on email drafting."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Catch me up on email drafting, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-02-02",
+    "title": "Find the key decisions, records, and open requests for email drafting",
+    "group_id": "04.02",
+    "group_name": "email drafting",
+    "intention": "The user wants to find the key decisions, records, and open requests for email drafting by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For email drafting, the system searches only authorized sources, returns the most likely matching items with provenance, dates, versions, and surrounding context, and asks for disambiguation when identity or scope is uncertain.",
+    "undesired": "For email drafting, the system returns the wrong person, record, version, date range, or account; searches beyond authorized scope; or exposes sensitive information without making the ambiguity visible. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Find the key decisions, records, and open requests for email drafting."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you find the key decisions, records, and open requests for email drafting?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, find the key decisions, records, and open requests for email drafting, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the correct information or item for email drafting. Find the key decisions, records, and open requests for email drafting."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Find the key decisions, records, and open requests for email drafting, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-02-03",
+    "title": "Organize the work and context for email drafting",
+    "group_id": "04.02",
+    "group_name": "email drafting",
+    "intention": "The user wants to organize the work and context for email drafting by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For email drafting, the system proposes a clear structure, labels and groups related material, preserves originals and provenance, and previews moves, merges, renames, or classifications before committing them.",
+    "undesired": "For email drafting, the system misclassifies material, merges unrelated items, destroys provenance, or silently moves, renames, overwrites, or deletes source content. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Organize the work and context for email drafting."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you organize the work and context for email drafting?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, organize the work and context for email drafting, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clean, usable structure for email drafting. Organize the work and context for email drafting."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Organize the work and context for email drafting, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-02-04",
+    "title": "Compare the available options for email drafting",
+    "group_id": "04.02",
+    "group_name": "email drafting",
+    "intention": "The user wants to compare the available options for email drafting by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For email drafting, the system aligns alternatives against explicit criteria, normalizes incompatible measures, exposes missing information and assumptions, and produces a decision-ready comparison without silently choosing for the user.",
+    "undesired": "For email drafting, the system compares unlike options as though they were equivalent, hides weighting or missing data, fabricates values, or presents a recommendation with unjustified certainty. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Compare the available options for email drafting."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you compare the available options for email drafting?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, compare the available options for email drafting, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a decision-ready comparison for email drafting. Compare the available options for email drafting."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Compare the available options for email drafting, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-02-05",
+    "title": "Plan the next steps for email drafting",
+    "group_id": "04.02",
+    "group_name": "email drafting",
+    "intention": "The user wants to plan the next steps for email drafting by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For email drafting, the system produces an actionable plan with ordered steps, owners, dates, dependencies, constraints, checkpoints, and fallback paths, while distinguishing proposals from confirmed commitments.",
+    "undesired": "For email drafting, the system invents deadlines, owners, budgets, approvals, or commitments; ignores dependencies and constraints; or treats a draft plan as authorization to execute. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Plan the next steps for email drafting."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you plan the next steps for email drafting?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, plan the next steps for email drafting, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need an actionable plan for email drafting. Plan the next steps for email drafting."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Plan the next steps for email drafting, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-02-06",
+    "title": "Draft the main business artifact for email drafting",
+    "group_id": "04.02",
+    "group_name": "email drafting",
+    "intention": "The user wants to draft the main business artifact for email drafting by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For email drafting, the system creates a reviewable draft, configuration, calculation, or first version grounded in the available context, preserves the user\u2019s meaning and source material, and keeps the result in preview until approved.",
+    "undesired": "For email drafting, the system invents facts, changes the user\u2019s intent, overwrites the authoritative source, or sends, publishes, files, pays, deploys, or submits the draft without approval. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Draft the main business artifact for email drafting."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you draft the main business artifact for email drafting?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, draft the main business artifact for email drafting, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reviewable first result for email drafting. Draft the main business artifact for email drafting."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Draft the main business artifact for email drafting, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-02-07",
+    "title": "Review and approve the proposed work for email drafting",
+    "group_id": "04.02",
+    "group_name": "email drafting",
+    "intention": "The user wants to review and approve the proposed work for email drafting by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For email drafting, the system checks the work against explicit criteria, identifies defects, omissions, risks, and uncertainty, links each finding to evidence, and proposes corrections without silently approving or altering the source.",
+    "undesired": "For email drafting, the system rubber-stamps the work, misses a material error, applies hidden criteria, alters evidence during review, or claims that compliance, quality, or correctness has been proven when it has not. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Review and approve the proposed work for email drafting."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you review and approve the proposed work for email drafting?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, review and approve the proposed work for email drafting, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a trustworthy quality and risk check for email drafting. Review and approve the proposed work for email drafting."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Review and approve the proposed work for email drafting, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-02-08",
+    "title": "Coordinate and carry out the approved action for email drafting",
+    "group_id": "04.02",
+    "group_name": "email drafting",
+    "intention": "The user wants to coordinate and carry out the approved action for email drafting by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For email drafting, the system displays the exact scope, targets, recipients, values, permissions, and timing; obtains the required confirmation; executes only the approved action; and records a clear result, exception log, and rollback path when available.",
+    "undesired": "For email drafting, the system acts on the wrong target, recipient, amount, account, environment, or time; proceeds without confirmation; or hides partial failure and leaves downstream systems inconsistent. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Coordinate and carry out the approved action for email drafting."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you coordinate and carry out the approved action for email drafting?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, coordinate and carry out the approved action for email drafting, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the requested action completed correctly for email drafting. Coordinate and carry out the approved action for email drafting."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Coordinate and carry out the approved action for email drafting, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-02-09",
+    "title": "Track progress, risks, and exceptions for email drafting",
+    "group_id": "04.02",
+    "group_name": "email drafting",
+    "intention": "The user wants to track progress, risks, and exceptions for email drafting by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For email drafting, the system uses authoritative signals and explicit thresholds to show current status, emerging exceptions, trends, and required follow-ups, while distinguishing stale data, noise, and uncertain alerts.",
+    "undesired": "For email drafting, the system relies on stale or non-authoritative signals, floods the user with noise, misses a meaningful threshold breach, or performs automated remediation beyond the authority granted. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Track progress, risks, and exceptions for email drafting."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you track progress, risks, and exceptions for email drafting?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, track progress, risks, and exceptions for email drafting, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reliable status and exception view for email drafting. Track progress, risks, and exceptions for email drafting."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Track progress, risks, and exceptions for email drafting, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-02-10",
+    "title": "Close the work and capture lessons for email drafting",
+    "group_id": "04.02",
+    "group_name": "email drafting",
+    "intention": "The user wants to close the work and capture lessons for email drafting by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For email drafting, the system confirms completion and dependencies, applies retention and access rules, preserves required evidence, and archives, restores, cancels, retires, or disposes of material only through a reviewable and recoverable process where possible.",
+    "undesired": "For email drafting, the system closes the work prematurely, deletes or retires the wrong material, violates a hold or retention requirement, breaks dependent workflows, or creates irreversible loss without an explicit final review. It must not create unauthorized commitments, misassign ownership, or expose confidential business information. ### 04.03 thread catch-up",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Close the work and capture lessons for email drafting."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you close the work and capture lessons for email drafting?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, close the work and capture lessons for email drafting, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a safe, documented lifecycle outcome for email drafting. Close the work and capture lessons for email drafting."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Close the work and capture lessons for email drafting, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-03-01",
+    "title": "Catch me up on thread catch-up",
+    "group_id": "04.03",
+    "group_name": "thread catch-up",
+    "intention": "The user wants to get caught up on thread catch-up by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For thread catch-up, the system gathers the most relevant and current context, separates confirmed facts from inference, highlights changes, decisions, deadlines, and unresolved items, and presents a concise overview without modifying source systems.",
+    "undesired": "For thread catch-up, the system gives a confident summary from stale or incomplete context, misses urgent items, confuses inference with fact, or changes source records while merely being asked to explain them. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Catch me up on thread catch-up."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Can you catch me up on thread catch-up?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, catch me up on thread catch-up, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clear and current picture of thread catch-up. Catch me up on thread catch-up."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Catch me up on thread catch-up, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-03-02",
+    "title": "Find the key decisions, records, and open requests for thread catch-up",
+    "group_id": "04.03",
+    "group_name": "thread catch-up",
+    "intention": "The user wants to find the key decisions, records, and open requests for thread catch-up by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For thread catch-up, the system searches only authorized sources, returns the most likely matching items with provenance, dates, versions, and surrounding context, and asks for disambiguation when identity or scope is uncertain.",
+    "undesired": "For thread catch-up, the system returns the wrong person, record, version, date range, or account; searches beyond authorized scope; or exposes sensitive information without making the ambiguity visible. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Find the key decisions, records, and open requests for thread catch-up."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you find the key decisions, records, and open requests for thread catch-up?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, find the key decisions, records, and open requests for thread catch-up, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the correct information or item for thread catch-up. Find the key decisions, records, and open requests for thread catch-up."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Find the key decisions, records, and open requests for thread catch-up, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-03-03",
+    "title": "Organize the work and context for thread catch-up",
+    "group_id": "04.03",
+    "group_name": "thread catch-up",
+    "intention": "The user wants to organize the work and context for thread catch-up by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For thread catch-up, the system proposes a clear structure, labels and groups related material, preserves originals and provenance, and previews moves, merges, renames, or classifications before committing them.",
+    "undesired": "For thread catch-up, the system misclassifies material, merges unrelated items, destroys provenance, or silently moves, renames, overwrites, or deletes source content. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Organize the work and context for thread catch-up."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you organize the work and context for thread catch-up?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, organize the work and context for thread catch-up, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clean, usable structure for thread catch-up. Organize the work and context for thread catch-up."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Organize the work and context for thread catch-up, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-03-04",
+    "title": "Compare the available options for thread catch-up",
+    "group_id": "04.03",
+    "group_name": "thread catch-up",
+    "intention": "The user wants to compare the available options for thread catch-up by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For thread catch-up, the system aligns alternatives against explicit criteria, normalizes incompatible measures, exposes missing information and assumptions, and produces a decision-ready comparison without silently choosing for the user.",
+    "undesired": "For thread catch-up, the system compares unlike options as though they were equivalent, hides weighting or missing data, fabricates values, or presents a recommendation with unjustified certainty. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Compare the available options for thread catch-up."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you compare the available options for thread catch-up?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, compare the available options for thread catch-up, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a decision-ready comparison for thread catch-up. Compare the available options for thread catch-up."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Compare the available options for thread catch-up, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-03-05",
+    "title": "Plan the next steps for thread catch-up",
+    "group_id": "04.03",
+    "group_name": "thread catch-up",
+    "intention": "The user wants to plan the next steps for thread catch-up by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For thread catch-up, the system produces an actionable plan with ordered steps, owners, dates, dependencies, constraints, checkpoints, and fallback paths, while distinguishing proposals from confirmed commitments.",
+    "undesired": "For thread catch-up, the system invents deadlines, owners, budgets, approvals, or commitments; ignores dependencies and constraints; or treats a draft plan as authorization to execute. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Plan the next steps for thread catch-up."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you plan the next steps for thread catch-up?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, plan the next steps for thread catch-up, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need an actionable plan for thread catch-up. Plan the next steps for thread catch-up."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Plan the next steps for thread catch-up, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-03-06",
+    "title": "Draft the main business artifact for thread catch-up",
+    "group_id": "04.03",
+    "group_name": "thread catch-up",
+    "intention": "The user wants to draft the main business artifact for thread catch-up by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For thread catch-up, the system creates a reviewable draft, configuration, calculation, or first version grounded in the available context, preserves the user\u2019s meaning and source material, and keeps the result in preview until approved.",
+    "undesired": "For thread catch-up, the system invents facts, changes the user\u2019s intent, overwrites the authoritative source, or sends, publishes, files, pays, deploys, or submits the draft without approval. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Draft the main business artifact for thread catch-up."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you draft the main business artifact for thread catch-up?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, draft the main business artifact for thread catch-up, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reviewable first result for thread catch-up. Draft the main business artifact for thread catch-up."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Draft the main business artifact for thread catch-up, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-03-07",
+    "title": "Review and approve the proposed work for thread catch-up",
+    "group_id": "04.03",
+    "group_name": "thread catch-up",
+    "intention": "The user wants to review and approve the proposed work for thread catch-up by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For thread catch-up, the system checks the work against explicit criteria, identifies defects, omissions, risks, and uncertainty, links each finding to evidence, and proposes corrections without silently approving or altering the source.",
+    "undesired": "For thread catch-up, the system rubber-stamps the work, misses a material error, applies hidden criteria, alters evidence during review, or claims that compliance, quality, or correctness has been proven when it has not. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Review and approve the proposed work for thread catch-up."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you review and approve the proposed work for thread catch-up?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, review and approve the proposed work for thread catch-up, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a trustworthy quality and risk check for thread catch-up. Review and approve the proposed work for thread catch-up."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Review and approve the proposed work for thread catch-up, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-03-08",
+    "title": "Coordinate and carry out the approved action for thread catch-up",
+    "group_id": "04.03",
+    "group_name": "thread catch-up",
+    "intention": "The user wants to coordinate and carry out the approved action for thread catch-up by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For thread catch-up, the system displays the exact scope, targets, recipients, values, permissions, and timing; obtains the required confirmation; executes only the approved action; and records a clear result, exception log, and rollback path when available.",
+    "undesired": "For thread catch-up, the system acts on the wrong target, recipient, amount, account, environment, or time; proceeds without confirmation; or hides partial failure and leaves downstream systems inconsistent. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Coordinate and carry out the approved action for thread catch-up."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you coordinate and carry out the approved action for thread catch-up?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, coordinate and carry out the approved action for thread catch-up, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the requested action completed correctly for thread catch-up. Coordinate and carry out the approved action for thread catch-up."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Coordinate and carry out the approved action for thread catch-up, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-03-09",
+    "title": "Track progress, risks, and exceptions for thread catch-up",
+    "group_id": "04.03",
+    "group_name": "thread catch-up",
+    "intention": "The user wants to track progress, risks, and exceptions for thread catch-up by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For thread catch-up, the system uses authoritative signals and explicit thresholds to show current status, emerging exceptions, trends, and required follow-ups, while distinguishing stale data, noise, and uncertain alerts.",
+    "undesired": "For thread catch-up, the system relies on stale or non-authoritative signals, floods the user with noise, misses a meaningful threshold breach, or performs automated remediation beyond the authority granted. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Track progress, risks, and exceptions for thread catch-up."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you track progress, risks, and exceptions for thread catch-up?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, track progress, risks, and exceptions for thread catch-up, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reliable status and exception view for thread catch-up. Track progress, risks, and exceptions for thread catch-up."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Track progress, risks, and exceptions for thread catch-up, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-03-10",
+    "title": "Close the work and capture lessons for thread catch-up",
+    "group_id": "04.03",
+    "group_name": "thread catch-up",
+    "intention": "The user wants to close the work and capture lessons for thread catch-up by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For thread catch-up, the system confirms completion and dependencies, applies retention and access rules, preserves required evidence, and archives, restores, cancels, retires, or disposes of material only through a reviewable and recoverable process where possible.",
+    "undesired": "For thread catch-up, the system closes the work prematurely, deletes or retires the wrong material, violates a hold or retention requirement, breaks dependent workflows, or creates irreversible loss without an explicit final review. It must not create unauthorized commitments, misassign ownership, or expose confidential business information. ### 04.04 contact management",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Close the work and capture lessons for thread catch-up."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you close the work and capture lessons for thread catch-up?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, close the work and capture lessons for thread catch-up, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a safe, documented lifecycle outcome for thread catch-up. Close the work and capture lessons for thread catch-up."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Close the work and capture lessons for thread catch-up, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-04-01",
+    "title": "Catch me up on contact management",
+    "group_id": "04.04",
+    "group_name": "contact management",
+    "intention": "The user wants to get caught up on contact management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For contact management, the system gathers the most relevant and current context, separates confirmed facts from inference, highlights changes, decisions, deadlines, and unresolved items, and presents a concise overview without modifying source systems.",
+    "undesired": "For contact management, the system gives a confident summary from stale or incomplete context, misses urgent items, confuses inference with fact, or changes source records while merely being asked to explain them. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Catch me up on contact management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Can you catch me up on contact management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, catch me up on contact management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clear and current picture of contact management. Catch me up on contact management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Catch me up on contact management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-04-02",
+    "title": "Find the key decisions, records, and open requests for contact management",
+    "group_id": "04.04",
+    "group_name": "contact management",
+    "intention": "The user wants to find the key decisions, records, and open requests for contact management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For contact management, the system searches only authorized sources, returns the most likely matching items with provenance, dates, versions, and surrounding context, and asks for disambiguation when identity or scope is uncertain.",
+    "undesired": "For contact management, the system returns the wrong person, record, version, date range, or account; searches beyond authorized scope; or exposes sensitive information without making the ambiguity visible. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Find the key decisions, records, and open requests for contact management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you find the key decisions, records, and open requests for contact management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, find the key decisions, records, and open requests for contact management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the correct information or item for contact management. Find the key decisions, records, and open requests for contact management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Find the key decisions, records, and open requests for contact management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-04-03",
+    "title": "Organize the work and context for contact management",
+    "group_id": "04.04",
+    "group_name": "contact management",
+    "intention": "The user wants to organize the work and context for contact management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For contact management, the system proposes a clear structure, labels and groups related material, preserves originals and provenance, and previews moves, merges, renames, or classifications before committing them.",
+    "undesired": "For contact management, the system misclassifies material, merges unrelated items, destroys provenance, or silently moves, renames, overwrites, or deletes source content. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Organize the work and context for contact management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you organize the work and context for contact management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, organize the work and context for contact management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clean, usable structure for contact management. Organize the work and context for contact management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Organize the work and context for contact management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-04-04",
+    "title": "Compare the available options for contact management",
+    "group_id": "04.04",
+    "group_name": "contact management",
+    "intention": "The user wants to compare the available options for contact management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For contact management, the system aligns alternatives against explicit criteria, normalizes incompatible measures, exposes missing information and assumptions, and produces a decision-ready comparison without silently choosing for the user.",
+    "undesired": "For contact management, the system compares unlike options as though they were equivalent, hides weighting or missing data, fabricates values, or presents a recommendation with unjustified certainty. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Compare the available options for contact management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you compare the available options for contact management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, compare the available options for contact management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a decision-ready comparison for contact management. Compare the available options for contact management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Compare the available options for contact management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-04-05",
+    "title": "Plan the next steps for contact management",
+    "group_id": "04.04",
+    "group_name": "contact management",
+    "intention": "The user wants to plan the next steps for contact management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For contact management, the system produces an actionable plan with ordered steps, owners, dates, dependencies, constraints, checkpoints, and fallback paths, while distinguishing proposals from confirmed commitments.",
+    "undesired": "For contact management, the system invents deadlines, owners, budgets, approvals, or commitments; ignores dependencies and constraints; or treats a draft plan as authorization to execute. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Plan the next steps for contact management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you plan the next steps for contact management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, plan the next steps for contact management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need an actionable plan for contact management. Plan the next steps for contact management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Plan the next steps for contact management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-04-06",
+    "title": "Draft the main business artifact for contact management",
+    "group_id": "04.04",
+    "group_name": "contact management",
+    "intention": "The user wants to draft the main business artifact for contact management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For contact management, the system creates a reviewable draft, configuration, calculation, or first version grounded in the available context, preserves the user\u2019s meaning and source material, and keeps the result in preview until approved.",
+    "undesired": "For contact management, the system invents facts, changes the user\u2019s intent, overwrites the authoritative source, or sends, publishes, files, pays, deploys, or submits the draft without approval. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Draft the main business artifact for contact management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you draft the main business artifact for contact management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, draft the main business artifact for contact management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reviewable first result for contact management. Draft the main business artifact for contact management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Draft the main business artifact for contact management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-04-07",
+    "title": "Review and approve the proposed work for contact management",
+    "group_id": "04.04",
+    "group_name": "contact management",
+    "intention": "The user wants to review and approve the proposed work for contact management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For contact management, the system checks the work against explicit criteria, identifies defects, omissions, risks, and uncertainty, links each finding to evidence, and proposes corrections without silently approving or altering the source.",
+    "undesired": "For contact management, the system rubber-stamps the work, misses a material error, applies hidden criteria, alters evidence during review, or claims that compliance, quality, or correctness has been proven when it has not. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Review and approve the proposed work for contact management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you review and approve the proposed work for contact management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, review and approve the proposed work for contact management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a trustworthy quality and risk check for contact management. Review and approve the proposed work for contact management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Review and approve the proposed work for contact management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-04-08",
+    "title": "Coordinate and carry out the approved action for contact management",
+    "group_id": "04.04",
+    "group_name": "contact management",
+    "intention": "The user wants to coordinate and carry out the approved action for contact management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For contact management, the system displays the exact scope, targets, recipients, values, permissions, and timing; obtains the required confirmation; executes only the approved action; and records a clear result, exception log, and rollback path when available.",
+    "undesired": "For contact management, the system acts on the wrong target, recipient, amount, account, environment, or time; proceeds without confirmation; or hides partial failure and leaves downstream systems inconsistent. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Coordinate and carry out the approved action for contact management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you coordinate and carry out the approved action for contact management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, coordinate and carry out the approved action for contact management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the requested action completed correctly for contact management. Coordinate and carry out the approved action for contact management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Coordinate and carry out the approved action for contact management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-04-09",
+    "title": "Track progress, risks, and exceptions for contact management",
+    "group_id": "04.04",
+    "group_name": "contact management",
+    "intention": "The user wants to track progress, risks, and exceptions for contact management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For contact management, the system uses authoritative signals and explicit thresholds to show current status, emerging exceptions, trends, and required follow-ups, while distinguishing stale data, noise, and uncertain alerts.",
+    "undesired": "For contact management, the system relies on stale or non-authoritative signals, floods the user with noise, misses a meaningful threshold breach, or performs automated remediation beyond the authority granted. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Track progress, risks, and exceptions for contact management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you track progress, risks, and exceptions for contact management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, track progress, risks, and exceptions for contact management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reliable status and exception view for contact management. Track progress, risks, and exceptions for contact management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Track progress, risks, and exceptions for contact management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-04-10",
+    "title": "Close the work and capture lessons for contact management",
+    "group_id": "04.04",
+    "group_name": "contact management",
+    "intention": "The user wants to close the work and capture lessons for contact management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For contact management, the system confirms completion and dependencies, applies retention and access rules, preserves required evidence, and archives, restores, cancels, retires, or disposes of material only through a reviewable and recoverable process where possible.",
+    "undesired": "For contact management, the system closes the work prematurely, deletes or retires the wrong material, violates a hold or retention requirement, breaks dependent workflows, or creates irreversible loss without an explicit final review. It must not create unauthorized commitments, misassign ownership, or expose confidential business information. ### 04.05 newsletter management",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Close the work and capture lessons for contact management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you close the work and capture lessons for contact management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, close the work and capture lessons for contact management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a safe, documented lifecycle outcome for contact management. Close the work and capture lessons for contact management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Close the work and capture lessons for contact management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-05-01",
+    "title": "Catch me up on newsletter management",
+    "group_id": "04.05",
+    "group_name": "newsletter management",
+    "intention": "The user wants to get caught up on newsletter management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For newsletter management, the system gathers the most relevant and current context, separates confirmed facts from inference, highlights changes, decisions, deadlines, and unresolved items, and presents a concise overview without modifying source systems.",
+    "undesired": "For newsletter management, the system gives a confident summary from stale or incomplete context, misses urgent items, confuses inference with fact, or changes source records while merely being asked to explain them. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Catch me up on newsletter management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Can you catch me up on newsletter management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, catch me up on newsletter management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clear and current picture of newsletter management. Catch me up on newsletter management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Catch me up on newsletter management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-05-02",
+    "title": "Find the key decisions, records, and open requests for newsletter management",
+    "group_id": "04.05",
+    "group_name": "newsletter management",
+    "intention": "The user wants to find the key decisions, records, and open requests for newsletter management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For newsletter management, the system searches only authorized sources, returns the most likely matching items with provenance, dates, versions, and surrounding context, and asks for disambiguation when identity or scope is uncertain.",
+    "undesired": "For newsletter management, the system returns the wrong person, record, version, date range, or account; searches beyond authorized scope; or exposes sensitive information without making the ambiguity visible. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Find the key decisions, records, and open requests for newsletter management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you find the key decisions, records, and open requests for newsletter management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, find the key decisions, records, and open requests for newsletter management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the correct information or item for newsletter management. Find the key decisions, records, and open requests for newsletter management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Find the key decisions, records, and open requests for newsletter management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-05-03",
+    "title": "Organize the work and context for newsletter management",
+    "group_id": "04.05",
+    "group_name": "newsletter management",
+    "intention": "The user wants to organize the work and context for newsletter management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For newsletter management, the system proposes a clear structure, labels and groups related material, preserves originals and provenance, and previews moves, merges, renames, or classifications before committing them.",
+    "undesired": "For newsletter management, the system misclassifies material, merges unrelated items, destroys provenance, or silently moves, renames, overwrites, or deletes source content. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Organize the work and context for newsletter management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you organize the work and context for newsletter management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, organize the work and context for newsletter management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clean, usable structure for newsletter management. Organize the work and context for newsletter management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Organize the work and context for newsletter management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-05-04",
+    "title": "Compare the available options for newsletter management",
+    "group_id": "04.05",
+    "group_name": "newsletter management",
+    "intention": "The user wants to compare the available options for newsletter management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For newsletter management, the system aligns alternatives against explicit criteria, normalizes incompatible measures, exposes missing information and assumptions, and produces a decision-ready comparison without silently choosing for the user.",
+    "undesired": "For newsletter management, the system compares unlike options as though they were equivalent, hides weighting or missing data, fabricates values, or presents a recommendation with unjustified certainty. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Compare the available options for newsletter management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you compare the available options for newsletter management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, compare the available options for newsletter management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a decision-ready comparison for newsletter management. Compare the available options for newsletter management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Compare the available options for newsletter management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-05-05",
+    "title": "Plan the next steps for newsletter management",
+    "group_id": "04.05",
+    "group_name": "newsletter management",
+    "intention": "The user wants to plan the next steps for newsletter management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For newsletter management, the system produces an actionable plan with ordered steps, owners, dates, dependencies, constraints, checkpoints, and fallback paths, while distinguishing proposals from confirmed commitments.",
+    "undesired": "For newsletter management, the system invents deadlines, owners, budgets, approvals, or commitments; ignores dependencies and constraints; or treats a draft plan as authorization to execute. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Plan the next steps for newsletter management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you plan the next steps for newsletter management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, plan the next steps for newsletter management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need an actionable plan for newsletter management. Plan the next steps for newsletter management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Plan the next steps for newsletter management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-05-06",
+    "title": "Draft the main business artifact for newsletter management",
+    "group_id": "04.05",
+    "group_name": "newsletter management",
+    "intention": "The user wants to draft the main business artifact for newsletter management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For newsletter management, the system creates a reviewable draft, configuration, calculation, or first version grounded in the available context, preserves the user\u2019s meaning and source material, and keeps the result in preview until approved.",
+    "undesired": "For newsletter management, the system invents facts, changes the user\u2019s intent, overwrites the authoritative source, or sends, publishes, files, pays, deploys, or submits the draft without approval. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Draft the main business artifact for newsletter management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you draft the main business artifact for newsletter management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, draft the main business artifact for newsletter management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reviewable first result for newsletter management. Draft the main business artifact for newsletter management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Draft the main business artifact for newsletter management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-05-07",
+    "title": "Review and approve the proposed work for newsletter management",
+    "group_id": "04.05",
+    "group_name": "newsletter management",
+    "intention": "The user wants to review and approve the proposed work for newsletter management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For newsletter management, the system checks the work against explicit criteria, identifies defects, omissions, risks, and uncertainty, links each finding to evidence, and proposes corrections without silently approving or altering the source.",
+    "undesired": "For newsletter management, the system rubber-stamps the work, misses a material error, applies hidden criteria, alters evidence during review, or claims that compliance, quality, or correctness has been proven when it has not. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Review and approve the proposed work for newsletter management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you review and approve the proposed work for newsletter management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, review and approve the proposed work for newsletter management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a trustworthy quality and risk check for newsletter management. Review and approve the proposed work for newsletter management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Review and approve the proposed work for newsletter management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-05-08",
+    "title": "Coordinate and carry out the approved action for newsletter management",
+    "group_id": "04.05",
+    "group_name": "newsletter management",
+    "intention": "The user wants to coordinate and carry out the approved action for newsletter management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For newsletter management, the system displays the exact scope, targets, recipients, values, permissions, and timing; obtains the required confirmation; executes only the approved action; and records a clear result, exception log, and rollback path when available.",
+    "undesired": "For newsletter management, the system acts on the wrong target, recipient, amount, account, environment, or time; proceeds without confirmation; or hides partial failure and leaves downstream systems inconsistent. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Coordinate and carry out the approved action for newsletter management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you coordinate and carry out the approved action for newsletter management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, coordinate and carry out the approved action for newsletter management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the requested action completed correctly for newsletter management. Coordinate and carry out the approved action for newsletter management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Coordinate and carry out the approved action for newsletter management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-05-09",
+    "title": "Track progress, risks, and exceptions for newsletter management",
+    "group_id": "04.05",
+    "group_name": "newsletter management",
+    "intention": "The user wants to track progress, risks, and exceptions for newsletter management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For newsletter management, the system uses authoritative signals and explicit thresholds to show current status, emerging exceptions, trends, and required follow-ups, while distinguishing stale data, noise, and uncertain alerts.",
+    "undesired": "For newsletter management, the system relies on stale or non-authoritative signals, floods the user with noise, misses a meaningful threshold breach, or performs automated remediation beyond the authority granted. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Track progress, risks, and exceptions for newsletter management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you track progress, risks, and exceptions for newsletter management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, track progress, risks, and exceptions for newsletter management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reliable status and exception view for newsletter management. Track progress, risks, and exceptions for newsletter management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Track progress, risks, and exceptions for newsletter management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-05-10",
+    "title": "Close the work and capture lessons for newsletter management",
+    "group_id": "04.05",
+    "group_name": "newsletter management",
+    "intention": "The user wants to close the work and capture lessons for newsletter management by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For newsletter management, the system confirms completion and dependencies, applies retention and access rules, preserves required evidence, and archives, restores, cancels, retires, or disposes of material only through a reviewable and recoverable process where possible.",
+    "undesired": "For newsletter management, the system closes the work prematurely, deletes or retires the wrong material, violates a hold or retention requirement, breaks dependent workflows, or creates irreversible loss without an explicit final review. It must not create unauthorized commitments, misassign ownership, or expose confidential business information. ### 04.06 instant messaging",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Close the work and capture lessons for newsletter management."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you close the work and capture lessons for newsletter management?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, close the work and capture lessons for newsletter management, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a safe, documented lifecycle outcome for newsletter management. Close the work and capture lessons for newsletter management."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Close the work and capture lessons for newsletter management, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-06-01",
+    "title": "Catch me up on instant messaging",
+    "group_id": "04.06",
+    "group_name": "instant messaging",
+    "intention": "The user wants to get caught up on instant messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For instant messaging, the system gathers the most relevant and current context, separates confirmed facts from inference, highlights changes, decisions, deadlines, and unresolved items, and presents a concise overview without modifying source systems.",
+    "undesired": "For instant messaging, the system gives a confident summary from stale or incomplete context, misses urgent items, confuses inference with fact, or changes source records while merely being asked to explain them. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Catch me up on instant messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Can you catch me up on instant messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, catch me up on instant messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clear and current picture of instant messaging. Catch me up on instant messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Catch me up on instant messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-06-02",
+    "title": "Find the key decisions, records, and open requests for instant messaging",
+    "group_id": "04.06",
+    "group_name": "instant messaging",
+    "intention": "The user wants to find the key decisions, records, and open requests for instant messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For instant messaging, the system searches only authorized sources, returns the most likely matching items with provenance, dates, versions, and surrounding context, and asks for disambiguation when identity or scope is uncertain.",
+    "undesired": "For instant messaging, the system returns the wrong person, record, version, date range, or account; searches beyond authorized scope; or exposes sensitive information without making the ambiguity visible. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Find the key decisions, records, and open requests for instant messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you find the key decisions, records, and open requests for instant messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, find the key decisions, records, and open requests for instant messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the correct information or item for instant messaging. Find the key decisions, records, and open requests for instant messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Find the key decisions, records, and open requests for instant messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-06-03",
+    "title": "Organize the work and context for instant messaging",
+    "group_id": "04.06",
+    "group_name": "instant messaging",
+    "intention": "The user wants to organize the work and context for instant messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For instant messaging, the system proposes a clear structure, labels and groups related material, preserves originals and provenance, and previews moves, merges, renames, or classifications before committing them.",
+    "undesired": "For instant messaging, the system misclassifies material, merges unrelated items, destroys provenance, or silently moves, renames, overwrites, or deletes source content. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Organize the work and context for instant messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you organize the work and context for instant messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, organize the work and context for instant messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clean, usable structure for instant messaging. Organize the work and context for instant messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Organize the work and context for instant messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-06-04",
+    "title": "Compare the available options for instant messaging",
+    "group_id": "04.06",
+    "group_name": "instant messaging",
+    "intention": "The user wants to compare the available options for instant messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For instant messaging, the system aligns alternatives against explicit criteria, normalizes incompatible measures, exposes missing information and assumptions, and produces a decision-ready comparison without silently choosing for the user.",
+    "undesired": "For instant messaging, the system compares unlike options as though they were equivalent, hides weighting or missing data, fabricates values, or presents a recommendation with unjustified certainty. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Compare the available options for instant messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you compare the available options for instant messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, compare the available options for instant messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a decision-ready comparison for instant messaging. Compare the available options for instant messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Compare the available options for instant messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-06-05",
+    "title": "Plan the next steps for instant messaging",
+    "group_id": "04.06",
+    "group_name": "instant messaging",
+    "intention": "The user wants to plan the next steps for instant messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For instant messaging, the system produces an actionable plan with ordered steps, owners, dates, dependencies, constraints, checkpoints, and fallback paths, while distinguishing proposals from confirmed commitments.",
+    "undesired": "For instant messaging, the system invents deadlines, owners, budgets, approvals, or commitments; ignores dependencies and constraints; or treats a draft plan as authorization to execute. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Plan the next steps for instant messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you plan the next steps for instant messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, plan the next steps for instant messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need an actionable plan for instant messaging. Plan the next steps for instant messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Plan the next steps for instant messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-06-06",
+    "title": "Draft the main business artifact for instant messaging",
+    "group_id": "04.06",
+    "group_name": "instant messaging",
+    "intention": "The user wants to draft the main business artifact for instant messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For instant messaging, the system creates a reviewable draft, configuration, calculation, or first version grounded in the available context, preserves the user\u2019s meaning and source material, and keeps the result in preview until approved.",
+    "undesired": "For instant messaging, the system invents facts, changes the user\u2019s intent, overwrites the authoritative source, or sends, publishes, files, pays, deploys, or submits the draft without approval. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Draft the main business artifact for instant messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you draft the main business artifact for instant messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, draft the main business artifact for instant messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reviewable first result for instant messaging. Draft the main business artifact for instant messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Draft the main business artifact for instant messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-06-07",
+    "title": "Review and approve the proposed work for instant messaging",
+    "group_id": "04.06",
+    "group_name": "instant messaging",
+    "intention": "The user wants to review and approve the proposed work for instant messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For instant messaging, the system checks the work against explicit criteria, identifies defects, omissions, risks, and uncertainty, links each finding to evidence, and proposes corrections without silently approving or altering the source.",
+    "undesired": "For instant messaging, the system rubber-stamps the work, misses a material error, applies hidden criteria, alters evidence during review, or claims that compliance, quality, or correctness has been proven when it has not. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Review and approve the proposed work for instant messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you review and approve the proposed work for instant messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, review and approve the proposed work for instant messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a trustworthy quality and risk check for instant messaging. Review and approve the proposed work for instant messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Review and approve the proposed work for instant messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-06-08",
+    "title": "Coordinate and carry out the approved action for instant messaging",
+    "group_id": "04.06",
+    "group_name": "instant messaging",
+    "intention": "The user wants to coordinate and carry out the approved action for instant messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For instant messaging, the system displays the exact scope, targets, recipients, values, permissions, and timing; obtains the required confirmation; executes only the approved action; and records a clear result, exception log, and rollback path when available.",
+    "undesired": "For instant messaging, the system acts on the wrong target, recipient, amount, account, environment, or time; proceeds without confirmation; or hides partial failure and leaves downstream systems inconsistent. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Coordinate and carry out the approved action for instant messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you coordinate and carry out the approved action for instant messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, coordinate and carry out the approved action for instant messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the requested action completed correctly for instant messaging. Coordinate and carry out the approved action for instant messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Coordinate and carry out the approved action for instant messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-06-09",
+    "title": "Track progress, risks, and exceptions for instant messaging",
+    "group_id": "04.06",
+    "group_name": "instant messaging",
+    "intention": "The user wants to track progress, risks, and exceptions for instant messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For instant messaging, the system uses authoritative signals and explicit thresholds to show current status, emerging exceptions, trends, and required follow-ups, while distinguishing stale data, noise, and uncertain alerts.",
+    "undesired": "For instant messaging, the system relies on stale or non-authoritative signals, floods the user with noise, misses a meaningful threshold breach, or performs automated remediation beyond the authority granted. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Track progress, risks, and exceptions for instant messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you track progress, risks, and exceptions for instant messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, track progress, risks, and exceptions for instant messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reliable status and exception view for instant messaging. Track progress, risks, and exceptions for instant messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Track progress, risks, and exceptions for instant messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-06-10",
+    "title": "Close the work and capture lessons for instant messaging",
+    "group_id": "04.06",
+    "group_name": "instant messaging",
+    "intention": "The user wants to close the work and capture lessons for instant messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For instant messaging, the system confirms completion and dependencies, applies retention and access rules, preserves required evidence, and archives, restores, cancels, retires, or disposes of material only through a reviewable and recoverable process where possible.",
+    "undesired": "For instant messaging, the system closes the work prematurely, deletes or retires the wrong material, violates a hold or retention requirement, breaks dependent workflows, or creates irreversible loss without an explicit final review. It must not create unauthorized commitments, misassign ownership, or expose confidential business information. ### 04.07 team chat channels",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Close the work and capture lessons for instant messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you close the work and capture lessons for instant messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, close the work and capture lessons for instant messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a safe, documented lifecycle outcome for instant messaging. Close the work and capture lessons for instant messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Close the work and capture lessons for instant messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-07-01",
+    "title": "Catch me up on team chat channels",
+    "group_id": "04.07",
+    "group_name": "team chat channels",
+    "intention": "The user wants to get caught up on team chat channels by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For team chat channels, the system gathers the most relevant and current context, separates confirmed facts from inference, highlights changes, decisions, deadlines, and unresolved items, and presents a concise overview without modifying source systems.",
+    "undesired": "For team chat channels, the system gives a confident summary from stale or incomplete context, misses urgent items, confuses inference with fact, or changes source records while merely being asked to explain them. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Catch me up on team chat channels."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Can you catch me up on team chat channels?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, catch me up on team chat channels, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clear and current picture of team chat channels. Catch me up on team chat channels."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Catch me up on team chat channels, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-07-02",
+    "title": "Find the key decisions, records, and open requests for team chat channels",
+    "group_id": "04.07",
+    "group_name": "team chat channels",
+    "intention": "The user wants to find the key decisions, records, and open requests for team chat channels by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For team chat channels, the system searches only authorized sources, returns the most likely matching items with provenance, dates, versions, and surrounding context, and asks for disambiguation when identity or scope is uncertain.",
+    "undesired": "For team chat channels, the system returns the wrong person, record, version, date range, or account; searches beyond authorized scope; or exposes sensitive information without making the ambiguity visible. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Find the key decisions, records, and open requests for team chat channels."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you find the key decisions, records, and open requests for team chat channels?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, find the key decisions, records, and open requests for team chat channels, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the correct information or item for team chat channels. Find the key decisions, records, and open requests for team chat channels."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Find the key decisions, records, and open requests for team chat channels, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-07-03",
+    "title": "Organize the work and context for team chat channels",
+    "group_id": "04.07",
+    "group_name": "team chat channels",
+    "intention": "The user wants to organize the work and context for team chat channels by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For team chat channels, the system proposes a clear structure, labels and groups related material, preserves originals and provenance, and previews moves, merges, renames, or classifications before committing them.",
+    "undesired": "For team chat channels, the system misclassifies material, merges unrelated items, destroys provenance, or silently moves, renames, overwrites, or deletes source content. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Organize the work and context for team chat channels."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you organize the work and context for team chat channels?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, organize the work and context for team chat channels, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clean, usable structure for team chat channels. Organize the work and context for team chat channels."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Organize the work and context for team chat channels, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-07-04",
+    "title": "Compare the available options for team chat channels",
+    "group_id": "04.07",
+    "group_name": "team chat channels",
+    "intention": "The user wants to compare the available options for team chat channels by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For team chat channels, the system aligns alternatives against explicit criteria, normalizes incompatible measures, exposes missing information and assumptions, and produces a decision-ready comparison without silently choosing for the user.",
+    "undesired": "For team chat channels, the system compares unlike options as though they were equivalent, hides weighting or missing data, fabricates values, or presents a recommendation with unjustified certainty. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Compare the available options for team chat channels."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you compare the available options for team chat channels?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, compare the available options for team chat channels, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a decision-ready comparison for team chat channels. Compare the available options for team chat channels."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Compare the available options for team chat channels, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-07-05",
+    "title": "Plan the next steps for team chat channels",
+    "group_id": "04.07",
+    "group_name": "team chat channels",
+    "intention": "The user wants to plan the next steps for team chat channels by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For team chat channels, the system produces an actionable plan with ordered steps, owners, dates, dependencies, constraints, checkpoints, and fallback paths, while distinguishing proposals from confirmed commitments.",
+    "undesired": "For team chat channels, the system invents deadlines, owners, budgets, approvals, or commitments; ignores dependencies and constraints; or treats a draft plan as authorization to execute. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Plan the next steps for team chat channels."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you plan the next steps for team chat channels?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, plan the next steps for team chat channels, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need an actionable plan for team chat channels. Plan the next steps for team chat channels."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Plan the next steps for team chat channels, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-07-06",
+    "title": "Draft the main business artifact for team chat channels",
+    "group_id": "04.07",
+    "group_name": "team chat channels",
+    "intention": "The user wants to draft the main business artifact for team chat channels by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For team chat channels, the system creates a reviewable draft, configuration, calculation, or first version grounded in the available context, preserves the user\u2019s meaning and source material, and keeps the result in preview until approved.",
+    "undesired": "For team chat channels, the system invents facts, changes the user\u2019s intent, overwrites the authoritative source, or sends, publishes, files, pays, deploys, or submits the draft without approval. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Draft the main business artifact for team chat channels."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you draft the main business artifact for team chat channels?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, draft the main business artifact for team chat channels, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reviewable first result for team chat channels. Draft the main business artifact for team chat channels."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Draft the main business artifact for team chat channels, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-07-07",
+    "title": "Review and approve the proposed work for team chat channels",
+    "group_id": "04.07",
+    "group_name": "team chat channels",
+    "intention": "The user wants to review and approve the proposed work for team chat channels by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For team chat channels, the system checks the work against explicit criteria, identifies defects, omissions, risks, and uncertainty, links each finding to evidence, and proposes corrections without silently approving or altering the source.",
+    "undesired": "For team chat channels, the system rubber-stamps the work, misses a material error, applies hidden criteria, alters evidence during review, or claims that compliance, quality, or correctness has been proven when it has not. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Review and approve the proposed work for team chat channels."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you review and approve the proposed work for team chat channels?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, review and approve the proposed work for team chat channels, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a trustworthy quality and risk check for team chat channels. Review and approve the proposed work for team chat channels."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Review and approve the proposed work for team chat channels, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-07-08",
+    "title": "Coordinate and carry out the approved action for team chat channels",
+    "group_id": "04.07",
+    "group_name": "team chat channels",
+    "intention": "The user wants to coordinate and carry out the approved action for team chat channels by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For team chat channels, the system displays the exact scope, targets, recipients, values, permissions, and timing; obtains the required confirmation; executes only the approved action; and records a clear result, exception log, and rollback path when available.",
+    "undesired": "For team chat channels, the system acts on the wrong target, recipient, amount, account, environment, or time; proceeds without confirmation; or hides partial failure and leaves downstream systems inconsistent. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Coordinate and carry out the approved action for team chat channels."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you coordinate and carry out the approved action for team chat channels?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, coordinate and carry out the approved action for team chat channels, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the requested action completed correctly for team chat channels. Coordinate and carry out the approved action for team chat channels."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Coordinate and carry out the approved action for team chat channels, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-07-09",
+    "title": "Track progress, risks, and exceptions for team chat channels",
+    "group_id": "04.07",
+    "group_name": "team chat channels",
+    "intention": "The user wants to track progress, risks, and exceptions for team chat channels by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For team chat channels, the system uses authoritative signals and explicit thresholds to show current status, emerging exceptions, trends, and required follow-ups, while distinguishing stale data, noise, and uncertain alerts.",
+    "undesired": "For team chat channels, the system relies on stale or non-authoritative signals, floods the user with noise, misses a meaningful threshold breach, or performs automated remediation beyond the authority granted. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Track progress, risks, and exceptions for team chat channels."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you track progress, risks, and exceptions for team chat channels?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, track progress, risks, and exceptions for team chat channels, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reliable status and exception view for team chat channels. Track progress, risks, and exceptions for team chat channels."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Track progress, risks, and exceptions for team chat channels, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-07-10",
+    "title": "Close the work and capture lessons for team chat channels",
+    "group_id": "04.07",
+    "group_name": "team chat channels",
+    "intention": "The user wants to close the work and capture lessons for team chat channels by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For team chat channels, the system confirms completion and dependencies, applies retention and access rules, preserves required evidence, and archives, restores, cancels, retires, or disposes of material only through a reviewable and recoverable process where possible.",
+    "undesired": "For team chat channels, the system closes the work prematurely, deletes or retires the wrong material, violates a hold or retention requirement, breaks dependent workflows, or creates irreversible loss without an explicit final review. It must not create unauthorized commitments, misassign ownership, or expose confidential business information. ### 04.08 voice messaging",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Close the work and capture lessons for team chat channels."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you close the work and capture lessons for team chat channels?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, close the work and capture lessons for team chat channels, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a safe, documented lifecycle outcome for team chat channels. Close the work and capture lessons for team chat channels."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Close the work and capture lessons for team chat channels, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-08-01",
+    "title": "Catch me up on voice messaging",
+    "group_id": "04.08",
+    "group_name": "voice messaging",
+    "intention": "The user wants to get caught up on voice messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For voice messaging, the system gathers the most relevant and current context, separates confirmed facts from inference, highlights changes, decisions, deadlines, and unresolved items, and presents a concise overview without modifying source systems.",
+    "undesired": "For voice messaging, the system gives a confident summary from stale or incomplete context, misses urgent items, confuses inference with fact, or changes source records while merely being asked to explain them. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Catch me up on voice messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Can you catch me up on voice messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, catch me up on voice messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clear and current picture of voice messaging. Catch me up on voice messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Catch me up on voice messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-08-02",
+    "title": "Find the key decisions, records, and open requests for voice messaging",
+    "group_id": "04.08",
+    "group_name": "voice messaging",
+    "intention": "The user wants to find the key decisions, records, and open requests for voice messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For voice messaging, the system searches only authorized sources, returns the most likely matching items with provenance, dates, versions, and surrounding context, and asks for disambiguation when identity or scope is uncertain.",
+    "undesired": "For voice messaging, the system returns the wrong person, record, version, date range, or account; searches beyond authorized scope; or exposes sensitive information without making the ambiguity visible. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Find the key decisions, records, and open requests for voice messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you find the key decisions, records, and open requests for voice messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, find the key decisions, records, and open requests for voice messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the correct information or item for voice messaging. Find the key decisions, records, and open requests for voice messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Find the key decisions, records, and open requests for voice messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-08-03",
+    "title": "Organize the work and context for voice messaging",
+    "group_id": "04.08",
+    "group_name": "voice messaging",
+    "intention": "The user wants to organize the work and context for voice messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For voice messaging, the system proposes a clear structure, labels and groups related material, preserves originals and provenance, and previews moves, merges, renames, or classifications before committing them.",
+    "undesired": "For voice messaging, the system misclassifies material, merges unrelated items, destroys provenance, or silently moves, renames, overwrites, or deletes source content. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Organize the work and context for voice messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you organize the work and context for voice messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, organize the work and context for voice messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clean, usable structure for voice messaging. Organize the work and context for voice messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Organize the work and context for voice messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-08-04",
+    "title": "Compare the available options for voice messaging",
+    "group_id": "04.08",
+    "group_name": "voice messaging",
+    "intention": "The user wants to compare the available options for voice messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For voice messaging, the system aligns alternatives against explicit criteria, normalizes incompatible measures, exposes missing information and assumptions, and produces a decision-ready comparison without silently choosing for the user.",
+    "undesired": "For voice messaging, the system compares unlike options as though they were equivalent, hides weighting or missing data, fabricates values, or presents a recommendation with unjustified certainty. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Compare the available options for voice messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you compare the available options for voice messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, compare the available options for voice messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a decision-ready comparison for voice messaging. Compare the available options for voice messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Compare the available options for voice messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-08-05",
+    "title": "Plan the next steps for voice messaging",
+    "group_id": "04.08",
+    "group_name": "voice messaging",
+    "intention": "The user wants to plan the next steps for voice messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For voice messaging, the system produces an actionable plan with ordered steps, owners, dates, dependencies, constraints, checkpoints, and fallback paths, while distinguishing proposals from confirmed commitments.",
+    "undesired": "For voice messaging, the system invents deadlines, owners, budgets, approvals, or commitments; ignores dependencies and constraints; or treats a draft plan as authorization to execute. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Plan the next steps for voice messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you plan the next steps for voice messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, plan the next steps for voice messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need an actionable plan for voice messaging. Plan the next steps for voice messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Plan the next steps for voice messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-08-06",
+    "title": "Draft the main business artifact for voice messaging",
+    "group_id": "04.08",
+    "group_name": "voice messaging",
+    "intention": "The user wants to draft the main business artifact for voice messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For voice messaging, the system creates a reviewable draft, configuration, calculation, or first version grounded in the available context, preserves the user\u2019s meaning and source material, and keeps the result in preview until approved.",
+    "undesired": "For voice messaging, the system invents facts, changes the user\u2019s intent, overwrites the authoritative source, or sends, publishes, files, pays, deploys, or submits the draft without approval. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Draft the main business artifact for voice messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you draft the main business artifact for voice messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, draft the main business artifact for voice messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reviewable first result for voice messaging. Draft the main business artifact for voice messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Draft the main business artifact for voice messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-08-07",
+    "title": "Review and approve the proposed work for voice messaging",
+    "group_id": "04.08",
+    "group_name": "voice messaging",
+    "intention": "The user wants to review and approve the proposed work for voice messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For voice messaging, the system checks the work against explicit criteria, identifies defects, omissions, risks, and uncertainty, links each finding to evidence, and proposes corrections without silently approving or altering the source.",
+    "undesired": "For voice messaging, the system rubber-stamps the work, misses a material error, applies hidden criteria, alters evidence during review, or claims that compliance, quality, or correctness has been proven when it has not. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Review and approve the proposed work for voice messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you review and approve the proposed work for voice messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, review and approve the proposed work for voice messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a trustworthy quality and risk check for voice messaging. Review and approve the proposed work for voice messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Review and approve the proposed work for voice messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-08-08",
+    "title": "Coordinate and carry out the approved action for voice messaging",
+    "group_id": "04.08",
+    "group_name": "voice messaging",
+    "intention": "The user wants to coordinate and carry out the approved action for voice messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For voice messaging, the system displays the exact scope, targets, recipients, values, permissions, and timing; obtains the required confirmation; executes only the approved action; and records a clear result, exception log, and rollback path when available.",
+    "undesired": "For voice messaging, the system acts on the wrong target, recipient, amount, account, environment, or time; proceeds without confirmation; or hides partial failure and leaves downstream systems inconsistent. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Coordinate and carry out the approved action for voice messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you coordinate and carry out the approved action for voice messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, coordinate and carry out the approved action for voice messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the requested action completed correctly for voice messaging. Coordinate and carry out the approved action for voice messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Coordinate and carry out the approved action for voice messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-08-09",
+    "title": "Track progress, risks, and exceptions for voice messaging",
+    "group_id": "04.08",
+    "group_name": "voice messaging",
+    "intention": "The user wants to track progress, risks, and exceptions for voice messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For voice messaging, the system uses authoritative signals and explicit thresholds to show current status, emerging exceptions, trends, and required follow-ups, while distinguishing stale data, noise, and uncertain alerts.",
+    "undesired": "For voice messaging, the system relies on stale or non-authoritative signals, floods the user with noise, misses a meaningful threshold breach, or performs automated remediation beyond the authority granted. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Track progress, risks, and exceptions for voice messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you track progress, risks, and exceptions for voice messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, track progress, risks, and exceptions for voice messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reliable status and exception view for voice messaging. Track progress, risks, and exceptions for voice messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Track progress, risks, and exceptions for voice messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-08-10",
+    "title": "Close the work and capture lessons for voice messaging",
+    "group_id": "04.08",
+    "group_name": "voice messaging",
+    "intention": "The user wants to close the work and capture lessons for voice messaging by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For voice messaging, the system confirms completion and dependencies, applies retention and access rules, preserves required evidence, and archives, restores, cancels, retires, or disposes of material only through a reviewable and recoverable process where possible.",
+    "undesired": "For voice messaging, the system closes the work prematurely, deletes or retires the wrong material, violates a hold or retention requirement, breaks dependent workflows, or creates irreversible loss without an explicit final review. It must not create unauthorized commitments, misassign ownership, or expose confidential business information. ### 04.09 video calling",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Close the work and capture lessons for voice messaging."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you close the work and capture lessons for voice messaging?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, close the work and capture lessons for voice messaging, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a safe, documented lifecycle outcome for voice messaging. Close the work and capture lessons for voice messaging."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Close the work and capture lessons for voice messaging, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-09-01",
+    "title": "Catch me up on video calling",
+    "group_id": "04.09",
+    "group_name": "video calling",
+    "intention": "The user wants to get caught up on video calling by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For video calling, the system gathers the most relevant and current context, separates confirmed facts from inference, highlights changes, decisions, deadlines, and unresolved items, and presents a concise overview without modifying source systems.",
+    "undesired": "For video calling, the system gives a confident summary from stale or incomplete context, misses urgent items, confuses inference with fact, or changes source records while merely being asked to explain them. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Catch me up on video calling."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Can you catch me up on video calling?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, catch me up on video calling, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clear and current picture of video calling. Catch me up on video calling."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Catch me up on video calling, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-09-02",
+    "title": "Find the key decisions, records, and open requests for video calling",
+    "group_id": "04.09",
+    "group_name": "video calling",
+    "intention": "The user wants to find the key decisions, records, and open requests for video calling by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For video calling, the system searches only authorized sources, returns the most likely matching items with provenance, dates, versions, and surrounding context, and asks for disambiguation when identity or scope is uncertain.",
+    "undesired": "For video calling, the system returns the wrong person, record, version, date range, or account; searches beyond authorized scope; or exposes sensitive information without making the ambiguity visible. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Find the key decisions, records, and open requests for video calling."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you find the key decisions, records, and open requests for video calling?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, find the key decisions, records, and open requests for video calling, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the correct information or item for video calling. Find the key decisions, records, and open requests for video calling."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Find the key decisions, records, and open requests for video calling, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-09-03",
+    "title": "Organize the work and context for video calling",
+    "group_id": "04.09",
+    "group_name": "video calling",
+    "intention": "The user wants to organize the work and context for video calling by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For video calling, the system proposes a clear structure, labels and groups related material, preserves originals and provenance, and previews moves, merges, renames, or classifications before committing them.",
+    "undesired": "For video calling, the system misclassifies material, merges unrelated items, destroys provenance, or silently moves, renames, overwrites, or deletes source content. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Organize the work and context for video calling."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you organize the work and context for video calling?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, organize the work and context for video calling, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clean, usable structure for video calling. Organize the work and context for video calling."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Organize the work and context for video calling, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-09-04",
+    "title": "Compare the available options for video calling",
+    "group_id": "04.09",
+    "group_name": "video calling",
+    "intention": "The user wants to compare the available options for video calling by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For video calling, the system aligns alternatives against explicit criteria, normalizes incompatible measures, exposes missing information and assumptions, and produces a decision-ready comparison without silently choosing for the user.",
+    "undesired": "For video calling, the system compares unlike options as though they were equivalent, hides weighting or missing data, fabricates values, or presents a recommendation with unjustified certainty. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Compare the available options for video calling."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you compare the available options for video calling?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, compare the available options for video calling, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a decision-ready comparison for video calling. Compare the available options for video calling."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Compare the available options for video calling, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-09-05",
+    "title": "Plan the next steps for video calling",
+    "group_id": "04.09",
+    "group_name": "video calling",
+    "intention": "The user wants to plan the next steps for video calling by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For video calling, the system produces an actionable plan with ordered steps, owners, dates, dependencies, constraints, checkpoints, and fallback paths, while distinguishing proposals from confirmed commitments.",
+    "undesired": "For video calling, the system invents deadlines, owners, budgets, approvals, or commitments; ignores dependencies and constraints; or treats a draft plan as authorization to execute. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Plan the next steps for video calling."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you plan the next steps for video calling?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, plan the next steps for video calling, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need an actionable plan for video calling. Plan the next steps for video calling."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Plan the next steps for video calling, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-09-06",
+    "title": "Draft the main business artifact for video calling",
+    "group_id": "04.09",
+    "group_name": "video calling",
+    "intention": "The user wants to draft the main business artifact for video calling by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For video calling, the system creates a reviewable draft, configuration, calculation, or first version grounded in the available context, preserves the user\u2019s meaning and source material, and keeps the result in preview until approved.",
+    "undesired": "For video calling, the system invents facts, changes the user\u2019s intent, overwrites the authoritative source, or sends, publishes, files, pays, deploys, or submits the draft without approval. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Draft the main business artifact for video calling."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you draft the main business artifact for video calling?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, draft the main business artifact for video calling, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reviewable first result for video calling. Draft the main business artifact for video calling."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Draft the main business artifact for video calling, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-09-07",
+    "title": "Review and approve the proposed work for video calling",
+    "group_id": "04.09",
+    "group_name": "video calling",
+    "intention": "The user wants to review and approve the proposed work for video calling by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For video calling, the system checks the work against explicit criteria, identifies defects, omissions, risks, and uncertainty, links each finding to evidence, and proposes corrections without silently approving or altering the source.",
+    "undesired": "For video calling, the system rubber-stamps the work, misses a material error, applies hidden criteria, alters evidence during review, or claims that compliance, quality, or correctness has been proven when it has not. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Review and approve the proposed work for video calling."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you review and approve the proposed work for video calling?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, review and approve the proposed work for video calling, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a trustworthy quality and risk check for video calling. Review and approve the proposed work for video calling."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Review and approve the proposed work for video calling, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-09-08",
+    "title": "Coordinate and carry out the approved action for video calling",
+    "group_id": "04.09",
+    "group_name": "video calling",
+    "intention": "The user wants to coordinate and carry out the approved action for video calling by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For video calling, the system displays the exact scope, targets, recipients, values, permissions, and timing; obtains the required confirmation; executes only the approved action; and records a clear result, exception log, and rollback path when available.",
+    "undesired": "For video calling, the system acts on the wrong target, recipient, amount, account, environment, or time; proceeds without confirmation; or hides partial failure and leaves downstream systems inconsistent. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Coordinate and carry out the approved action for video calling."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you coordinate and carry out the approved action for video calling?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, coordinate and carry out the approved action for video calling, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the requested action completed correctly for video calling. Coordinate and carry out the approved action for video calling."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Coordinate and carry out the approved action for video calling, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-09-09",
+    "title": "Track progress, risks, and exceptions for video calling",
+    "group_id": "04.09",
+    "group_name": "video calling",
+    "intention": "The user wants to track progress, risks, and exceptions for video calling by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For video calling, the system uses authoritative signals and explicit thresholds to show current status, emerging exceptions, trends, and required follow-ups, while distinguishing stale data, noise, and uncertain alerts.",
+    "undesired": "For video calling, the system relies on stale or non-authoritative signals, floods the user with noise, misses a meaningful threshold breach, or performs automated remediation beyond the authority granted. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Track progress, risks, and exceptions for video calling."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you track progress, risks, and exceptions for video calling?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, track progress, risks, and exceptions for video calling, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reliable status and exception view for video calling. Track progress, risks, and exceptions for video calling."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Track progress, risks, and exceptions for video calling, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-09-10",
+    "title": "Close the work and capture lessons for video calling",
+    "group_id": "04.09",
+    "group_name": "video calling",
+    "intention": "The user wants to close the work and capture lessons for video calling by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For video calling, the system confirms completion and dependencies, applies retention and access rules, preserves required evidence, and archives, restores, cancels, retires, or disposes of material only through a reviewable and recoverable process where possible.",
+    "undesired": "For video calling, the system closes the work prematurely, deletes or retires the wrong material, violates a hold or retention requirement, breaks dependent workflows, or creates irreversible loss without an explicit final review. It must not create unauthorized commitments, misassign ownership, or expose confidential business information. ### 04.10 communication archiving",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Close the work and capture lessons for video calling."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you close the work and capture lessons for video calling?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, close the work and capture lessons for video calling, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a safe, documented lifecycle outcome for video calling. Close the work and capture lessons for video calling."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Close the work and capture lessons for video calling, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-10-01",
+    "title": "Catch me up on communication archiving",
+    "group_id": "04.10",
+    "group_name": "communication archiving",
+    "intention": "The user wants to get caught up on communication archiving by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For communication archiving, the system gathers the most relevant and current context, separates confirmed facts from inference, highlights changes, decisions, deadlines, and unresolved items, and presents a concise overview without modifying source systems.",
+    "undesired": "For communication archiving, the system gives a confident summary from stale or incomplete context, misses urgent items, confuses inference with fact, or changes source records while merely being asked to explain them. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Catch me up on communication archiving."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Can you catch me up on communication archiving?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, catch me up on communication archiving, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clear and current picture of communication archiving. Catch me up on communication archiving."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Catch me up on communication archiving, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-10-02",
+    "title": "Find the key decisions, records, and open requests for communication archiving",
+    "group_id": "04.10",
+    "group_name": "communication archiving",
+    "intention": "The user wants to find the key decisions, records, and open requests for communication archiving by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For communication archiving, the system searches only authorized sources, returns the most likely matching items with provenance, dates, versions, and surrounding context, and asks for disambiguation when identity or scope is uncertain.",
+    "undesired": "For communication archiving, the system returns the wrong person, record, version, date range, or account; searches beyond authorized scope; or exposes sensitive information without making the ambiguity visible. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Find the key decisions, records, and open requests for communication archiving."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you find the key decisions, records, and open requests for communication archiving?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, find the key decisions, records, and open requests for communication archiving, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the correct information or item for communication archiving. Find the key decisions, records, and open requests for communication archiving."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Find the key decisions, records, and open requests for communication archiving, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-10-03",
+    "title": "Organize the work and context for communication archiving",
+    "group_id": "04.10",
+    "group_name": "communication archiving",
+    "intention": "The user wants to organize the work and context for communication archiving by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For communication archiving, the system proposes a clear structure, labels and groups related material, preserves originals and provenance, and previews moves, merges, renames, or classifications before committing them.",
+    "undesired": "For communication archiving, the system misclassifies material, merges unrelated items, destroys provenance, or silently moves, renames, overwrites, or deletes source content. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Organize the work and context for communication archiving."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you organize the work and context for communication archiving?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, organize the work and context for communication archiving, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a clean, usable structure for communication archiving. Organize the work and context for communication archiving."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Organize the work and context for communication archiving, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-10-04",
+    "title": "Compare the available options for communication archiving",
+    "group_id": "04.10",
+    "group_name": "communication archiving",
+    "intention": "The user wants to compare the available options for communication archiving by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For communication archiving, the system aligns alternatives against explicit criteria, normalizes incompatible measures, exposes missing information and assumptions, and produces a decision-ready comparison without silently choosing for the user.",
+    "undesired": "For communication archiving, the system compares unlike options as though they were equivalent, hides weighting or missing data, fabricates values, or presents a recommendation with unjustified certainty. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Compare the available options for communication archiving."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you compare the available options for communication archiving?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, compare the available options for communication archiving, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a decision-ready comparison for communication archiving. Compare the available options for communication archiving."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Compare the available options for communication archiving, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-10-05",
+    "title": "Plan the next steps for communication archiving",
+    "group_id": "04.10",
+    "group_name": "communication archiving",
+    "intention": "The user wants to plan the next steps for communication archiving by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For communication archiving, the system produces an actionable plan with ordered steps, owners, dates, dependencies, constraints, checkpoints, and fallback paths, while distinguishing proposals from confirmed commitments.",
+    "undesired": "For communication archiving, the system invents deadlines, owners, budgets, approvals, or commitments; ignores dependencies and constraints; or treats a draft plan as authorization to execute. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Plan the next steps for communication archiving."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you plan the next steps for communication archiving?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, plan the next steps for communication archiving, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need an actionable plan for communication archiving. Plan the next steps for communication archiving."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Plan the next steps for communication archiving, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-10-06",
+    "title": "Draft the main business artifact for communication archiving",
+    "group_id": "04.10",
+    "group_name": "communication archiving",
+    "intention": "The user wants to draft the main business artifact for communication archiving by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For communication archiving, the system creates a reviewable draft, configuration, calculation, or first version grounded in the available context, preserves the user\u2019s meaning and source material, and keeps the result in preview until approved.",
+    "undesired": "For communication archiving, the system invents facts, changes the user\u2019s intent, overwrites the authoritative source, or sends, publishes, files, pays, deploys, or submits the draft without approval. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Draft the main business artifact for communication archiving."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you draft the main business artifact for communication archiving?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, draft the main business artifact for communication archiving, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reviewable first result for communication archiving. Draft the main business artifact for communication archiving."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Draft the main business artifact for communication archiving, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-10-07",
+    "title": "Review and approve the proposed work for communication archiving",
+    "group_id": "04.10",
+    "group_name": "communication archiving",
+    "intention": "The user wants to review and approve the proposed work for communication archiving by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For communication archiving, the system checks the work against explicit criteria, identifies defects, omissions, risks, and uncertainty, links each finding to evidence, and proposes corrections without silently approving or altering the source.",
+    "undesired": "For communication archiving, the system rubber-stamps the work, misses a material error, applies hidden criteria, alters evidence during review, or claims that compliance, quality, or correctness has been proven when it has not. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Review and approve the proposed work for communication archiving."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you review and approve the proposed work for communication archiving?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, review and approve the proposed work for communication archiving, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a trustworthy quality and risk check for communication archiving. Review and approve the proposed work for communication archiving."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Review and approve the proposed work for communication archiving, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-10-08",
+    "title": "Coordinate and carry out the approved action for communication archiving",
+    "group_id": "04.10",
+    "group_name": "communication archiving",
+    "intention": "The user wants to coordinate and carry out the approved action for communication archiving by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For communication archiving, the system displays the exact scope, targets, recipients, values, permissions, and timing; obtains the required confirmation; executes only the approved action; and records a clear result, exception log, and rollback path when available.",
+    "undesired": "For communication archiving, the system acts on the wrong target, recipient, amount, account, environment, or time; proceeds without confirmation; or hides partial failure and leaves downstream systems inconsistent. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Coordinate and carry out the approved action for communication archiving."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you coordinate and carry out the approved action for communication archiving?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, coordinate and carry out the approved action for communication archiving, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need the requested action completed correctly for communication archiving. Coordinate and carry out the approved action for communication archiving."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Coordinate and carry out the approved action for communication archiving, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-10-09",
+    "title": "Track progress, risks, and exceptions for communication archiving",
+    "group_id": "04.10",
+    "group_name": "communication archiving",
+    "intention": "The user wants to track progress, risks, and exceptions for communication archiving by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For communication archiving, the system uses authoritative signals and explicit thresholds to show current status, emerging exceptions, trends, and required follow-ups, while distinguishing stale data, noise, and uncertain alerts.",
+    "undesired": "For communication archiving, the system relies on stale or non-authoritative signals, floods the user with noise, misses a meaningful threshold breach, or performs automated remediation beyond the authority granted. It must not create unauthorized commitments, misassign ownership, or expose confidential business information.",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Track progress, risks, and exceptions for communication archiving."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you track progress, risks, and exceptions for communication archiving?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, track progress, risks, and exceptions for communication archiving, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a reliable status and exception view for communication archiving. Track progress, risks, and exceptions for communication archiving."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Track progress, risks, and exceptions for communication archiving, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  },
+  {
+    "id": "VJ-04-10-10",
+    "title": "Close the work and capture lessons for communication archiving",
+    "group_id": "04.10",
+    "group_name": "communication archiving",
+    "intention": "The user wants to close the work and capture lessons for communication archiving by voice, without manually navigating between the underlying apps, files, records, or services.",
+    "desired": "For communication archiving, the system confirms completion and dependencies, applies retention and access rules, preserves required evidence, and archives, restores, cancels, retires, or disposes of material only through a reviewable and recoverable process where possible.",
+    "undesired": "For communication archiving, the system closes the work prematurely, deletes or retires the wrong material, violates a hold or retention requirement, breaks dependent workflows, or creates irreversible loss without an explicit final review. It must not create unauthorized commitments, misassign ownership, or expose confidential business information. <a id=\"domain-05-meetings-collaboration\"></a>",
+    "voices": [
+      {
+        "variation": "Direct",
+        "utterance": "Close the work and capture lessons for communication archiving."
+      },
+      {
+        "variation": "Conversational",
+        "utterance": "Could you close the work and capture lessons for communication archiving?"
+      },
+      {
+        "variation": "Context-rich",
+        "utterance": "Looking across the relevant apps, files, and records, close the work and capture lessons for communication archiving, and show me the sources, assumptions, and gaps you relied on."
+      },
+      {
+        "variation": "Outcome-first",
+        "utterance": "I need a safe, documented lifecycle outcome for communication archiving. Close the work and capture lessons for communication archiving."
+      },
+      {
+        "variation": "Guardrail-first",
+        "utterance": "Close the work and capture lessons for communication archiving, but preview the result and ask before any external, irreversible, or high-impact step."
+      }
+    ]
+  }
+]

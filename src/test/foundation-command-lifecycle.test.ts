@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { runFoundationCommand } from "@/local-context/work-command-runner";
 import type { FoundationCommand } from "@/local-context/work-command-types";
-import type { AppleMailMessage, AppleMailMessageDetail } from "@/types/context";
+import type { AppleCalendarEvent, AppleMailMessage, AppleMailMessageDetail, AppleNotePreview, AppleReminder } from "@/types/context";
 import { applyWorkspacePatches, createInitialWorkspaceSession } from "@/workspace/workspace-reducer";
 import type { SurfaceInstance } from "@/workspace/types";
 
@@ -12,10 +12,13 @@ const contextMocks = vi.hoisted(() => ({
   readMailMessage: vi.fn(async (): Promise<AppleMailMessageDetail> => {
     throw new Error("not used");
   }),
-  loadCalendarEvents: vi.fn(async () => []),
-  loadNotes: vi.fn(async () => []),
-  loadReminders: vi.fn(async () => []),
+  loadCalendarEvents: vi.fn(async (): Promise<AppleCalendarEvent[]> => []),
+  loadNotes: vi.fn(async (): Promise<AppleNotePreview[]> => []),
+  loadReminders: vi.fn(async (): Promise<AppleReminder[]> => []),
   searchContacts: vi.fn(async () => []),
+  createCalendarEvent: vi.fn(async () => ({ ok: true, message: "Calendar event created." })),
+  createNote: vi.fn(async () => ({ ok: true, message: "Note created." })),
+  createReminder: vi.fn(async () => ({ ok: true, message: "Reminder created." })),
 }));
 
 vi.mock("@/lib/context-api", () => ({
@@ -33,9 +36,9 @@ vi.mock("@/lib/context-api", () => ({
   readNote: vi.fn(async () => {
     throw new Error("not used");
   }),
-  createCalendarEvent: vi.fn(),
-  createNote: vi.fn(),
-  createReminder: vi.fn(),
+  createCalendarEvent: contextMocks.createCalendarEvent,
+  createNote: contextMocks.createNote,
+  createReminder: contextMocks.createReminder,
 }));
 
 function surface(id: string, kind: SurfaceInstance["kind"], role: SurfaceInstance["role"]): SurfaceInstance {
@@ -65,6 +68,12 @@ describe("foundation command lifecycle", () => {
     contextMocks.loadReminders.mockResolvedValue([]);
     contextMocks.searchContacts.mockReset();
     contextMocks.searchContacts.mockResolvedValue([]);
+    contextMocks.createCalendarEvent.mockReset();
+    contextMocks.createCalendarEvent.mockResolvedValue({ ok: true, message: "Calendar event created." });
+    contextMocks.createNote.mockReset();
+    contextMocks.createNote.mockResolvedValue({ ok: true, message: "Note created." });
+    contextMocks.createReminder.mockReset();
+    contextMocks.createReminder.mockResolvedValue({ ok: true, message: "Reminder created." });
   });
 
   it("updates the loading surface into an error with the same id and keeps it primary", async () => {
@@ -154,6 +163,71 @@ describe("foundation command lifecycle", () => {
     expect(props.suggestedNextAction).toContain("Notes");
     expect(props.suggestedNextAction).not.toContain("Calendar");
     expect(props.suggestedNextAction).not.toContain("Contacts");
+  });
+
+  it("prepares a meeting brief even when optional Notes are unavailable", async () => {
+    contextMocks.loadCalendarEvents.mockResolvedValue([
+      {
+        id: "cal-1",
+        title: "Investor follow-up",
+        calendarName: "Work",
+        startAt: "2026-06-22T10:00:00Z",
+        endAt: "2026-06-22T11:00:00Z",
+        location: "Office",
+        notes: "Discuss open approvals.",
+      },
+    ]);
+    contextMocks.loadNotes.mockRejectedValue(new Error("provider=NotesProviderChain errorKind=Unavailable didOpenExternalApp=false exactError=fallback_requires_notes_running: Notes is not running."));
+    const command: FoundationCommand = {
+      kind: "prepare_next_meeting",
+      utterance: "prep my next meeting",
+      surfaceKind: "document",
+      adapter: "meeting_prep",
+      requiresApproval: false,
+      payload: {},
+    };
+
+    const result = await runFoundationCommand(command, createInitialWorkspaceSession(), {});
+    const next = applyWorkspacePatches(createInitialWorkspaceSession(), result.patches);
+    const props = next.surfaces[0]?.props;
+
+    expect(props.status).toBe("available");
+    expect(props.summary).toContain("with Notes skipped");
+    expect(String(props.body)).toContain("Investor follow-up");
+    expect(String(props.body)).toContain("Notes skipped");
+    expect(props.detail).toMatchObject({ notesStatus: "skipped" });
+  });
+
+  it("sanitizes calendar conferencing boilerplate before display", async () => {
+    contextMocks.loadCalendarEvents.mockResolvedValue([
+      {
+        id: "cal-1",
+        title: "Planning call",
+        calendarName: "Work",
+        startAt: "2026-06-22T10:00:00Z",
+        endAt: "2026-06-22T11:00:00Z",
+        location: null,
+        notes: "Prep agenda -::~:~::~:~::- Join with Google Meet: https://meet.google.com/abc-defg-hij Or dial: (US) +1 555-000-0000 PIN: 123456# More phone numbers: https://tel.meet/abc Learn more about Meet at: https://support.google.com/a/users/answer/9282720 Please do not edit this section. -::~:~::~:~::-",
+      },
+    ]);
+    const command: FoundationCommand = {
+      kind: "show_today_calendar",
+      utterance: "show today's calendar",
+      surfaceKind: "calendar_day",
+      adapter: "load_calendar_events",
+      requiresApproval: false,
+      payload: {},
+    };
+
+    const result = await runFoundationCommand(command, createInitialWorkspaceSession(), {});
+    const next = applyWorkspacePatches(createInitialWorkspaceSession(), result.patches);
+    const notes = String((next.surfaces[0]?.props.items as Array<Record<string, unknown>>)[0]?.notes ?? "");
+
+    expect(notes).toContain("Prep agenda");
+    expect(notes).not.toContain("Join with Google Meet");
+    expect(notes).not.toContain("Or dial");
+    expect(notes).not.toContain("Please do not edit");
+    expect(notes).not.toContain("support.google.com");
   });
 
   it("summarizes the loaded latest email with grounded evidence", async () => {
@@ -255,5 +329,71 @@ describe("foundation command lifecycle", () => {
     expect(surface?.props.summary).toContain("Created an in-app text artifact");
     expect(surface?.props.detail).toMatchObject({ writesToDisk: false, artifactType: "text/markdown" });
     expect(String(surface?.props.body)).toContain("# Email Analysis");
+  });
+
+  it("queues local writes for approval before creating anything", async () => {
+    const result = await runFoundationCommand({
+      kind: "create_reminder",
+      utterance: "create a reminder to follow up tomorrow",
+      surfaceKind: "approval",
+      adapter: "create_reminder",
+      requiresApproval: true,
+      payload: { title: "follow up", dueAt: "tomorrow at 10:00 AM" },
+    }, createInitialWorkspaceSession(), {});
+    const next = applyWorkspacePatches(createInitialWorkspaceSession(), result.patches);
+    const surface = next.surfaces[0];
+
+    expect(contextMocks.createReminder).not.toHaveBeenCalled();
+    expect(result.memory.pendingApproval?.kind).toBe("create_reminder");
+    expect(surface?.kind).toBe("approval");
+    expect(surface?.props.status).toBe("needs_approval");
+    expect(surface?.props.approval).toMatchObject({ actionId: "create_reminder" });
+  });
+
+  it("approves exactly the pending local write and then clears it", async () => {
+    const pending = await runFoundationCommand({
+      kind: "create_reminder",
+      utterance: "create a reminder to follow up tomorrow",
+      surfaceKind: "approval",
+      adapter: "create_reminder",
+      requiresApproval: true,
+      payload: { title: "follow up", dueAt: "tomorrow at 10:00 AM" },
+    }, createInitialWorkspaceSession(), {});
+
+    const approved = await runFoundationCommand({
+      kind: "approve_pending_action",
+      utterance: "approve",
+      surfaceKind: "approval",
+      adapter: "approval",
+      requiresApproval: false,
+      payload: {},
+    }, createInitialWorkspaceSession(), pending.memory);
+    const next = applyWorkspacePatches(createInitialWorkspaceSession(), approved.patches);
+    const surface = next.surfaces[0];
+
+    expect(contextMocks.createReminder).toHaveBeenCalledTimes(1);
+    expect(contextMocks.createReminder).toHaveBeenCalledWith({ title: "follow up", dueAt: "tomorrow at 10:00 AM" });
+    expect(approved.memory.pendingApproval).toBeUndefined();
+    expect(surface?.kind).toBe("reminder_list");
+    expect(surface?.props.title).toBe("Approved action completed");
+    expect(surface?.props.summary).toBe("Reminder created.");
+  });
+
+  it("does not approve anything when there is no pending local write", async () => {
+    const result = await runFoundationCommand({
+      kind: "approve_pending_action",
+      utterance: "approve",
+      surfaceKind: "approval",
+      adapter: "approval",
+      requiresApproval: false,
+      payload: {},
+    }, createInitialWorkspaceSession(), {});
+    const next = applyWorkspacePatches(createInitialWorkspaceSession(), result.patches);
+    const surface = next.surfaces[0];
+
+    expect(contextMocks.createReminder).not.toHaveBeenCalled();
+    expect(surface?.kind).toBe("command_error");
+    expect(surface?.props.title).toBe("No pending approval");
+    expect(surface?.props.error).toContain("no pending write action");
   });
 });

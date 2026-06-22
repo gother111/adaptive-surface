@@ -24,6 +24,18 @@ export function shouldRunFoundationBeforeWorkspace(
     return true;
   }
 
+  if (
+    activeObjective?.kind === "draft_email" &&
+    command.kind === "unsupported_email_action" &&
+    (
+      command.payload.draftCompatible ||
+      command.payload.intent === "email.send_or_schedule" ||
+      command.payload.intent === "email.control_or_review"
+    )
+  ) {
+    return false;
+  }
+
   if (!hasActiveWork) {
     return true;
   }

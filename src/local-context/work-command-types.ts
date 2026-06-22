@@ -22,6 +22,7 @@ export type FoundationCommandKind =
   | "search_files"
   | "open_file_summary"
   | "unsupported_local_context"
+  | "unsupported_email_action"
   | "cancel_pending_action"
   | "approve_pending_action";
 

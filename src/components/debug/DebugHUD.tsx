@@ -24,6 +24,7 @@ export function DebugHUD() {
   const lastApprovalRequired = useSurfaceStore((state) => state.lastApprovalRequired);
   const appleContext = useSurfaceStore((state) => state.appleContext);
   const lastGoldenEvalStatus = useSurfaceStore((state) => state.lastGoldenEvalStatus);
+  const modelRouting = useSurfaceStore((state) => state.modelRouting);
   const activeObjective = objectives.find((objective) => objective.id === activeObjectiveId) ?? null;
   const relevantContextObjects = relevantContextObjectIds
     .map((id) => workObjects[id])
@@ -98,6 +99,18 @@ export function DebugHUD() {
             <div>last capability: {lastCapabilityAction ?? "none"}</div>
             <div className="text-muted-foreground">approval required: {lastApprovalRequired ? "yes" : "no"}</div>
             <div className="text-muted-foreground">golden eval: {lastGoldenEvalStatus ?? "not run in app"}</div>
+          </DebugBlock>
+
+          <DebugBlock title="Model routing">
+            <div>{modelRouting.providerStatus.model}</div>
+            <div className="text-muted-foreground">phase: {modelRouting.phase}</div>
+            <div className="text-muted-foreground">
+              configured: {modelRouting.providerStatus.configured ? "yes" : "no"}
+            </div>
+            <div className="text-muted-foreground">last error: {modelRouting.lastError ?? "none"}</div>
+            <pre className="mt-2 whitespace-pre-wrap break-words text-muted-foreground">
+              {JSON.stringify(modelRouting.lastRefinement, null, 2)}
+            </pre>
           </DebugBlock>
 
           <DebugBlock title="Apple context">

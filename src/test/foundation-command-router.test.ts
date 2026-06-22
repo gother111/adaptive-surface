@@ -99,4 +99,16 @@ describe("foundation command router", () => {
     expect(cancel?.kind).toBe("cancel_pending_action");
     expect(cancel?.requiresApproval).toBe(false);
   });
+
+  it("does not treat approval-inspection or conditional approval as direct approval", () => {
+    expect(routeFoundationCommand("Show me what I’m being asked to approve.")?.kind).toBe("unsupported_email_action");
+    expect(routeFoundationCommand("Approve it, provided legal signs off first.")?.kind).toBe("unsupported_email_action");
+    expect(routeFoundationCommand("approve")?.kind).toBe("approve_pending_action");
+  });
+
+  it("routes unsupported email stories to a visible non-mutating guard", () => {
+    expect(routeFoundationCommand("Summarize this thread and tell me what changed.")?.kind).toBe("unsupported_email_action");
+    expect(routeFoundationCommand("Turn this into a task for Friday and link the email.")?.kind).toBe("unsupported_email_action");
+    expect(routeFoundationCommand("Reply to everyone who accepted the invitation and send them the preparation notes.")?.kind).toBe("unsupported_email_action");
+  });
 });

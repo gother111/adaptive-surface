@@ -115,6 +115,7 @@ export interface IntegrationSettings {
   accessibilityEnabled: boolean;
   localBackendUrl: string;
   selectedModel: string;
+  modelIntentRoutingEnabled: boolean;
   voiceMode: "push-to-talk" | "continuous";
   trustedFileRoots: string[];
   personalFileIndexPath: string;

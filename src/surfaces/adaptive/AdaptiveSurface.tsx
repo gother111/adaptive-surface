@@ -33,8 +33,8 @@ export function AdaptiveSurface({ config }: AdaptiveSurfaceProps) {
   const sections = config.sections ?? [];
 
   return (
-    <ScrollArea className="h-[calc(100vh-3.5rem)]">
-      <div className="mx-auto flex max-w-6xl flex-col gap-7 px-8 py-8">
+    <ScrollArea className="h-[calc(100vh-13rem)]">
+      <div className="mx-auto flex max-w-6xl flex-col gap-7 px-8 pb-8 pt-8">
         <div className="rounded-xl border border-primary/20 bg-primary/[0.07] p-5 shadow-[0_24px_90px_rgba(0,0,0,0.18)]">
           <div className="flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-4">
@@ -75,8 +75,8 @@ export function AdaptiveSurface({ config }: AdaptiveSurfaceProps) {
               Agent-ready next
             </div>
             <p className="mt-4 text-sm leading-6 text-muted-foreground">
-              TODO: pass this draft to LangGraph as a typed Work Object and stream validated
-              patches back into Zustand.
+              The next update will stay in review until it is tied to a typed action and the
+              current surface can show what changed.
             </p>
           </div>
         </div>

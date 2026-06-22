@@ -4,11 +4,19 @@ import type { FoundationCommand } from "@/local-context/work-command-types";
 export function routeFoundationCommand(utterance: string): FoundationCommand | null {
   const text = utterance.toLowerCase().replace(/\s+/g, " ").trim();
 
-  if (/\b(approve|confirm|yes create|go ahead)\b/.test(text) && !/\b(approve nothing|approve none|approve no|approve only if|do not approve|don't approve)\b/.test(text)) {
+  if (/\b(go back to|return to|keep)\b.*\b(email|draft|reply)\b/.test(text)) {
+    return null;
+  }
+
+  if (isDirectApprovalCommand(text)) {
     return command("approve_pending_action", utterance, "approval", "approval", false, {});
   }
 
-  if (/\b(cancel|stop|never mind|nevermind|do not create|don't create|do not do it|don't do it|discard)\b/.test(text)) {
+  if (isEmailDraftCorrection(text)) {
+    return null;
+  }
+
+  if (isCancelCommand(text)) {
     return command("cancel_pending_action", utterance, "approval", "approval", false, {});
   }
 
@@ -36,6 +44,11 @@ export function routeFoundationCommand(utterance: string): FoundationCommand | n
       title: extractCalledTitle(utterance) ?? "Seemless Test Note",
       body: "",
     });
+  }
+
+  const unsupportedEmailAction = unsupportedEmailActionPayload(utterance);
+  if (unsupportedEmailAction && !isImplementedEmailReadCommand(text)) {
+    return command("unsupported_email_action", utterance, "unsupported_context", "email_intent_guard", false, unsupportedEmailAction);
   }
 
   if (/\b(open|read|summarize|summary)\b.*\b(latest|selected|readable|this)\b.*\b(file|document|pdf|markdown|md)\b/.test(text) || /\b(open|read|summarize|summary)\b.*\b(file|document)\b/.test(text)) {
@@ -128,4 +141,106 @@ function extractDatePhrase(text: string) {
   if (text.includes("tomorrow at 10")) return "tomorrow at 10:00 AM";
   if (text.includes("tomorrow")) return "tomorrow at 10:00 AM";
   return null;
+}
+
+function isDirectApprovalCommand(text: string) {
+  if (/\b(approve nothing|approve none|approve no|do not approve|don't approve|dont approve)\b/.test(text)) {
+    return false;
+  }
+
+  if (/\b(what|show|which|asked to approve|being asked|provided|only if|if|first|provided that|condition|conditional)\b/.test(text)) {
+    return false;
+  }
+
+  return /^(approve|confirm|yes create|go ahead|yes,? do it|yes)$/i.test(text);
+}
+
+function isCancelCommand(text: string) {
+  return /\b(cancel|stop|never mind|nevermind|do not create|don't create|dont create|do not do it|don't do it|dont do it|discard)\b/.test(text);
+}
+
+function isEmailDraftCorrection(text: string) {
+  return /\b(stop|do not send|don't send|dont send)\b/.test(text) && /\b(change|friday|monday|draft|email|message|that|this)\b/.test(text);
+}
+
+function isImplementedEmailReadCommand(text: string) {
+  return (
+    /\b(recent )?(email|emails|mail|inbox|inbox messages)\b/.test(text) && /\b(show|list|open|pull up|bring up|recent|inbox)\b/.test(text)
+  ) || (
+    /\b(latest|last)\b.*\b(email|mail|message)\b/.test(text) && /\b(open|read|full|fully|body)\b/.test(text)
+  ) || (
+    /\b(summarize|summary|analyze|analyse|what is|what's|what does|extract|tell me)\b/.test(text) &&
+    /\b(latest|last|recent|this|selected)?\s*(email|mail|message)\b/.test(text)
+  ) || (
+    /\b(create|make|turn|produce|build)\b.*\b(artifact|document|doc|writeup|write up|brief)\b/.test(text) &&
+    /\b(email|mail|message|summary|analysis)\b/.test(text)
+  );
+}
+
+function unsupportedEmailActionPayload(utterance: string) {
+  const text = utterance.toLowerCase().replace(/\s+/g, " ").trim();
+  if (/^send\s+(it|this|that)\.?$/.test(text)) {
+    return null;
+  }
+
+  const intent = inferUnsupportedEmailIntent(text);
+  if (!intent) return null;
+
+  const mutating = /\b(send|forward|reply|attach|schedule|hold|save|task|remind|approve|decline|label|archive|delete|clear out|unsubscribe|rule|report|block)\b/.test(text);
+  const prohibitedOutcomes = prohibitedOutcomesFor(text);
+
+  return {
+    intent,
+    confidence: "medium",
+    proposedAction: "No executable email action is available for this command in the current app.",
+    confirmationRequirement: mutating ? "required before any real email or mailbox change" : "not applicable until the feature exists",
+    reversibility: mutating ? "unknown or not reliable after a provider accepts the action" : "no external action ran",
+    prohibitedOutcomes,
+    draftCompatible: /\b(reply|tell|make|shorten|follow up|decline|approve|agree|warmer|professional|confrontational|escalation)\b/.test(text),
+    externalWrite: false,
+    writesToMailbox: false,
+  };
+}
+
+function inferUnsupportedEmailIntent(text: string) {
+  if (/\bcatch (me )?up\b.*\b(email|mail)\b/.test(text)) return "email.catch_up";
+  if (/\bfind\b.*\b(email|mail)\b/.test(text)) return "email.search";
+  if (/\bthread|conversation|finally decide|changed\b/.test(text)) return "email.thread_analysis";
+  if (/\bwaiting for a response|response from me|unanswered\b/.test(text)) return "email.response_queue";
+  if (/\breply|tell them|tell everyone|follow up|decline|approve it\b/.test(text)) return "email.draft_reply";
+  if (/\brecipient|send this to|reply only|add .*remove|everyone\b/.test(text)) return "email.recipient_control";
+  if (/\bforward\b/.test(text)) return "email.forward";
+  if (/\battach|attachment|attached|contract|proposal\b/.test(text)) return "email.attachment";
+  if (/\bsend|hold this|save this as a draft\b/.test(text)) return "email.send_or_schedule";
+  if (/\btask|remind me|reminder\b/.test(text)) return "email.task_or_reminder";
+  if (/\basked to approve|being asked to approve|approval request\b/.test(text)) return "email.approval_review";
+  if (/\bworkspace|orion\b/.test(text)) return "email.project_workspace";
+  if (/\blabel|archive|junk|unsubscribe|rule|from now on\b/.test(text)) return "email.mailbox_organization";
+  if (/\blegitimate|phishing|block\b/.test(text)) return "email.security_review";
+  if (/\bclient|confidential|report\b/.test(text)) return "email.confidential_send";
+  if (/\bread .*email\b/.test(text)) return "email.read_privacy";
+  if (/\bstop|undo|what are you about to do\b/.test(text)) return "email.control_or_review";
+  return null;
+}
+
+function prohibitedOutcomesFor(text: string) {
+  const outcomes = new Set<string>(["send_before_preview", "mutate_mailbox_without_confirmation"]);
+
+  if (/\breply|send|forward|everyone|recipient|client\b/.test(text)) {
+    outcomes.add("use_wrong_recipient_or_reply_mode");
+  }
+  if (/\bforward|client|report|confidential|internal\b/.test(text)) {
+    outcomes.add("expose_sensitive_history_or_attachments");
+  }
+  if (/\bdelete|junk|archive|unsubscribe|label|rule|block|phishing\b/.test(text)) {
+    outcomes.add("perform_destructive_or_bulk_action_without_review");
+  }
+  if (/\bapprove|decline|deadline|friday|september|condition|legal\b/.test(text)) {
+    outcomes.add("alter_user_commitment_or_condition");
+  }
+  if (/\battach|attachment|contract|proposal\b/.test(text)) {
+    outcomes.add("use_wrong_or_unreviewed_attachment");
+  }
+
+  return Array.from(outcomes);
 }

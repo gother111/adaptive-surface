@@ -11,7 +11,7 @@ export function DecisionSurface({ config }: DecisionSurfaceProps) {
   const options = config.decisionOptions ?? [];
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-3.5rem)] max-w-5xl flex-col gap-8 px-8 py-8">
+    <div className="mx-auto flex h-[calc(100vh-13rem)] max-w-5xl flex-col gap-8 overflow-y-auto px-8 pb-8 pt-8">
       <SurfaceHeader title={config.title} subtitle={config.subtitle} status={config.streamStatus} />
 
       <div className="grid gap-4">
@@ -39,8 +39,8 @@ export function DecisionSurface({ config }: DecisionSurfaceProps) {
 
       <div className="rounded-md border border-primary/20 bg-primary/10 p-5">
         <p className="text-sm leading-6 text-primary">
-          TODO: Model routing should write typed decision objects here, then wait for an explicit
-          user choice before any external mutation runs.
+          No outside action runs from this surface until you choose an option and approve the
+          exact next step.
         </p>
       </div>
     </div>

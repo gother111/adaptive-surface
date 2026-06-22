@@ -63,7 +63,10 @@ export function WorkspaceGrid({ session, renderSurface }: WorkspaceGridProps) {
           renderSurface={renderSurface}
         />
         {bottomDock.length ? (
-          <div data-zone="interaction" className="no-drag grid max-h-52 gap-3 overflow-auto xl:col-span-full xl:grid-cols-2">
+          <div
+            data-zone="interaction"
+            className="no-drag grid max-h-52 scroll-pb-36 gap-3 overflow-auto pb-36 xl:col-span-full xl:grid-cols-2"
+          >
             {bottomDock.map((surface) => (
               <div key={surface.id}>{renderSurface(surface)}</div>
             ))}
@@ -150,7 +153,7 @@ function StageViewport({
     );
   }
 
-  return <div className="h-full min-h-0 motion-structural">{renderSurface(surface)}</div>;
+  return <div className="h-full min-h-0 scroll-pb-36 overflow-y-auto pb-36 pr-1 motion-structural">{renderSurface(surface)}</div>;
 }
 
 function Rail({
@@ -169,7 +172,7 @@ function Rail({
   zone: "context" | "inspector";
 }) {
   return (
-    <aside data-zone={zone} className="no-drag min-h-0 flex-col gap-3 overflow-auto pr-1">
+    <aside data-zone={zone} className="no-drag min-h-0 scroll-pb-36 flex-col gap-3 overflow-auto pb-36 pr-1">
       <div className="surface-panel p-3">
         <h2 className="text-sm font-medium">{title}</h2>
         <p className="mt-1 text-xs leading-5 surface-muted-text">{description}</p>

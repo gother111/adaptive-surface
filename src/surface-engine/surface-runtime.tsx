@@ -17,7 +17,7 @@ export function SurfaceRuntime({ blueprint, surfaceId, onSelectNode, onFocusNode
 
   if (!validBlueprint) {
     return (
-      <ScrollArea className="h-[calc(100vh-3.5rem)]">
+      <ScrollArea className="h-[calc(100vh-13rem)]">
         <div className="mx-auto max-w-4xl px-8 py-8">
           <div className="rounded-lg border border-destructive/35 bg-destructive/10 p-5">
             <h2 className="text-sm font-semibold">Surface could not be rendered safely</h2>
@@ -33,7 +33,7 @@ export function SurfaceRuntime({ blueprint, surfaceId, onSelectNode, onFocusNode
   if (blueprint.layout.type === "spatial_canvas") {
     return (
       <div className="h-full min-h-0 overflow-hidden">
-        <div className="relative h-full min-h-[calc(100vh-3.5rem)] overflow-hidden">
+        <div className="relative h-full min-h-[calc(100vh-13rem)] overflow-hidden">
           {blueprint.components.map((node) => (
             <SurfaceRuntimeNode
               key={node.id}
@@ -51,8 +51,8 @@ export function SurfaceRuntime({ blueprint, surfaceId, onSelectNode, onFocusNode
   }
 
   return (
-    <ScrollArea className="h-[calc(100vh-3.5rem)]">
-      <div className="min-h-[calc(100vh-3.5rem)]">
+    <ScrollArea className="h-[calc(100vh-13rem)]">
+      <div className="min-h-[calc(100vh-13rem)]">
         <RuntimeHeader blueprint={blueprint} />
         {blueprint.components.map((node) => (
           <SurfaceRuntimeNode

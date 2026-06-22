@@ -1,1 +1,1 @@
-export const isTauriRuntime = () => "__TAURI_INTERNALS__" in window;
+export const isTauriRuntime = () => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;

@@ -19,7 +19,7 @@ export function ApprovalSurface({ config }: ApprovalSurfaceProps) {
   const actions = config.approvalActions ?? [];
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-3.5rem)] max-w-5xl flex-col gap-8 px-8 py-8">
+    <div className="mx-auto flex h-[calc(100vh-13rem)] max-w-5xl flex-col gap-8 overflow-y-auto px-8 pb-8 pt-8">
       <SurfaceHeader title={config.title} subtitle={config.subtitle} status={config.streamStatus} />
 
       <div className="grid gap-4">
@@ -29,8 +29,8 @@ export function ApprovalSurface({ config }: ApprovalSurfaceProps) {
       </div>
 
       <div className="surface-panel p-5 text-sm leading-6 text-muted-foreground">
-        TODO: Add audit log persistence, undo previews, entitlement checks, and Accessibility
-        permission status before enabling production AppleScript or app-control actions.
+        Write actions stay disabled until the app can show the exact action, target, permission
+        status, and rollback path for review.
       </div>
     </div>
   );

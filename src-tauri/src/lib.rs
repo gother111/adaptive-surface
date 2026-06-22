@@ -1,5 +1,6 @@
 pub mod control_plane;
 mod apple;
+mod deepseek;
 mod desktop_control;
 mod local_files;
 mod providers;
@@ -10,6 +11,7 @@ use apple::{
     load_reminders, read_mail_message, read_note, search_contacts, update_reminder,
 };
 use control_plane::ControlPlaneDemoInput;
+use deepseek::{load_model_provider_status, refine_voice_intent_with_model};
 use desktop_control::{
     desktop_observe, desktop_open_app, desktop_paste_text, desktop_permission_status,
     desktop_read_selected_text, desktop_replace_selection,
@@ -360,6 +362,8 @@ pub fn run() {
             load_apple_context_bundle,
             load_external_auth_requirements,
             load_native_permission_debug,
+            load_model_provider_status,
+            refine_voice_intent_with_model,
             desktop_permission_status,
             desktop_observe,
             desktop_read_selected_text,

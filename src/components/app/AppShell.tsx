@@ -17,6 +17,7 @@ export function AppShell() {
   const hasWorkspaceSurfaces = workspaceSession.surfaces.some(
     (surface) => surface.status !== "hidden" && surface.role !== "debug",
   );
+  const showWorkspaceStage = hasWorkspaceSurfaces || activeSurfaceId === "blank";
   const activeSurface =
     draftSurface && activeSurfaceId === draftSurface.id
       ? draftSurface
@@ -24,7 +25,7 @@ export function AppShell() {
 
   return (
     <main className="surface-app relative h-screen overflow-hidden">
-      {hasWorkspaceSurfaces ? <WorkspaceStage session={workspaceSession} /> : <SurfaceStage surface={activeSurface} />}
+      {showWorkspaceStage ? <WorkspaceStage session={workspaceSession} /> : <SurfaceStage surface={activeSurface} />}
       <FloatingSurfaceControls
         activeSurface={activeSurface}
         gazePanelOpen={gazePanelOpen}

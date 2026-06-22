@@ -153,11 +153,9 @@ export async function runFoundationCommand(
         });
       }
       case "prepare_next_meeting": {
-        const [events, notes] = await Promise.all([
-          withTimeout(loadCalendarEvents({ daysAhead: 1, limit: 10 }), "load_calendar_events"),
-          withTimeout(loadNotes({ limit: 5 }), "load_notes"),
-        ]);
-        const body = meetingPrepBody(events[0], notes[0]);
+        const events = await withTimeout(loadCalendarEvents({ daysAhead: 1, limit: 10 }), "load_calendar_events");
+        const { notes, warning: notesWarning } = await loadOptionalMeetingNotes();
+        const body = meetingPrepBody(events[0], notes[0], notesWarning);
         return result(session, command, {
           ...memory,
           latestNoteId: notes[0]?.id ?? memory.latestNoteId,
@@ -166,12 +164,16 @@ export async function runFoundationCommand(
           status: events.length ? "available" : "empty",
           command: command.utterance,
           adapter: command.adapter,
-          summary: events.length ? `Prepared a brief for ${String(events[0]?.title ?? "the next meeting")}.` : "No calendar event found for the next meeting window.",
+          summary: events.length
+            ? `Prepared a brief for ${String(events[0]?.title ?? "the next meeting")}${notesWarning ? " with Notes skipped." : "."}`
+            : "No calendar event found for the next meeting window.",
           detail: {
             artifactType: "text/markdown",
             writesToDisk: false,
             eventId: events[0]?.id,
             noteId: notes[0]?.id,
+            notesStatus: notesWarning ? "skipped" : "loaded",
+            notesWarning,
           },
           body,
         });
@@ -250,6 +252,33 @@ export async function runFoundationCommand(
           body: analysis.artifactBody,
         });
       }
+      case "unsupported_email_action": {
+        const prohibitedOutcomes = Array.isArray(command.payload.prohibitedOutcomes)
+          ? command.payload.prohibitedOutcomes.filter((item): item is string => typeof item === "string")
+          : [];
+        return result(session, command, memory, {
+          title: "Email action not available yet",
+          status: "not_implemented",
+          command: command.utterance,
+          adapter: command.adapter,
+          summary: "No email was sent, forwarded, deleted, archived, labeled, reported, scheduled, or changed.",
+          detail: {
+            intent: command.payload.intent,
+            confidence: command.payload.confidence,
+            proposedAction: command.payload.proposedAction,
+            confirmationRequirement: command.payload.confirmationRequirement,
+            reversibility: command.payload.reversibility,
+            externalWrite: false,
+            writesToMailbox: false,
+          },
+          items: prohibitedOutcomes.map((outcome) => ({
+            label: outcome,
+            status: "prohibited",
+          })),
+          body: unsupportedEmailActionBody(command.payload, prohibitedOutcomes),
+          suggestedNextAction: "Use implemented read-only mail commands such as show recent emails, open the latest email fully, summarize the latest email, or create a text document from the latest email summary.",
+        });
+      }
       case "show_today_calendar": {
         const events = await withTimeout(loadCalendarEvents({ daysAhead: 1, limit: 30 }), command.adapter);
         return result(session, command, memory, {
@@ -258,7 +287,7 @@ export async function runFoundationCommand(
           command: command.utterance,
           adapter: command.adapter,
           summary: events.length ? `${events.length} real Calendar events loaded.` : "Apple Calendar returned no events for today.",
-          items: events.map((event) => ({ ...event })),
+          items: events.map(displayCalendarEvent),
         });
       }
       case "show_reminders": {
@@ -412,21 +441,84 @@ function filterPaymentSignals<T extends object>(items: T[]) {
   return items.filter((item) => /\b(payment|bill|invoice|receipt|subscription|klarna|due|amount)\b/i.test(JSON.stringify(item)));
 }
 
-function meetingPrepBody(event: AppleCalendarEvent | undefined, note: AppleNotePreview | undefined) {
+async function loadOptionalMeetingNotes() {
+  try {
+    return { notes: await withTimeout(loadNotes({ limit: 5 }), "load_notes"), warning: undefined };
+  } catch (error) {
+    return { notes: [] as AppleNotePreview[], warning: optionalSourceWarning("Notes", error) };
+  }
+}
+
+function optionalSourceWarning(source: string, error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  const metadata = parseProviderError(message);
+  const exact = message.match(/exactError=(.*)$/)?.[1] ?? message;
+  return `${source} skipped${metadata.errorKind ? ` (${metadata.errorKind})` : ""}: ${exact}`;
+}
+
+function displayCalendarEvent(event: AppleCalendarEvent) {
+  const notes = sanitizeCalendarNotes(event.notes);
+  return {
+    ...event,
+    notes: notes || undefined,
+  };
+}
+
+function sanitizeCalendarNotes(notes: unknown) {
+  const raw = typeof notes === "string" ? notes.trim() : "";
+  if (!raw) return "";
+
+  return compactWhitespace(raw)
+    .replace(/-::~.*?~::-/g, " ")
+    .replace(/\bJoin with Google Meet:\s*https?:\/\/\S+/gi, " ")
+    .replace(/\bOr dial:\s*\([^)]*\)\s*\+?[\d\s-]+/gi, " ")
+    .replace(/\bPIN:\s*[\d#]+/gi, " ")
+    .replace(/\bMore phone numbers:\s*https?:\/\/\S+/gi, " ")
+    .replace(/\bLearn more about Meet at:\s*https?:\/\/\S+/gi, " ")
+    .replace(/\bPlease do not edit this section\.?/gi, " ")
+    .replace(/https?:\/\/(?:meet|tel|support)\.google\.com\/\S+/gi, " ")
+    .replace(/[-:~]{6,}/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function compactWhitespace(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function unsupportedEmailActionBody(payload: Record<string, unknown>, prohibitedOutcomes: string[]) {
+  return [
+    "# Email Action Guard",
+    "",
+    `intent: ${String(payload.intent ?? "email.unsupported")}`,
+    `proposedAction: ${String(payload.proposedAction ?? "No executable action available.")}`,
+    `confidence: ${String(payload.confidence ?? "medium")}`,
+    `reversibility: ${String(payload.reversibility ?? "no external action ran")}`,
+    `confirmationRequirement: ${String(payload.confirmationRequirement ?? "required before external action")}`,
+    "externalWrite: false",
+    "writesToMailbox: false",
+    "",
+    "## Prohibited Outcomes",
+    ...(prohibitedOutcomes.length ? prohibitedOutcomes.map((outcome) => `- ${outcome}`) : ["- send_before_preview"]),
+  ].join("\n");
+}
+
+function meetingPrepBody(event: AppleCalendarEvent | undefined, note: AppleNotePreview | undefined, notesWarning?: string) {
+  const calendarNotes = sanitizeCalendarNotes(event?.notes);
   return [
     "# Meeting Prep",
     "",
-    "Source: Apple Calendar, Apple Notes",
+    "Source: Apple Calendar, Apple Notes (optional)",
     "Artifact: in-app only",
     "writesToDisk: false",
     "",
     "## Next Meeting",
     event ? `- ${String(event.title ?? "Untitled event")} at ${String(event.startAt ?? "unknown time")}` : "- No upcoming meeting found.",
     event?.location ? `- Location: ${String(event.location)}` : "- Location: not provided.",
-    event?.notes ? `- Calendar notes: ${String(event.notes)}` : "- Calendar notes: none.",
+    calendarNotes ? `- Calendar notes: ${calendarNotes}` : "- Calendar notes: none.",
     "",
     "## Relevant Note",
-    note ? `- ${String(note.title ?? "Untitled note")}: ${String(note.preview ?? "")}` : "- No recent note found.",
+    notesWarning ? `- ${notesWarning}` : note ? `- ${String(note.title ?? "Untitled note")}: ${String(note.preview ?? "")}` : "- No recent note found.",
     "",
     "## Suggested Focus",
     "- Confirm the meeting purpose.",

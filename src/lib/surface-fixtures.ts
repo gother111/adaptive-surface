@@ -129,7 +129,7 @@ export const initialSurfaces: SurfaceConfig[] = [
       {
         id: "osascript",
         label: "Run AppleScript",
-        target: "System Events placeholder",
+        target: "System Events action, blocked until permissions and review are complete",
         risk: "high",
       },
     ],

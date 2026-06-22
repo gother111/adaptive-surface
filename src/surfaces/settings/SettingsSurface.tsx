@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
   BadgeAlert,
+  BrainCircuit,
   CalendarDays,
   DatabaseZap,
   FolderCog,
@@ -45,6 +46,8 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
   const settings = useSurfaceStore((state) => state.settings);
   const updateSettings = useSurfaceStore((state) => state.updateSettings);
   const setAppleContextBundle = useSurfaceStore((state) => state.setAppleContextBundle);
+  const modelRouting = useSurfaceStore((state) => state.modelRouting);
+  const refreshModelProviderStatus = useSurfaceStore((state) => state.refreshModelProviderStatus);
 
   const [localPreview, setLocalPreview] = useState<LocalContextPreview | null>(null);
   const [localState, setLocalState] = useState<LoadState>("idle");
@@ -61,6 +64,7 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
   useEffect(() => {
     void refreshLocalPreview();
     void refreshAuthRequirements();
+    void refreshModelProviderStatus();
     // We want this to refresh only when the configured roots or index path change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.personalFileIndexPath, settings.trustedFileRoots.join("|")]);
@@ -112,14 +116,19 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
   }
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-3.5rem)] max-w-6xl flex-col gap-8 px-8 py-8">
+    <div className="mx-auto flex h-[calc(100vh-13rem)] max-w-6xl flex-col gap-8 overflow-y-auto px-8 pb-8 pt-8">
       <SurfaceHeader title={config.title} subtitle={config.subtitle} status={config.streamStatus} />
 
       <div className="grid gap-4 xl:grid-cols-2">
         <section className="surface-panel p-5">
-          <div className="flex items-center gap-3">
-            <Network className="size-5 text-primary" />
-            <h4 className="text-sm font-semibold">Model routing</h4>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Network className="size-5 text-primary" />
+              <h4 className="text-sm font-semibold">Model routing</h4>
+            </div>
+            <Badge variant={modelRouting.providerStatus.configured ? "secondary" : "outline"}>
+              {modelRouting.providerStatus.configured ? "DeepSeek ready" : "Local fallback"}
+            </Badge>
           </div>
           <div className="mt-5 space-y-3">
             <Label htmlFor="model">Selected model</Label>
@@ -129,10 +138,38 @@ export function SettingsSurface({ config }: SettingsSurfaceProps) {
               onChange={(event) => updateSettings({ selectedModel: event.target.value })}
             />
           </div>
-          <p className="mt-4 text-sm leading-6 text-muted-foreground">
-            This is still the local router placeholder. The context work below is designed so a
-            future model layer can consume structured local and app context safely.
-          </p>
+          <SettingToggle
+            label="DeepSeek intent routing"
+            description="Normalize final voice commands with the hosted model, then keep execution behind local typed routing and approvals."
+            checked={settings.modelIntentRoutingEnabled}
+            onCheckedChange={(checked) => updateSettings({ modelIntentRoutingEnabled: checked })}
+          />
+          <div className="mt-4 surface-subpanel p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <BrainCircuit className="size-4 text-primary" />
+                {modelRouting.providerStatus.model}
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => void refreshModelProviderStatus()}
+                disabled={modelRouting.phase === "checking"}
+              >
+                <RefreshCw className={modelRouting.phase === "checking" ? "animate-spin" : undefined} />
+                Check
+              </Button>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              {modelRouting.providerStatus.message}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Badge variant="outline">{modelRouting.providerStatus.baseUrl}</Badge>
+              <Badge variant="outline">Key: {modelRouting.providerStatus.keySource ?? "not configured"}</Badge>
+              <Badge variant="outline">Runtime: {modelRouting.phase}</Badge>
+            </div>
+          </div>
         </section>
 
         <section className="surface-panel p-5">

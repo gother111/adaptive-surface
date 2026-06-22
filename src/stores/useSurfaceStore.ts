@@ -7,9 +7,12 @@ import {
   defaultTrustedFileRoots,
 } from "@/lib/context-sources";
 import { loadAppleContextBundle } from "@/lib/context-api";
+import { defaultModelProviderStatus, loadModelProviderStatus, refineVoiceIntentWithModel } from "@/lib/model-intent-api";
 import { initialSurfaces } from "@/lib/surface-fixtures";
+import { isTauriRuntime } from "@/lib/tauri";
 import { shouldRunFoundationBeforeWorkspace } from "@/local-context/context-routing-contract";
 import { isLocalContextUtterance } from "@/local-context/foundation-intent-router";
+import { selectRoutedUtterance, shouldAttemptModelRouting } from "@/model-intent/model-intent-routing";
 import { runFoundationCommand } from "@/local-context/work-command-runner";
 import { routeFoundationCommand } from "@/local-context/work-command-router";
 import type { FoundationCommand, FoundationCommandMemory } from "@/local-context/work-command-types";
@@ -21,6 +24,7 @@ import { applySurfacePatch, applySurfacePatches } from "@/surface-engine/patch-r
 import type { SurfacePatch } from "@/surface-engine/patch-types";
 import type { SurfaceSession, SurfaceSessionPatch } from "@/surface-engine/session-manager";
 import type { IntegrationSettings, StreamStatus, SurfaceConfig } from "@/types/surface";
+import type { ModelIntentRefinement, ModelRoutingState } from "@/types/model-intent";
 import type {
   AppleCalendarEvent,
   AppleContextBundle,
@@ -91,6 +95,7 @@ interface SurfaceState {
   lastCapabilityAction: string | null;
   lastApprovalRequired: boolean;
   lastGoldenEvalStatus: string | null;
+  modelRouting: ModelRoutingState;
   foundationCommandMemory: FoundationCommandMemory;
   draftSurface: SurfaceConfig | null;
   firstPartialLatencyMs: number | null;
@@ -121,6 +126,7 @@ interface SurfaceState {
   setAppleContextBundle: (bundle: AppleContextBundle) => void;
   refreshAppleContext: () => Promise<void>;
   clearAppleContextError: () => void;
+  refreshModelProviderStatus: () => Promise<void>;
   ingestWorkObjects: (objects: WorkObject[]) => void;
   createObjectiveFromVoice: (text: string) => ObjectiveFrame;
   updateObjectiveFromVoice: (text: string) => void;
@@ -158,6 +164,14 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
   lastCapabilityAction: null,
   lastApprovalRequired: false,
   lastGoldenEvalStatus: null,
+  modelRouting: {
+    enabled: true,
+    phase: "idle",
+    requestId: null,
+    providerStatus: defaultModelProviderStatus,
+    lastRefinement: null,
+    lastError: null,
+  },
   foundationCommandMemory: {},
   draftSurface: null,
   firstPartialLatencyMs: null,
@@ -177,13 +191,21 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
     appleScriptEnabled: false,
     accessibilityEnabled: false,
     localBackendUrl: "http://127.0.0.1:8000",
-    selectedModel: "local-router/default",
+    selectedModel: "deepseek-v4-flash",
+    modelIntentRoutingEnabled: true,
     voiceMode: "continuous",
     trustedFileRoots: defaultTrustedFileRoots,
     personalFileIndexPath: defaultPersonalFileIndexPath,
     contextSources: defaultContextSources,
   },
-  setActiveSurface: (surfaceId) => set({ activeSurfaceId: surfaceId, commandOpen: false }),
+  setActiveSurface: (surfaceId) =>
+    set((state) => ({
+      activeSurfaceId: surfaceId,
+      commandOpen: false,
+      ...(surfaceId !== "blank" && state.workspaceSession.surfaces.length
+        ? resetWorkspaceState()
+        : {}),
+    })),
   setCommandOpen: (commandOpen) => set({ commandOpen }),
   setDebugHudOpen: (debugHudOpen) =>
     set((state) => ({
@@ -227,67 +249,26 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
       return;
     }
 
-    const stateBeforeRouting = get();
-    const activeObjectiveBeforeRouting = getActiveObjective(stateBeforeRouting.objectives, stateBeforeRouting.activeObjectiveId);
-    const foundationCommand = routeFoundationCommand(text);
-    if (foundationCommand && shouldRunFoundationBeforeWorkspace(text, foundationCommand, stateBeforeRouting.workspaceSession, activeObjectiveBeforeRouting)) {
-      void get().executeFoundationCommand(text);
+    const stateBeforeModel = get();
+    if (shouldAttemptModelRouting(stateBeforeModel.settings, isTauriRuntime())) {
+      const requestId = crypto.randomUUID();
+      set((state) => ({
+        modelRouting: {
+          ...state.modelRouting,
+          phase: "routing",
+          requestId,
+          lastError: null,
+        },
+      }));
+      void routeFinalVoiceWithModel(set, get, text, requestId);
       return;
     }
 
-    if (!activeObjectiveBeforeRouting && isLocalContextUtterance(text) && !isExplicitEmailDraftUtterance(text)) {
-      void get().executeFoundationCommand(text);
-      return;
-    }
-
-    let shouldRefreshAppleContext = false;
-    set((state) => {
-      const activeObjective = getActiveObjective(state.objectives, state.activeObjectiveId);
-      const objectiveDecision = routeUtteranceToObjectiveFrame(text, activeObjective, state.objectives);
-      const objectiveUpdate = applyObjectiveRouting(
-        state.objectives,
-        state.activeObjectiveId,
-        objectiveDecision,
-        text,
-      );
-      const routedAction = routeVoiceAction(state.workspaceSession, text);
-      shouldRefreshAppleContext = routeRequestsAppleContext(routedAction) || objectiveRequestsAppleContext(objectiveDecision);
-      const workspacePatches = routedActionToPatches(state.workspaceSession, routedAction, text);
-      const workspaceSession = applyWorkspacePatches(state.workspaceSession, workspacePatches);
-      const nextObjectives = syncObjectiveSurfaceIds(objectiveUpdate.objectives, objectiveUpdate.activeObjectiveId, workspaceSession);
-      const relevantContextObjectIds = scoreRelevantContextIds(
-        nextObjectives,
-        objectiveUpdate.activeObjectiveId,
-        state.workObjects,
-      );
-      const nextState: SurfaceState = {
-        ...state,
-        partialTranscript: "",
-        committedTranscript: `${state.committedTranscript} ${text}`.trim(),
-        transcript: commitTranscript(state.transcript, text),
-        activeIntent: null,
-        workspaceSession,
-        workspacePatches: [...workspacePatches, ...state.workspacePatches].slice(0, 36),
-        lastRoutedAction: routedAction,
-        objectives: nextObjectives,
-        activeObjectiveId: objectiveUpdate.activeObjectiveId,
-        objectiveHistory: objectiveUpdate.objectiveHistory,
-        lastObjectiveRoutingDecision: objectiveDecision,
-        relevantContextObjectIds,
-        lastApprovalRequired: objectiveDecision.route === "request_approval",
-        lastCapabilityAction: plannedCapabilityLabel(nextObjectives, objectiveUpdate.activeObjectiveId),
-        debugHudOpen: workspaceSession.debugVisible,
-      };
-
-      return nextState;
-    });
-
-    if (shouldRefreshAppleContext) {
-      void get().refreshAppleContext();
-    }
+    routeFinalVoiceUtterance(set, get, text, text, null);
   },
   clearVoiceDraft: () =>
     set((state) => ({
+      activeSurfaceId: "blank",
       partialTranscript: "",
       committedTranscript: "",
       activeIntent: null,
@@ -306,11 +287,12 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
       lastCapabilityAction: null,
       lastApprovalRequired: false,
       foundationCommandMemory: {},
+      modelRouting: { ...state.modelRouting, phase: "idle", requestId: null },
       debugHudOpen: false,
-      activeSurfaceId: state.activeSurfaceId,
     })),
   clearWorkspace: () =>
     set((state) => ({
+      activeSurfaceId: "blank",
       partialTranscript: "",
       committedTranscript: "",
       activeIntent: null,
@@ -329,6 +311,7 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
       lastCapabilityAction: null,
       lastApprovalRequired: false,
       foundationCommandMemory: {},
+      modelRouting: { ...state.modelRouting, phase: "idle", requestId: null },
       transcript: commitTranscript(state.transcript, "clear workspace"),
     })),
   appendTranscript: (text) =>
@@ -380,6 +363,32 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
     set((state) => ({
       appleContext: { ...state.appleContext, error: null },
     })),
+  refreshModelProviderStatus: async () => {
+    set((state) => ({
+      modelRouting: { ...state.modelRouting, phase: "checking", lastError: null },
+    }));
+
+    try {
+      const providerStatus = await loadModelProviderStatus();
+      set((state) => ({
+        modelRouting: {
+          ...state.modelRouting,
+          phase: providerStatus.configured ? "idle" : "fallback",
+          providerStatus,
+          lastError: providerStatus.configured ? null : providerStatus.message,
+        },
+      }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to inspect the model provider.";
+      set((state) => ({
+        modelRouting: {
+          ...state.modelRouting,
+          phase: "error",
+          lastError: message,
+        },
+      }));
+    }
+  },
   ingestWorkObjects: (objects) =>
     set((state) => {
       const workObjects = mergeWorkObjectIndex(state.workObjects, objects);
@@ -492,6 +501,139 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
   },
 }));
 
+type SurfaceStoreSet = (
+  next:
+    | SurfaceState
+    | Partial<SurfaceState>
+    | ((state: SurfaceState) => SurfaceState | Partial<SurfaceState>),
+) => void;
+type SurfaceStoreGet = () => SurfaceState;
+
+async function routeFinalVoiceWithModel(
+  set: SurfaceStoreSet,
+  get: SurfaceStoreGet,
+  text: string,
+  requestId: string,
+) {
+  const snapshot = get();
+  const activeObjective = getActiveObjective(snapshot.objectives, snapshot.activeObjectiveId);
+  const activeSurface = snapshot.workspaceSession.surfaces.find(
+    (surface) => surface.id === snapshot.workspaceSession.primarySurfaceId,
+  );
+
+  try {
+    const refinement = await refineVoiceIntentWithModel({
+      transcript: text,
+      localIntentTitle: snapshot.activeIntent?.title ?? null,
+      localIntentKind: snapshot.activeIntent?.intent ?? null,
+      activeObjectiveKind: activeObjective?.kind ?? null,
+      activeSurfaceKind: activeSurface?.kind ?? null,
+      selectedModel: snapshot.settings.selectedModel,
+    });
+
+    if (get().modelRouting.requestId !== requestId) {
+      return;
+    }
+
+    const routedText = selectRoutedUtterance(text, refinement);
+    set((state) => ({
+      modelRouting: {
+        ...state.modelRouting,
+        phase: refinement.status === "used" && routedText !== text ? "used" : "fallback",
+        requestId: null,
+        lastRefinement: refinement,
+        lastError: refinement.status === "used" ? null : refinement.reason,
+      },
+    }));
+    routeFinalVoiceUtterance(set, get, text, routedText, refinement);
+  } catch (error) {
+    if (get().modelRouting.requestId !== requestId) {
+      return;
+    }
+
+    const message = error instanceof Error ? error.message : "Model routing failed.";
+    set((state) => ({
+      modelRouting: {
+        ...state.modelRouting,
+        phase: "error",
+        requestId: null,
+        lastError: message,
+      },
+    }));
+    routeFinalVoiceUtterance(set, get, text, text, null);
+  }
+}
+
+function routeFinalVoiceUtterance(
+  set: SurfaceStoreSet,
+  get: SurfaceStoreGet,
+  originalText: string,
+  routingText: string,
+  refinement: ModelIntentRefinement | null,
+) {
+  const stateBeforeRouting = get();
+  const activeObjectiveBeforeRouting = getActiveObjective(stateBeforeRouting.objectives, stateBeforeRouting.activeObjectiveId);
+  const foundationCommand = routeFoundationCommand(routingText);
+  if (foundationCommand && shouldRunFoundationBeforeWorkspace(routingText, foundationCommand, stateBeforeRouting.workspaceSession, activeObjectiveBeforeRouting)) {
+    void get().executeFoundationCommand(routingText);
+    return;
+  }
+
+  if (!activeObjectiveBeforeRouting && isLocalContextUtterance(routingText) && !isExplicitEmailDraftUtterance(routingText)) {
+    void get().executeFoundationCommand(routingText);
+    return;
+  }
+
+  let shouldRefreshAppleContext = false;
+  set((state) => {
+    const activeObjective = getActiveObjective(state.objectives, state.activeObjectiveId);
+    const objectiveDecision = routeUtteranceToObjectiveFrame(routingText, activeObjective, state.objectives);
+    const objectiveUpdate = applyObjectiveRouting(
+      state.objectives,
+      state.activeObjectiveId,
+      objectiveDecision,
+      originalText,
+    );
+    const routedAction = routeVoiceAction(state.workspaceSession, routingText);
+    shouldRefreshAppleContext = routeRequestsAppleContext(routedAction) || objectiveRequestsAppleContext(objectiveDecision);
+    const workspacePatches = routedActionToPatches(state.workspaceSession, routedAction, originalText);
+    const workspaceSession = applyWorkspacePatches(state.workspaceSession, workspacePatches);
+    const nextObjectives = syncObjectiveSurfaceIds(objectiveUpdate.objectives, objectiveUpdate.activeObjectiveId, workspaceSession);
+    const relevantContextObjectIds = scoreRelevantContextIds(
+      nextObjectives,
+      objectiveUpdate.activeObjectiveId,
+      state.workObjects,
+    );
+    const nextState: SurfaceState = {
+      ...state,
+      partialTranscript: "",
+      committedTranscript: `${state.committedTranscript} ${originalText}`.trim(),
+      transcript: commitTranscript(state.transcript, originalText),
+      activeIntent: null,
+      workspaceSession,
+      workspacePatches: [...workspacePatches, ...state.workspacePatches].slice(0, 36),
+      lastRoutedAction: routedAction,
+      objectives: nextObjectives,
+      activeObjectiveId: objectiveUpdate.activeObjectiveId,
+      objectiveHistory: objectiveUpdate.objectiveHistory,
+      lastObjectiveRoutingDecision: objectiveDecision,
+      relevantContextObjectIds,
+      lastApprovalRequired: objectiveDecision.route === "request_approval",
+      lastCapabilityAction: plannedCapabilityLabel(nextObjectives, objectiveUpdate.activeObjectiveId),
+      debugHudOpen: workspaceSession.debugVisible,
+      modelRouting: refinement
+        ? { ...state.modelRouting, lastRefinement: refinement }
+        : state.modelRouting,
+    };
+
+    return nextState;
+  });
+
+  if (shouldRefreshAppleContext) {
+    void get().refreshAppleContext();
+  }
+}
+
 function patchSurfaceState(state: SurfaceState, surfaceId: string, patch: SurfacePatch): SurfaceState {
   const draftSurface =
     state.draftSurface?.id === surfaceId && state.draftSurface.blueprint
@@ -542,6 +684,23 @@ function upsertPartialTranscript(transcript: TranscriptEntry[], text: string) {
 function commitTranscript(transcript: TranscriptEntry[], text: string) {
   const withoutPartial = transcript.filter((entry) => entry.status !== "partial");
   return [{ id: crypto.randomUUID(), text, at: Date.now(), status: "committed" as const }, ...withoutPartial].slice(0, 16);
+}
+
+function resetWorkspaceState() {
+  return {
+    workspaceSession: createInitialWorkspaceSession(),
+    workspacePatches: [],
+    lastRoutedAction: null,
+    activeObjectiveId: null,
+    objectives: [],
+    objectiveHistory: [],
+    lastObjectiveRoutingDecision: null,
+    relevantContextObjectIds: [],
+    lastCapabilityAction: null,
+    lastApprovalRequired: false,
+    foundationCommandMemory: {},
+    debugHudOpen: false,
+  };
 }
 
 function isExplicitEmailDraftUtterance(text: string) {

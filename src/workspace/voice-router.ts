@@ -73,6 +73,22 @@ export function routeVoiceAction(session: WorkspaceSession, utterance: string): 
   }
 
   if (primary?.kind === "email_draft" && isEmailDraftFollowup(text)) {
+    if (isPendingActionReview(text)) {
+      return {
+        kind: "transform_existing_content",
+        targetSurfaceId: primary.id,
+        transformation: utterance,
+      };
+    }
+
+    if (isSendCorrection(text)) {
+      return {
+        kind: "transform_existing_content",
+        targetSurfaceId: primary.id,
+        transformation: utterance,
+      };
+    }
+
     if (isCompletion(text)) {
       return { kind: "complete_task", targetSurfaceId: primary.id, action: completionAction(text) };
     }
@@ -223,7 +239,7 @@ export function routedActionToPatches(
         {
           type: "UPDATE_SURFACE",
           surfaceId: action.targetSurfaceId,
-          props: { statusLabel: `${action.action} ready for approval` },
+          props: completionEmailProps(session.surfaces.find((surface) => surface.id === action.targetSurfaceId)?.props ?? {}, action.action),
         },
       ];
     case "debug":
@@ -305,6 +321,9 @@ function updateEmailProps(current: Record<string, unknown>, instruction: string)
     subject: subjectFromInstruction(instruction, existing.subject),
     body,
     tone: existing.tone,
+    statusLabel: undefined,
+    statusDetail: undefined,
+    safetyChecklist: [],
     sourceChips: Array.from(sourceChips),
   };
 }
@@ -313,20 +332,63 @@ function transformEmailProps(current: Record<string, unknown>, transformation: s
   const existing = readEmailProps(current);
   const text = normalize(transformation);
 
-  if (/\b(professional|formal)\b/.test(text)) {
+  if (isPendingActionReview(text)) {
+    return reviewPendingEmailActionProps(existing);
+  }
+
+  if (isSendCorrection(text)) {
+    const body = applySimpleReplacement(existing.body, transformation);
     return {
-      tone: "formal",
-      subject: existing.subject || "Friday availability",
-      body: existing.body.replace("Hi,", "Hello,"),
+      body,
+      statusLabel: "Send canceled",
+      statusDetail: "Send canceled. The draft was updated in the workspace only. No mail has been sent.",
+      safetyChecklist: ["Nothing was sent.", "Review the revised draft before any future send request."],
     };
   }
 
-  if (/\b(warmer|friendly|softer)\b/.test(text)) {
+  if (/\b(shorten|shorter|concise|three sentences?)\b/.test(text)) {
+    return {
+      tone: existing.tone,
+      body: shortenBody(existing.body),
+      statusLabel: undefined,
+      statusDetail: undefined,
+      safetyChecklist: [],
+    };
+  }
+
+  if (/\b(less confrontational|confrontational|escalation|diplomatic)\b/.test(text)) {
+    return {
+      tone: "formal",
+      body: softenEscalation(existing.body),
+      statusLabel: undefined,
+      statusDetail: undefined,
+      safetyChecklist: [],
+    };
+  }
+
+  if (/\b(warmer|friendly|friendlier|softer)\b/.test(text)) {
     const body = existing.body.includes("I hope you are doing well.")
       ? existing.body
       : existing.body.replace(/\n\n/, "\n\nI hope you are doing well.\n\n");
 
-    return { tone: "warm", body };
+    return {
+      tone: "warm",
+      body,
+      statusLabel: undefined,
+      statusDetail: undefined,
+      safetyChecklist: [],
+    };
+  }
+
+  if (/\b(professional|formal)\b/.test(text)) {
+    return {
+      tone: "formal",
+      subject: existing.subject || "Friday availability",
+      body: formalizeGreeting(existing.body),
+      statusLabel: undefined,
+      statusDetail: undefined,
+      safetyChecklist: [],
+    };
   }
 
   return updateEmailProps(current, transformation);
@@ -338,10 +400,19 @@ function readEmailProps(props: Record<string, unknown>): EmailDraftSurfaceProps 
     subject: typeof props.subject === "string" ? props.subject : "Friday availability",
     body: typeof props.body === "string" ? props.body : "Hi,\n\nTell me what this email should say.\n\nBest,",
     tone: props.tone === "formal" || props.tone === "direct" || props.tone === "warm" ? props.tone : "warm",
+    statusLabel: typeof props.statusLabel === "string" ? props.statusLabel : undefined,
+    statusDetail: typeof props.statusDetail === "string" ? props.statusDetail : undefined,
+    safetyChecklist: Array.isArray(props.safetyChecklist)
+      ? props.safetyChecklist.filter((item): item is string => typeof item === "string")
+      : [],
     sourceChips: Array.isArray(props.sourceChips)
       ? props.sourceChips.filter((item): item is string => typeof item === "string")
       : [],
   };
+}
+
+function formalizeGreeting(body: string) {
+  return body.replace(/^Hi( [^,\n]+)?,/m, "Hello$1,");
 }
 
 function buildBody(currentBody: string, sentence: string | null, recipient: string) {
@@ -375,16 +446,27 @@ function sentenceFromInstruction(instruction: string) {
     return /\bafter\b/.test(text) ? "I am available on Friday after 3." : "I am free on Friday.";
   }
 
+  const contentClause = extractContentClause(instruction);
+  if (contentClause) {
+    return normalizeDraftSentence(contentClause);
+  }
+
   const cleaned = instruction
-    .replace(/\b(write|draft|compose|email|mail|message|to|for|that|tell|include|add|say|mention|also|insert|this|into|the)\b/gi, " ")
+    .replace(/\b(write|draft|compose|start)\s+(an?\s+)?(email|mail|message|reply)\b/gi, " ")
+    .replace(/\b(to|for)\s+[A-Z][a-z]+\b/g, " ")
+    .replace(/\b(email|mail|message|that|tell|include|add|say|mention|also|insert|this|into|the)\b/gi, " ")
     .replace(/\s+/g, " ")
     .trim();
 
-  return cleaned ? `${capitalize(cleaned)}.` : null;
+  return cleaned ? normalizeDraftSentence(cleaned) : null;
 }
 
 function subjectFromInstruction(instruction: string, current: string) {
   const text = normalize(instruction);
+  if (/\bproposal|delivery date|september\b/.test(text)) {
+    return "Proposal timing";
+  }
+
   if (/\bfriday|available|availability|free\b/.test(text)) {
     return "Friday availability";
   }
@@ -516,7 +598,7 @@ function beginsWithSupportLookup(text: string) {
 }
 
 function isTransformation(text: string) {
-  return /\b(make it|make this|warmer|friendlier|more professional|formal|shorter|clearer)\b/.test(text);
+  return /\b(make it|make this|warmer|friendly|friendlier|more professional|formal|shorten|shorter|concise|clearer|less confrontational|escalation|diplomatic)\b/.test(text);
 }
 
 function isCompletion(text: string) {
@@ -524,7 +606,7 @@ function isCompletion(text: string) {
 }
 
 function isEmailDraftFollowup(text: string) {
-  return isCompletion(text) || isTransformation(text) || /\b(email|draft|message|write|say|tell|mention|include|make it|subject|recipient)\b/.test(text);
+  return isCompletion(text) || isTransformation(text) || isPendingActionReview(text) || /\b(email|draft|message|reply|write|say|tell|mention|include|follow up|decline|approve|agree|stop|undo|do not send|don't send|change|subject|recipient)\b/.test(text);
 }
 
 function completionAction(text: string): "send" | "export" | "save" | "copy" {
@@ -534,9 +616,121 @@ function completionAction(text: string): "send" | "export" | "save" | "copy" {
   return "send";
 }
 
+function completionEmailProps(current: Record<string, unknown>, action: "send" | "export" | "save" | "copy"): Partial<EmailDraftSurfaceProps> {
+  const existing = readEmailProps(current);
+  const label = `${capitalize(action)} ready for approval`;
+
+  if (action === "send") {
+    return {
+      statusLabel: label,
+      statusDetail: `Send needs explicit approval. Recipient: ${existing.to || "not confirmed"}. Subject: ${existing.subject || "untitled"}. No mail has been sent.`,
+      safetyChecklist: [
+        "Review recipient, subject, body, attachments, and timing before approval.",
+        "Do not use Reply All, add recipients, or send externally until explicitly confirmed.",
+      ],
+    };
+  }
+
+  return {
+    statusLabel: label,
+    statusDetail: `${label}. This is still only in the Adaptive Surface workspace. No mail has been sent.`,
+    safetyChecklist: ["Review the draft before using it outside the app."],
+  };
+}
+
+function reviewPendingEmailActionProps(existing: EmailDraftSurfaceProps): Partial<EmailDraftSurfaceProps> {
+  if (existing.statusLabel === "Send ready for approval") {
+    return {
+      statusLabel: "Send ready for approval",
+      statusDetail: `Pending action: send this email after explicit approval. Recipient: ${existing.to || "not confirmed"}. Subject: ${existing.subject || "untitled"}. No mail has been sent.`,
+      safetyChecklist: [
+        "No send action will run until the user explicitly approves it.",
+        "Review recipient, subject, body, attachments, and timing before approval.",
+      ],
+    };
+  }
+
+  if (existing.statusLabel) {
+    const safetyChecklist = existing.safetyChecklist ?? [];
+    return {
+      statusLabel: existing.statusLabel,
+      statusDetail: `${existing.statusLabel}. This remains only in the Adaptive Surface workspace until explicitly approved.`,
+      safetyChecklist: safetyChecklist.length ? safetyChecklist : ["No external action has run."],
+    };
+  }
+
+  return {
+    statusLabel: "No pending email action",
+    statusDetail: "There is no email send, forward, delete, archive, schedule, or mailbox change waiting for approval.",
+    safetyChecklist: ["No external email or mailbox action has run."],
+  };
+}
+
 function extractRecipient(instruction: string) {
   const match = instruction.match(/\b(?:to|for)\s+([A-Z][a-z]+|[a-z]+)/);
   return match?.[1] ? titleCase(match[1]) : null;
+}
+
+function extractContentClause(instruction: string) {
+  const match = instruction.match(/\b(?:saying|that|tell(?:ing)?\s+(?:them|him|her|everyone|[A-Z][a-z]+)|reply\s+that|explain\s+that|ask\s+for)\s+(.+?)[.?!]?$/i);
+  return match?.[1]?.trim() ?? null;
+}
+
+function normalizeDraftSentence(value: string) {
+  const cleaned = value
+    .replace(/[.?!]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!cleaned) return null;
+  return `${capitalize(cleaned)}.`;
+}
+
+function isSendCorrection(text: string) {
+  return /\b(stop|cancel|undo|do not send|don't send|dont send)\b/.test(text);
+}
+
+function isPendingActionReview(text: string) {
+  return /\b(what are you about to do|what will you do|what did you understand|what are you going to do|show me what.*approve|being asked to approve)\b/.test(text);
+}
+
+function applySimpleReplacement(body: string, instruction: string) {
+  const match = instruction.match(/\bchange\s+(.+?)\s+to\s+(.+?)[.?!]?$/i);
+  if (!match?.[1] || !match?.[2]) {
+    return body;
+  }
+
+  const from = match[1].trim();
+  const to = match[2].trim();
+  return body.replace(new RegExp(escapeRegExp(from), "gi"), to);
+}
+
+function shortenBody(body: string) {
+  const lines = body.split("\n");
+  const greeting = lines.find((line) => /^hello|^hi/i.test(line.trim())) ?? "Hi,";
+  const signoff = lines.find((line) => /^best/i.test(line.trim())) ?? "Best,";
+  const sentences = body
+    .replace(/^Hi(?: [^,\n]+)?,/i, "")
+    .replace(/^Hello(?: [^,\n]+)?,/i, "")
+    .replace(/\n\nBest,$/i, "")
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+
+  return `${greeting}\n\n${sentences.join(" ")}\n\n${signoff}`;
+}
+
+function softenEscalation(body: string) {
+  if (body.includes("I want to keep this constructive")) {
+    return body;
+  }
+
+  return body.replace(/\n\n/, "\n\nI want to keep this constructive while keeping the escalation clear.\n\n");
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function mentionsCalendar(instruction: string) {

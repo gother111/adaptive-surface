@@ -8,7 +8,7 @@ interface CanvasSurfaceProps {
 
 export function CanvasSurface({ config }: CanvasSurfaceProps) {
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col">
+    <div className="flex h-[calc(100vh-13rem)] flex-col">
       <div className="border-b border-border-subtle px-8 py-5">
         <SurfaceHeader title={config.title} subtitle={config.subtitle} status={config.streamStatus} />
       </div>

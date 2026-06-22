@@ -161,7 +161,10 @@ function EmailDraftSurface({ props }: { props: EmailDraftSurfaceProps }) {
             <Mail className="size-4 text-primary" />
             Email draft
           </div>
-          <Badge variant="secondary">{props.tone}</Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            {props.statusLabel ? <Badge variant="outline">{props.statusLabel}</Badge> : null}
+            <Badge variant="secondary">{props.tone}</Badge>
+          </div>
         </div>
         <div className="mt-4 grid gap-2 text-sm">
           <FieldRow label="To" value={props.to || "Recipient forming..."} />
@@ -174,6 +177,18 @@ function EmailDraftSurface({ props }: { props: EmailDraftSurfaceProps }) {
                 {chip}
               </Badge>
             ))}
+          </div>
+        ) : null}
+        {props.statusLabel ? (
+          <div className="mt-4 rounded-md border border-primary/20 bg-primary/10 px-3 py-2 text-xs font-medium text-primary">
+            {props.statusDetail ?? `${props.statusLabel}. No mail has been sent.`}
+            {props.safetyChecklist?.length ? (
+              <ul className="mt-2 list-disc space-y-1 pl-4 text-primary/90">
+                {props.safetyChecklist.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -504,6 +519,11 @@ function readEmailProps(props: Record<string, unknown>): EmailDraftSurfaceProps 
     subject: typeof props.subject === "string" ? props.subject : "Friday availability",
     body: typeof props.body === "string" ? props.body : "Hi,\n\nTell me what this email should say.\n\nBest,",
     tone: props.tone === "formal" || props.tone === "direct" || props.tone === "warm" ? props.tone : "warm",
+    statusLabel: typeof props.statusLabel === "string" ? props.statusLabel : undefined,
+    statusDetail: typeof props.statusDetail === "string" ? props.statusDetail : undefined,
+    safetyChecklist: Array.isArray(props.safetyChecklist)
+      ? props.safetyChecklist.filter((item): item is string => typeof item === "string")
+      : [],
     sourceChips: Array.isArray(props.sourceChips)
       ? props.sourceChips.filter((item): item is string => typeof item === "string")
       : [],

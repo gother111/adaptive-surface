@@ -17,8 +17,8 @@ export function BriefSurface({ config }: BriefSurfaceProps) {
   const blocks = config.briefBlocks ?? [];
 
   return (
-    <ScrollArea className="h-[calc(100vh-3.5rem)]">
-      <div className="mx-auto flex max-w-5xl flex-col gap-8 px-8 py-8">
+    <ScrollArea className="h-[calc(100vh-13rem)]">
+      <div className="mx-auto flex max-w-5xl flex-col gap-8 px-8 pb-8 pt-8">
         <SurfaceHeader title={config.title} subtitle={config.subtitle} status={config.streamStatus} />
 
         <div className="grid gap-4 lg:grid-cols-3">
@@ -30,7 +30,7 @@ export function BriefSurface({ config }: BriefSurfaceProps) {
         <section className="surface-panel p-6">
           <div className="flex items-center gap-2 text-sm font-medium">
             <span className="size-2 rounded-full bg-primary" />
-            Agent stream placeholder
+            Live activity
           </div>
           <div className="mt-5 space-y-3">
             {[0, 1, 2].map((index) => (
@@ -43,8 +43,8 @@ export function BriefSurface({ config }: BriefSurfaceProps) {
             ))}
           </div>
           <p className="mt-5 text-sm leading-6 text-muted-foreground">
-            TODO: Connect this area to local LangGraph or FastAPI streaming events and apply
-            incremental updates to the Zustand surface store.
+            Adaptive Surface is keeping this brief in view while new context is collected.
+            Updates appear here only after they are tied to the current work surface.
           </p>
         </section>
       </div>

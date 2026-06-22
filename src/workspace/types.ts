@@ -164,6 +164,9 @@ export interface EmailDraftSurfaceProps {
   subject: string;
   body: string;
   tone: "warm" | "direct" | "formal";
+  statusLabel?: string;
+  statusDetail?: string;
+  safetyChecklist?: string[];
   sourceChips?: string[];
 }
 
