@@ -331,6 +331,59 @@ describe("foundation command lifecycle", () => {
     expect(String(surface?.props.body)).toContain("# Email Analysis");
   });
 
+  it("creates a read-only inbox triage artifact from mail metadata", async () => {
+    contextMocks.loadMailMessages.mockResolvedValue([
+      {
+        id: "mail-1",
+        mailbox: "Inbox",
+        subject: "Invoice approval needed",
+        sender: "Alex <alex@example.com>",
+        receivedAt: "2026-05-24T10:00:00Z",
+        isRead: false,
+        preview: "Please approve the May invoice before Friday.",
+      },
+      {
+        id: "mail-2",
+        mailbox: "Inbox",
+        subject: "Planning notes",
+        sender: "Sam <sam@example.com>",
+        receivedAt: "2026-05-24T09:00:00Z",
+        isRead: true,
+        preview: "Agenda and open questions.",
+      },
+    ]);
+
+    const result = await runFoundationCommand({
+      kind: "create_email_triage_artifact",
+      utterance: "Plan the next steps for inbox triage.",
+      surfaceKind: "document",
+      adapter: "email_triage_artifact",
+      requiresApproval: false,
+      payload: { mode: "plan_next_steps" },
+    }, createInitialWorkspaceSession(), {});
+    const next = applyWorkspacePatches(createInitialWorkspaceSession(), result.patches);
+    const surface = next.surfaces[0];
+
+    expect(contextMocks.loadMailMessages).toHaveBeenCalledWith({ limit: 25, unreadFirst: true });
+    expect(contextMocks.readMailMessage).not.toHaveBeenCalled();
+    expect(result.memory.latestEmailId).toBe("mail-1");
+    expect(surface?.kind).toBe("document");
+    expect(surface?.role).toBe("primary");
+    expect(surface?.props.title).toBe("Inbox triage plan");
+    expect(surface?.props.summary).toContain("read-only inbox triage artifact");
+    expect(surface?.props.detail).toMatchObject({
+      writesToDisk: false,
+      externalWrite: false,
+      writesToMailbox: false,
+      fullBodiesRead: false,
+      mode: "plan_next_steps",
+    });
+    expect(String(surface?.props.body)).toContain("## Sources Used");
+    expect(String(surface?.props.body)).toContain("## Assumptions");
+    expect(String(surface?.props.body)).toContain("## Gaps");
+    expect(String(surface?.props.body)).toContain("## Next Steps");
+  });
+
   it("queues local writes for approval before creating anything", async () => {
     const result = await runFoundationCommand({
       kind: "create_reminder",

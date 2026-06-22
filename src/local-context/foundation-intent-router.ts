@@ -7,6 +7,7 @@ export type FoundationIntentName =
   | "email.readLatest"
   | "email.summarizeLatest"
   | "email.createSummaryArtifact"
+  | "email.triageArtifact"
   | "calendar.today"
   | "reminder.list"
   | "notes.list"
@@ -107,6 +108,10 @@ export function classifyFoundationIntent(utterance: string): FoundationIntentRes
     /\b(email|mail|message|summary|analysis)\b/.test(normalizedText)
   ) {
     return high("email.createSummaryArtifact", normalizedText, "Email summary artifact phrase matched.");
+  }
+
+  if (isInboxTriageWork(normalizedText)) {
+    return high("email.triageArtifact", normalizedText, "Inbox triage synthesis phrase matched.");
   }
 
   if (/\b(capability status|app permissions|what can you access)\b/.test(normalizedText)) {
@@ -225,6 +230,13 @@ export function normalizeFoundationUtterance(utterance: string) {
 
 function high(intent: FoundationIntentName, normalizedText: string, reason: string): FoundationIntentResult {
   return { intent, confidence: "high", reason, normalizedText };
+}
+
+function isInboxTriageWork(text: string) {
+  if (!/\b(email|emails|mail|inbox|message|messages)\b/.test(text)) return false;
+  if (!/\b(triage|catch up|catch|decisions?|records?|requests?|organize|context|compare|options?|plan|next steps?|actionable|sources?|assumptions?|gaps?)\b/.test(text)) return false;
+
+  return /\b(catch up|catch|find|key|organize|compare|plan|next steps?|actionable|looking across|show.*sources?|assumptions?|gaps?)\b/.test(text);
 }
 
 function extractRoot(text: string): FoundationIntentResult["root"] {

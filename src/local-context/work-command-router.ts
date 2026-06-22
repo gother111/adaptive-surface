@@ -81,6 +81,10 @@ export function routeFoundationCommand(utterance: string): FoundationCommand | n
       return command("summarize_latest_email", utterance, "email_detail", "analyze_mail_message", false, {});
     case "email.createSummaryArtifact":
       return command("create_email_summary_artifact", utterance, "document", "create_email_summary_artifact", false, {});
+    case "email.triageArtifact":
+      return command("create_email_triage_artifact", utterance, "document", "email_triage_artifact", false, {
+        mode: inferEmailTriageMode(text),
+      });
     case "calendar.today":
       return command("show_today_calendar", utterance, "calendar_day", "load_calendar_events", false, { daysAhead: 1, limit: 30 });
     case "reminder.list":
@@ -175,6 +179,14 @@ function isImplementedEmailReadCommand(text: string) {
     /\b(create|make|turn|produce|build)\b.*\b(artifact|document|doc|writeup|write up|brief)\b/.test(text) &&
     /\b(email|mail|message|summary|analysis)\b/.test(text)
   );
+}
+
+function inferEmailTriageMode(text: string) {
+  if (/\b(compare|options?)\b/.test(text)) return "compare_options";
+  if (/\b(plan|next steps?|actionable)\b/.test(text)) return "plan_next_steps";
+  if (/\b(organize|context)\b/.test(text)) return "organize_context";
+  if (/\b(decisions?|records?|requests?|key)\b/.test(text)) return "extract_records";
+  return "catch_up";
 }
 
 function unsupportedEmailActionPayload(utterance: string) {

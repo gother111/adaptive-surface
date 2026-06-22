@@ -10,6 +10,7 @@ export type FoundationCommandKind =
   | "open_latest_email"
   | "summarize_latest_email"
   | "create_email_summary_artifact"
+  | "create_email_triage_artifact"
   | "show_today_calendar"
   | "create_calendar_event"
   | "show_reminders"

@@ -62,6 +62,14 @@ describe("foundation command router", () => {
     expect(routeFoundationCommand("prep me for my next meeting")?.kind).toBe("prepare_next_meeting");
   });
 
+  it("routes broad inbox triage work to a synthesis artifact instead of a raw email list", () => {
+    expect(routeFoundationCommand("Catch me up on inbox triage.")?.kind).toBe("create_email_triage_artifact");
+    expect(routeFoundationCommand("Find the key decisions, records, and open requests for inbox triage.")?.payload.mode).toBe("extract_records");
+    expect(routeFoundationCommand("Organize the work and context for inbox triage.")?.payload.mode).toBe("organize_context");
+    expect(routeFoundationCommand("Compare the available options for inbox triage.")?.payload.mode).toBe("compare_options");
+    expect(routeFoundationCommand("Plan the next steps for inbox triage.")?.payload.mode).toBe("plan_next_steps");
+  });
+
   it("keeps local context phrases in the foundation path even when unsupported", () => {
     expect(routeFoundationCommand("Find recent notes about Adaptive Surface.")?.kind).toBe("show_recent_notes");
     expect(routeFoundationCommand("Do something with folders")?.kind).toBe("unsupported_local_context");

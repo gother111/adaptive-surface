@@ -189,6 +189,33 @@ export async function runFoundationCommand(
           items: messages.map((message) => ({ ...message })),
         });
       }
+      case "create_email_triage_artifact": {
+        const messages = await withTimeout(loadMailMessages({ limit: 25, unreadFirst: true }), "load_mail_messages");
+        return result(session, command, { ...memory, latestEmailId: messages[0]?.id ?? memory.latestEmailId }, {
+          title: emailTriageTitle(command.payload.mode),
+          status: messages.length ? "available" : "empty",
+          command: command.utterance,
+          adapter: command.adapter,
+          summary: messages.length
+            ? `Created a read-only inbox triage artifact from ${messages.length} Apple Mail metadata rows.`
+            : "Apple Mail returned no messages to triage.",
+          detail: {
+            artifactType: "text/markdown",
+            source: "Apple Mail metadata",
+            mailCount: messages.length,
+            writesToDisk: false,
+            externalWrite: false,
+            writesToMailbox: false,
+            fullBodiesRead: false,
+            mode: command.payload.mode,
+          },
+          items: emailTriageItems(messages),
+          body: emailTriageBody(command.utterance, messages, command.payload.mode),
+          suggestedNextAction: messages.length
+            ? "Review the in-app triage artifact. Ask for a specific latest-email summary if full-message evidence is needed."
+            : "Run the command again after Mail metadata is available.",
+        });
+      }
       case "open_latest_email": {
         if (!memory.latestEmailId) {
           throw new Error("No latest email is loaded yet. Say \"Show recent emails\" first.");
@@ -435,6 +462,95 @@ function paymentAttentionBody(messages: AppleMailMessage[], reminders: AppleRemi
     "## Reminder Matches",
     ...briefingLines(reminderMatches, (reminder) => `${String(reminder.title ?? "Untitled reminder")} - ${String(reminder.dueAt ?? "No due date")}`),
   ].join("\n");
+}
+
+function emailTriageTitle(mode: unknown) {
+  switch (mode) {
+    case "extract_records":
+      return "Inbox triage records";
+    case "organize_context":
+      return "Inbox triage context";
+    case "compare_options":
+      return "Inbox triage options";
+    case "plan_next_steps":
+      return "Inbox triage plan";
+    default:
+      return "Inbox triage catch-up";
+  }
+}
+
+function emailTriageItems(messages: AppleMailMessage[]) {
+  return messages.slice(0, 8).map((message) => ({
+    subject: message.subject || "Untitled email",
+    sender: message.sender || "Unknown sender",
+    mailbox: message.mailbox,
+    receivedAt: message.receivedAt,
+    isRead: message.isRead,
+  }));
+}
+
+function emailTriageBody(utterance: string, messages: AppleMailMessage[], mode: unknown) {
+  const unread = messages.filter((message) => !message.isRead);
+  const recentLines = messages.slice(0, 8).map((message, index) => {
+    const readState = message.isRead ? "read" : "unread";
+    return `${index + 1}. ${String(message.subject || "Untitled email")} - ${String(message.sender || "Unknown sender")} (${readState}${message.receivedAt ? `, ${message.receivedAt}` : ""})`;
+  });
+  const modeLabel = emailTriageModeLabel(mode);
+
+  return [
+    `# ${emailTriageTitle(mode)}`,
+    "",
+    `Request: ${utterance}`,
+    "Source: Apple Mail metadata",
+    "Artifact: in-app only",
+    "writesToDisk: false",
+    "externalWrite: false",
+    "writesToMailbox: false",
+    "fullBodiesRead: false",
+    "",
+    "## Summary",
+    messages.length
+      ? `${messages.length} recent messages were loaded for ${modeLabel}. ${unread.length} are currently unread in the metadata sample.`
+      : "No recent messages were available from Apple Mail metadata.",
+    "",
+    "## Sources Used",
+    ...(recentLines.length ? recentLines : ["- No mail metadata rows were returned."]),
+    "",
+    "## Assumptions",
+    "- This is a metadata-only triage pass; it uses sender, subject, mailbox, read state, timestamps, and previews when available.",
+    "- Full message bodies, attachments, and thread history were not read.",
+    "- No reply, send, archive, delete, label, unsubscribe, reminder, or mailbox mutation has run.",
+    "",
+    "## Gaps",
+    "- Message-body evidence requires opening or summarizing a specific email.",
+    "- Thread-level decisions require a thread-aware mail adapter before they can be proven.",
+    "- Priority is inferred from metadata signals only, so ambiguous messages should be reviewed by the user.",
+    "",
+    "## Options",
+    "- Review unread or newest messages first when speed matters.",
+    "- Open and summarize one specific latest email when evidence quality matters.",
+    "- Convert confirmed follow-ups into a draft or reminder only after a preview and explicit approval.",
+    "",
+    "## Next Steps",
+    "- Pick the highest-risk or newest message from the source list.",
+    "- Ask for a latest-email summary if the next decision depends on body text.",
+    "- Keep external actions paused until the exact draft, reminder, or mailbox change is previewed.",
+  ].join("\n");
+}
+
+function emailTriageModeLabel(mode: unknown) {
+  switch (mode) {
+    case "extract_records":
+      return "extracting key decisions, records, and open requests";
+    case "organize_context":
+      return "organizing work and context";
+    case "compare_options":
+      return "comparing available triage options";
+    case "plan_next_steps":
+      return "planning next steps";
+    default:
+      return "catching up on inbox triage";
+  }
 }
 
 function filterPaymentSignals<T extends object>(items: T[]) {
