@@ -426,6 +426,45 @@ describe("foundation command lifecycle", () => {
     expect(String(surface?.props.body)).toContain("Approval boundary");
   });
 
+  it("creates a review-only inbox triage approval check without approving work", async () => {
+    contextMocks.loadMailMessages.mockResolvedValue([
+      {
+        id: "mail-1",
+        mailbox: "Inbox",
+        subject: "Invoice approval needed",
+        sender: "Alex <alex@example.com>",
+        receivedAt: "2026-05-24T10:00:00Z",
+        isRead: false,
+        preview: "Please approve the May invoice before Friday.",
+      },
+    ]);
+
+    const result = await runFoundationCommand({
+      kind: "create_email_triage_artifact",
+      utterance: "Review and approve the proposed work for inbox triage.",
+      surfaceKind: "document",
+      adapter: "email_triage_artifact",
+      requiresApproval: false,
+      payload: { mode: "review_approval" },
+    }, createInitialWorkspaceSession(), {});
+    const next = applyWorkspacePatches(createInitialWorkspaceSession(), result.patches);
+    const surface = next.surfaces[0];
+
+    expect(contextMocks.readMailMessage).not.toHaveBeenCalled();
+    expect(surface?.props.title).toBe("Inbox triage review");
+    expect(surface?.props.detail).toMatchObject({
+      writesToDisk: false,
+      externalWrite: false,
+      writesToMailbox: false,
+      fullBodiesRead: false,
+      mode: "review_approval",
+    });
+    expect(String(surface?.props.body)).toContain("## Review and Approval Check");
+    expect(String(surface?.props.body)).toContain("Approval status: not approved");
+    expect(String(surface?.props.body)).toContain("## Findings");
+    expect(String(surface?.props.body)).toContain("## Proposed Corrections");
+  });
+
   it("queues local writes for approval before creating anything", async () => {
     const result = await runFoundationCommand({
       kind: "create_reminder",

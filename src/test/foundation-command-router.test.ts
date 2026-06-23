@@ -71,6 +71,10 @@ describe("foundation command router", () => {
     const draftArtifact = routeFoundationCommand("Draft the main business artifact for inbox triage.");
     expect(draftArtifact?.kind).toBe("create_email_triage_artifact");
     expect(draftArtifact?.payload.mode).toBe("draft_artifact");
+    const reviewApproval = routeFoundationCommand("Review and approve the proposed work for inbox triage.");
+    expect(reviewApproval?.kind).toBe("create_email_triage_artifact");
+    expect(reviewApproval?.payload.mode).toBe("review_approval");
+    expect(routeFoundationCommand("I need a trustworthy quality and risk check for inbox triage. Review and approve the proposed work for inbox triage.")?.payload.mode).toBe("review_approval");
   });
 
   it("keeps local context phrases in the foundation path even when unsupported", () => {

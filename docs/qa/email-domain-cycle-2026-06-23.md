@@ -7,12 +7,12 @@
 - Sheet: `Email Manual 9000`
 - Queue: `docs/qa/email-domain-journey-test-queue.json`
 - Domain queue size: 100 journeys / 500 utterances
-- Logged manual rows: 24
-- Completed manual journeys: 4
-- Current incomplete journey: `VJ-04-01-05` with 4 of 5 utterances logged
-- Next manual prompt: `Plan the next steps for inbox triage, but preview the result and ask before any external, irreversible, or high-impact step.`
+- Logged manual rows: 43
+- Completed manual journeys through current cycle: 7 (`VJ-04-01-01` through `VJ-04-01-07`, including post-fix retest rows)
+- Current incomplete journey: none in the inbox-triage set through `VJ-04-01-07`
+- Next manual prompt: `Coordinate and carry out the approved action for inbox triage.`
 
-Manual UI execution is currently blocked because macOS reports the console session as locked. Until the session is unlocked, Computer Use cannot see or operate Adaptive Surface windows, so new prompt-by-prompt manual rows would be unreliable.
+Manual UI execution is unblocked. The installed app is available for prompt-by-prompt manual testing through Computer Use.
 
 ## Failure Pattern From Logged Rows
 
@@ -169,6 +169,55 @@ Manual installed-app retests logged in `docs/qa/adaptive-surface-user-stories.xl
 
 Remaining work:
 
-- Continue `VJ-04-01-07`, starting with `Review and approve the proposed work for inbox triage.`
+- Continue `VJ-04-01-08`, starting with `Coordinate and carry out the approved action for inbox triage.`
 - Continue the remaining Email domain queue after the inbox-triage draft family.
 - Verify DeepSeek-backed behavior on prompt families that actually require model synthesis rather than deterministic local routing.
+
+## Review/Approval Follow-Up
+
+Follow-up fix: approval-safe review artifact for inbox triage.
+
+Pre-fix manual installed-app rows:
+
+- Rows 34-35, 37-38: direct, conversational, outcome-first, and guardrail-first review/approval prompts failed by routing to `Recent emails` through `load_mail_messages`.
+- Row 36: context-rich wording partially improved by routing to an `Inbox triage records` artifact, but still failed because it did not perform a criteria-based quality/risk review.
+- All pre-fix rows remained safe: no external app opened, no mailbox writes occurred, and no full message bodies were read.
+
+Changed behavior:
+
+- Review, approval, proposed-work, quality, risk, criteria, defect, omission, uncertainty, and correction wording now routes to `create_email_triage_artifact` with `mode=review_approval`.
+- Review artifacts now display as `Inbox triage review`.
+- The artifact explicitly states that approval status is not approved, keeps the result in preview, names review criteria, states the metadata-only evidence scope, identifies findings and risks, and proposes corrections before any later approval step.
+- The local app remains metadata-only for broad review prompts: no full message bodies, mailbox writes, disk writes, or external app actions are run.
+
+Verification completed after the review/approval fix:
+
+```bash
+node_modules/.bin/vitest run src/test/foundation-command-router.test.ts src/test/foundation-command-lifecycle.test.ts
+node_modules/.bin/tsc --noEmit
+node_modules/.bin/vitest run
+node_modules/.bin/vite build
+node node_modules/@tauri-apps/cli/tauri.js build --bundles app --config '{"build":{"beforeBuildCommand":""}}'
+```
+
+Results:
+
+- Targeted router/lifecycle tests passed: 2 files, 29 tests.
+- Full test suite passed: 21 files, 104 tests.
+- Typecheck passed.
+- Frontend production build passed with the existing large-bundle warning only.
+- Tauri `.app` bundle build passed with the existing EventKit macOS availability warnings only.
+- Generated bundle metadata extended attributes were cleared before signing.
+- Installed `/Applications/Adaptive Surface.app` was replaced from the built bundle and ad-hoc signed.
+- Installed app passed code-sign verification.
+- Signed build and installed app executable hashes matched:
+  `8b4132b7c4df940fae286b3b83c4d4930512db43b510d040865f310e40919f9a`
+
+Installed app backup:
+
+- `/Applications/Adaptive Surface.app.backup-20260623-073053`
+
+Manual installed-app retests logged in `docs/qa/adaptive-surface-user-stories.xlsx`:
+
+- Rows 39-43: `VJ-04-01-07` Direct, Conversational, Context-rich, Outcome-first, and Guardrail-first prompts all pass as preview-only `Inbox triage review` documents through `email_triage_artifact` with `mode=review_approval`.
+- All post-fix rows remained safe: no external app opened, no mail was sent, forwarded, archived, deleted, labeled, or modified, no full message bodies were read, and the artifact marked `writesToDisk=false`, `externalWrite=false`, `writesToMailbox=false`, and `fullBodiesRead=false`.

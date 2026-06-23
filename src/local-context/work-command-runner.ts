@@ -476,6 +476,8 @@ function emailTriageTitle(mode: unknown) {
       return "Inbox triage plan";
     case "draft_artifact":
       return "Inbox triage draft";
+    case "review_approval":
+      return "Inbox triage review";
     default:
       return "Inbox triage catch-up";
   }
@@ -573,6 +575,23 @@ function emailTriageModeSection(mode: unknown, messages: AppleMailMessage[]) {
         "- Follow-up lane: turn a confirmed item into a draft, reminder, or task only after previewing the exact content.",
         "- Evidence lane: mark ambiguous metadata as needs-review instead of inventing owners, dates, or intent.",
       ];
+    case "review_approval":
+      return [
+        "## Review and Approval Check",
+        "- Approval status: not approved. This artifact is a review preview only.",
+        "- Criteria: source grounding, explicit uncertainty, no invented commitments, no silent mailbox change, and no external action without later approval.",
+        "- Evidence scope: Apple Mail metadata only; full message bodies, attachments, and thread history were not read.",
+        "",
+        "## Findings",
+        "- Evidence gap: metadata can show candidates for review, but cannot prove body-level decisions, commitments, or correctness.",
+        "- Approval risk: approving the proposed work now would be premature because criteria have not been satisfied with body-level evidence.",
+        "- Scope risk: the request mentions proposed work, but no authoritative external work item or approved action record was provided to compare against.",
+        "",
+        "## Proposed Corrections",
+        "- Keep the proposed work in preview and mark it not approved.",
+        "- Ask for a specific message or artifact summary when body-level evidence is needed.",
+        "- Require a later explicit approval step before any reply, reminder, file, mailbox, or external action runs.",
+      ];
     default:
       return [
         "## Review Frame",
@@ -594,6 +613,8 @@ function emailTriageModeLabel(mode: unknown) {
       return "planning next steps";
     case "draft_artifact":
       return "drafting a reviewable business artifact";
+    case "review_approval":
+      return "reviewing proposed work without approving it";
     default:
       return "catching up on inbox triage";
   }
