@@ -165,9 +165,10 @@ Manual installed-app retests logged in `docs/qa/adaptive-surface-user-stories.xl
 
 - Row 28: `VJ-04-01-06` Direct prompt now passes as an `Inbox triage draft` document through `email_triage_artifact`.
 - Row 29: `VJ-04-01-05` Guardrail-first prompt now passes as an `Inbox triage plan` document with an `Operating Plan`.
+- Rows 30-33: `VJ-04-01-06` Conversational, Context-rich, Outcome-first, and Guardrail-first prompts all pass as preview-only `Inbox triage draft` documents through `email_triage_artifact`.
 
 Remaining work:
 
-- Continue `VJ-04-01-06` conversational, context-rich, outcome-first, and guardrail-first prompts.
+- Continue `VJ-04-01-07`, starting with `Review and approve the proposed work for inbox triage.`
 - Continue the remaining Email domain queue after the inbox-triage draft family.
 - Verify DeepSeek-backed behavior on prompt families that actually require model synthesis rather than deterministic local routing.
