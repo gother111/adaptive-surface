@@ -480,6 +480,8 @@ function emailTriageTitle(mode: unknown) {
       return "Inbox triage review";
     case "coordinate_action":
       return "Inbox triage action";
+    case "track_status":
+      return "Inbox triage status";
     default:
       return "Inbox triage catch-up";
   }
@@ -614,6 +616,31 @@ function emailTriageModeSection(mode: unknown, messages: AppleMailMessage[]) {
         "- Exception log: approved action details are missing, so execution is blocked by policy.",
         "- Rollback path: no rollback is needed because no external or mailbox state changed.",
       ];
+    case "track_status": {
+      const unreadCount = messages.filter((message) => !message.isRead).length;
+      return [
+        "## Status and Exceptions View",
+        "- Current status: review needed. This is a metadata-only status pass, not a completed triage state.",
+        "- Authoritative signal: Apple Mail metadata from the local adapter.",
+        "- Evidence limits: full message bodies, attachments, and thread history were not read.",
+        `- Freshness window: sampled metadata spans ${oldest} to ${newest}.`,
+        "",
+        "## Explicit Thresholds",
+        `- Unread threshold: breach when unread metadata rows are greater than 0; current sample has ${unreadCount}.`,
+        "- Evidence threshold: any decision, commitment, or exception that depends on body text remains unproven until a specific message is opened or summarized.",
+        "- Action threshold: no automated remediation is allowed without a preview and explicit approval.",
+        "",
+        "## Emerging Exceptions",
+        "- Unread or newest messages should be treated as possible exceptions until reviewed.",
+        "- Sender/subject-only signals are noisy; promotional, notification, and application-status messages need separate review lanes.",
+        "- Metadata can indicate possible follow-up pressure, but cannot prove urgency, ownership, or deadline correctness.",
+        "",
+        "## Trends and Follow-Ups",
+        "- Trend: use the sampled date range and repeated senders/subjects as weak signals only.",
+        "- Required follow-up: choose one high-risk message for body-level summary before taking action.",
+        "- Stale/noise handling: mark ambiguous signals as needs-review rather than escalating or remediating automatically.",
+      ];
+    }
     default:
       return [
         "## Review Frame",
@@ -639,6 +666,8 @@ function emailTriageModeLabel(mode: unknown) {
       return "reviewing proposed work without approving it";
     case "coordinate_action":
       return "coordinating an approved action without executing it";
+    case "track_status":
+      return "tracking progress, risks, and exceptions";
     default:
       return "catching up on inbox triage";
   }

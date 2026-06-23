@@ -81,6 +81,12 @@ describe("foundation command router", () => {
     expect(routeFoundationCommand("Looking across the relevant apps, files, and records, coordinate and carry out the approved action for inbox triage, and show me the sources, assumptions, and gaps you relied on.")?.payload.mode).toBe("coordinate_action");
     expect(routeFoundationCommand("I need the requested action completed correctly for inbox triage. Coordinate and carry out the approved action for inbox triage.")?.payload.mode).toBe("coordinate_action");
     expect(routeFoundationCommand("Coordinate and carry out the approved action for inbox triage, but preview the result and ask before any external, irreversible, or high-impact step.")?.payload.mode).toBe("coordinate_action");
+    const trackStatus = routeFoundationCommand("Track progress, risks, and exceptions for inbox triage.");
+    expect(trackStatus?.kind).toBe("create_email_triage_artifact");
+    expect(trackStatus?.payload.mode).toBe("track_status");
+    expect(routeFoundationCommand("Looking across the relevant apps, files, and records, track progress, risks, and exceptions for inbox triage, and show me the sources, assumptions, and gaps you relied on.")?.payload.mode).toBe("track_status");
+    expect(routeFoundationCommand("I need a reliable status and exception view for inbox triage. Track progress, risks, and exceptions for inbox triage.")?.payload.mode).toBe("track_status");
+    expect(routeFoundationCommand("Track progress, risks, and exceptions for inbox triage, but preview the result and ask before any external, irreversible, or high-impact step.")?.payload.mode).toBe("track_status");
   });
 
   it("keeps local context phrases in the foundation path even when unsupported", () => {

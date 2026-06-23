@@ -7,10 +7,10 @@
 - Sheet: `Email Manual 9000`
 - Queue: `docs/qa/email-domain-journey-test-queue.json`
 - Domain queue size: 100 journeys / 500 utterances
-- Logged manual rows: 53
-- Completed manual journeys through current cycle: 8 (`VJ-04-01-01` through `VJ-04-01-08`, including post-fix retest rows)
-- Current incomplete journey: none in the inbox-triage set through `VJ-04-01-08`
-- Next manual prompt: `Track progress, risks, and exceptions for inbox triage.`
+- Logged manual rows: 63
+- Completed manual journeys through current cycle: 9 (`VJ-04-01-01` through `VJ-04-01-09`, including post-fix retest rows)
+- Current incomplete journey: none in the inbox-triage set through `VJ-04-01-09`
+- Next manual prompt: `Close the work and capture lessons for inbox triage.`
 
 Manual UI execution is unblocked. The installed app is available for prompt-by-prompt manual testing through Computer Use.
 
@@ -265,8 +265,58 @@ Manual installed-app retests logged in `docs/qa/adaptive-surface-user-stories.xl
 - Rows 49-53: `VJ-04-01-08` Direct, Conversational, Context-rich, Outcome-first, and Guardrail-first prompts all pass as preview-only `Inbox triage action` documents through `email_triage_artifact` with `mode=coordinate_action`.
 - All post-fix rows remained safe: no external app opened, no mail was sent, forwarded, archived, deleted, labeled, or modified, no full message bodies were read, and the artifact marked `writesToDisk=false`, `externalWrite=false`, `writesToMailbox=false`, and `fullBodiesRead=false`.
 
+## Status/Exception Follow-Up
+
+Follow-up fix: status and exception tracking artifact for inbox triage.
+
+Pre-fix manual installed-app rows:
+
+- Rows 54-55 and 57: direct, conversational, and outcome-first status/exception prompts failed by routing to `Recent emails` through `load_mail_messages`.
+- Row 56: context-rich wording partially improved by routing to an `Inbox triage records` artifact, but still failed because it did not produce thresholds, status, trends, exceptions, stale-data caveats, or follow-up requirements.
+- Row 58: guardrail-first wording partially improved by staying preview-only, but failed by routing to `Inbox triage action` with `mode=coordinate_action` instead of status tracking.
+- All pre-fix rows remained safe: no external app opened, no mailbox writes occurred, and no full message bodies were read.
+
+Changed behavior:
+
+- Track, progress, risks, exceptions, status, signal, threshold, trend, follow-up, stale, noise, alert, and remediation wording now routes to `create_email_triage_artifact` with `mode=track_status`.
+- Status artifacts now display as `Inbox triage status`.
+- The artifact explicitly states that the status pass is metadata-only, names Apple Mail metadata as the authoritative signal, reports freshness and evidence limits, sets unread/evidence/action thresholds, lists emerging exceptions, and defines trend/follow-up/stale/noise handling.
+- The guardrail-first status prompt now stays in `track_status` instead of being captured by the generic action-coordination mode.
+- The local app remains metadata-only for broad status prompts: no full message bodies, mailbox writes, disk writes, or external app actions are run.
+
+Verification completed after the status/exception fix:
+
+```bash
+node_modules/.bin/vitest run src/test/foundation-command-router.test.ts src/test/foundation-command-lifecycle.test.ts
+node_modules/.bin/tsc --noEmit
+node_modules/.bin/vitest run
+node_modules/.bin/vite build
+node node_modules/@tauri-apps/cli/tauri.js build --bundles app --config '{"build":{"beforeBuildCommand":""}}'
+```
+
+Results:
+
+- Targeted router/lifecycle tests passed: 2 files, 31 tests.
+- Typecheck passed.
+- Full test suite passed: 21 files, 106 tests.
+- Frontend production build passed with the existing large-bundle warning only.
+- Tauri `.app` bundle build passed with the existing EventKit macOS availability warnings only.
+- Installed `/Applications/Adaptive Surface.app` was replaced from the built bundle and ad-hoc signed.
+- Installed app passed code-sign verification.
+- Signed build and installed app executable hashes matched:
+  `162f4766b0dec0e4cbf80fa1c4e8bef1f3d74a9f3ab6f93d935f5ae06f34c5b0`
+
+Installed app backup:
+
+- `/Applications/Adaptive Surface.app.backup-20260623-075745`
+
+Manual installed-app retests logged in `docs/qa/adaptive-surface-user-stories.xlsx`:
+
+- Rows 59-63: `VJ-04-01-09` Direct, Conversational, Context-rich, Outcome-first, and Guardrail-first prompts all pass as read-only `Inbox triage status` documents through `email_triage_artifact` with `mode=track_status`.
+- All post-fix rows remained safe: no external app opened, no mail was sent, forwarded, archived, deleted, labeled, or modified, no full message bodies were read, and the artifact marked `writesToDisk=false`, `externalWrite=false`, `writesToMailbox=false`, and `fullBodiesRead=false`.
+
 Remaining work:
 
-- Continue `VJ-04-01-09`, starting with `Track progress, risks, and exceptions for inbox triage.`
-- Continue the remaining Email domain queue after the inbox-triage approved-action family.
+- Continue `VJ-04-01-10`, starting with `Close the work and capture lessons for inbox triage.`
+- Continue the remaining Email domain queue after the inbox-triage status/exception family.
 - Verify DeepSeek-backed behavior on prompt families that actually require model synthesis rather than deterministic local routing.

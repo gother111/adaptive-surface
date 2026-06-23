@@ -182,8 +182,9 @@ function isImplementedEmailReadCommand(text: string) {
 }
 
 function inferEmailTriageMode(text: string) {
-  if (/\b(coordinate|carry out|approved action|requested action|completed correctly|execute|execution|scope|targets?|recipients?|permissions?|timing|confirm|confirmation|rollback|external|irreversible|high impact)\b/.test(text)) return "coordinate_action";
   if (/\b(review|approve|approval|proposed work|quality|risk|criteria|defects?|omissions?|uncertainty|corrections?)\b/.test(text)) return "review_approval";
+  if (/\b(track|progress|risks?|exceptions?|status|exception view|signals?|thresholds?|trends?|follow-?ups?|stale|noise|alerts?|remediation)\b/.test(text)) return "track_status";
+  if (/\b(coordinate|carry out|approved action|requested action|completed correctly|execute|execution|scope|targets?|recipients?|permissions?|timing|confirm|confirmation|rollback|external|irreversible|high impact)\b/.test(text)) return "coordinate_action";
   if (/\b(draft|artifact|version|configuration|calculation)\b/.test(text)) return "draft_artifact";
   if (/\b(compare|options?)\b/.test(text)) return "compare_options";
   if (/\b(plan|next steps?|actionable)\b/.test(text)) return "plan_next_steps";
