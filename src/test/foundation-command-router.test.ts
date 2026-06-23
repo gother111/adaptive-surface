@@ -75,6 +75,12 @@ describe("foundation command router", () => {
     expect(reviewApproval?.kind).toBe("create_email_triage_artifact");
     expect(reviewApproval?.payload.mode).toBe("review_approval");
     expect(routeFoundationCommand("I need a trustworthy quality and risk check for inbox triage. Review and approve the proposed work for inbox triage.")?.payload.mode).toBe("review_approval");
+    const coordinateAction = routeFoundationCommand("Coordinate and carry out the approved action for inbox triage.");
+    expect(coordinateAction?.kind).toBe("create_email_triage_artifact");
+    expect(coordinateAction?.payload.mode).toBe("coordinate_action");
+    expect(routeFoundationCommand("Looking across the relevant apps, files, and records, coordinate and carry out the approved action for inbox triage, and show me the sources, assumptions, and gaps you relied on.")?.payload.mode).toBe("coordinate_action");
+    expect(routeFoundationCommand("I need the requested action completed correctly for inbox triage. Coordinate and carry out the approved action for inbox triage.")?.payload.mode).toBe("coordinate_action");
+    expect(routeFoundationCommand("Coordinate and carry out the approved action for inbox triage, but preview the result and ask before any external, irreversible, or high-impact step.")?.payload.mode).toBe("coordinate_action");
   });
 
   it("keeps local context phrases in the foundation path even when unsupported", () => {

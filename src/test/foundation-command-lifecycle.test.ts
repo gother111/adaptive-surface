@@ -465,6 +465,45 @@ describe("foundation command lifecycle", () => {
     expect(String(surface?.props.body)).toContain("## Proposed Corrections");
   });
 
+  it("creates a non-executing inbox triage action coordination preview", async () => {
+    contextMocks.loadMailMessages.mockResolvedValue([
+      {
+        id: "mail-1",
+        mailbox: "Inbox",
+        subject: "Invoice approval needed",
+        sender: "Alex <alex@example.com>",
+        receivedAt: "2026-05-24T10:00:00Z",
+        isRead: false,
+        preview: "Please approve the May invoice before Friday.",
+      },
+    ]);
+
+    const result = await runFoundationCommand({
+      kind: "create_email_triage_artifact",
+      utterance: "Coordinate and carry out the approved action for inbox triage.",
+      surfaceKind: "document",
+      adapter: "email_triage_artifact",
+      requiresApproval: false,
+      payload: { mode: "coordinate_action" },
+    }, createInitialWorkspaceSession(), {});
+    const next = applyWorkspacePatches(createInitialWorkspaceSession(), result.patches);
+    const surface = next.surfaces[0];
+
+    expect(contextMocks.readMailMessage).not.toHaveBeenCalled();
+    expect(surface?.props.title).toBe("Inbox triage action");
+    expect(surface?.props.detail).toMatchObject({
+      writesToDisk: false,
+      externalWrite: false,
+      writesToMailbox: false,
+      fullBodiesRead: false,
+      mode: "coordinate_action",
+    });
+    expect(String(surface?.props.body)).toContain("## Action Coordination Preview");
+    expect(String(surface?.props.body)).toContain("Execution status: not executed");
+    expect(String(surface?.props.body)).toContain("## Required Confirmation");
+    expect(String(surface?.props.body)).toContain("## Result, Exceptions, and Rollback");
+  });
+
   it("queues local writes for approval before creating anything", async () => {
     const result = await runFoundationCommand({
       kind: "create_reminder",

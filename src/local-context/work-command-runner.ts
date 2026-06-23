@@ -478,6 +478,8 @@ function emailTriageTitle(mode: unknown) {
       return "Inbox triage draft";
     case "review_approval":
       return "Inbox triage review";
+    case "coordinate_action":
+      return "Inbox triage action";
     default:
       return "Inbox triage catch-up";
   }
@@ -592,6 +594,26 @@ function emailTriageModeSection(mode: unknown, messages: AppleMailMessage[]) {
         "- Ask for a specific message or artifact summary when body-level evidence is needed.",
         "- Require a later explicit approval step before any reply, reminder, file, mailbox, or external action runs.",
       ];
+    case "coordinate_action":
+      return [
+        "## Action Coordination Preview",
+        "- Execution status: not executed. No approved action record with exact target, recipient, permission, timing, and rollback path was provided.",
+        "- Scope: inbox triage only, using Apple Mail metadata as context.",
+        "- Target: unresolved until the user selects a specific message, thread, draft, reminder, label, or mailbox change.",
+        "- Recipients/values: unresolved; metadata alone is not enough to infer who should receive, own, or approve an action.",
+        "- Permissions: no reply, send, archive, delete, label, file, reminder, or external-app write is allowed from this artifact.",
+        "- Timing: no scheduled or immediate action has been started.",
+        "",
+        "## Required Confirmation",
+        "- Confirm the exact action type, target item, recipient or owner, timing, and success criteria.",
+        "- Preview the exact body, reminder, label, file, or mailbox change before execution.",
+        "- Require a separate explicit approval before dispatching any external, irreversible, or high-impact step.",
+        "",
+        "## Result, Exceptions, and Rollback",
+        "- Result: no action executed.",
+        "- Exception log: approved action details are missing, so execution is blocked by policy.",
+        "- Rollback path: no rollback is needed because no external or mailbox state changed.",
+      ];
     default:
       return [
         "## Review Frame",
@@ -615,6 +637,8 @@ function emailTriageModeLabel(mode: unknown) {
       return "drafting a reviewable business artifact";
     case "review_approval":
       return "reviewing proposed work without approving it";
+    case "coordinate_action":
+      return "coordinating an approved action without executing it";
     default:
       return "catching up on inbox triage";
   }

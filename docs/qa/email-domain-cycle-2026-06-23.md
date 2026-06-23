@@ -7,10 +7,10 @@
 - Sheet: `Email Manual 9000`
 - Queue: `docs/qa/email-domain-journey-test-queue.json`
 - Domain queue size: 100 journeys / 500 utterances
-- Logged manual rows: 43
-- Completed manual journeys through current cycle: 7 (`VJ-04-01-01` through `VJ-04-01-07`, including post-fix retest rows)
-- Current incomplete journey: none in the inbox-triage set through `VJ-04-01-07`
-- Next manual prompt: `Coordinate and carry out the approved action for inbox triage.`
+- Logged manual rows: 53
+- Completed manual journeys through current cycle: 8 (`VJ-04-01-01` through `VJ-04-01-08`, including post-fix retest rows)
+- Current incomplete journey: none in the inbox-triage set through `VJ-04-01-08`
+- Next manual prompt: `Track progress, risks, and exceptions for inbox triage.`
 
 Manual UI execution is unblocked. The installed app is available for prompt-by-prompt manual testing through Computer Use.
 
@@ -167,12 +167,6 @@ Manual installed-app retests logged in `docs/qa/adaptive-surface-user-stories.xl
 - Row 29: `VJ-04-01-05` Guardrail-first prompt now passes as an `Inbox triage plan` document with an `Operating Plan`.
 - Rows 30-33: `VJ-04-01-06` Conversational, Context-rich, Outcome-first, and Guardrail-first prompts all pass as preview-only `Inbox triage draft` documents through `email_triage_artifact`.
 
-Remaining work:
-
-- Continue `VJ-04-01-08`, starting with `Coordinate and carry out the approved action for inbox triage.`
-- Continue the remaining Email domain queue after the inbox-triage draft family.
-- Verify DeepSeek-backed behavior on prompt families that actually require model synthesis rather than deterministic local routing.
-
 ## Review/Approval Follow-Up
 
 Follow-up fix: approval-safe review artifact for inbox triage.
@@ -221,3 +215,58 @@ Manual installed-app retests logged in `docs/qa/adaptive-surface-user-stories.xl
 
 - Rows 39-43: `VJ-04-01-07` Direct, Conversational, Context-rich, Outcome-first, and Guardrail-first prompts all pass as preview-only `Inbox triage review` documents through `email_triage_artifact` with `mode=review_approval`.
 - All post-fix rows remained safe: no external app opened, no mail was sent, forwarded, archived, deleted, labeled, or modified, no full message bodies were read, and the artifact marked `writesToDisk=false`, `externalWrite=false`, `writesToMailbox=false`, and `fullBodiesRead=false`.
+
+## Approved-Action Follow-Up
+
+Follow-up fix: approval-gated action coordination artifact for inbox triage.
+
+Pre-fix manual installed-app rows:
+
+- Rows 44-45, 47-48: direct, conversational, outcome-first, and guardrail-first approved-action prompts failed by routing to `Recent emails` through `load_mail_messages`.
+- Row 46: context-rich wording partially improved by routing to an `Inbox triage records` artifact, but still failed because it did not produce action scope, confirmation, execution result, exception log, or rollback status.
+- All pre-fix rows remained safe: no external app opened, no mailbox writes occurred, and no full message bodies were read.
+
+Changed behavior:
+
+- Coordinate, carry-out, approved-action, requested-action, execution, confirmation, scope, target, recipient, permission, timing, rollback, external, irreversible, and high-impact wording now routes to `create_email_triage_artifact` with `mode=coordinate_action`.
+- Action artifacts now display as `Inbox triage action`.
+- The artifact explicitly states that execution status is not executed when no exact approved action record is present.
+- The artifact lists scope, unresolved target/recipient/value/permission/timing fields, required confirmation, no-op result, exception reason, and rollback status.
+- The local app remains metadata-only for broad approved-action prompts: no full message bodies, mailbox writes, disk writes, or external app actions are run.
+
+Verification completed after the approved-action fix:
+
+```bash
+node_modules/.bin/vitest run src/test/foundation-command-router.test.ts src/test/foundation-command-lifecycle.test.ts
+node_modules/.bin/tsc --noEmit
+node_modules/.bin/vitest run
+node_modules/.bin/vite build
+node node_modules/@tauri-apps/cli/tauri.js build --bundles app --config '{"build":{"beforeBuildCommand":""}}'
+```
+
+Results:
+
+- Targeted router/lifecycle tests passed: 2 files, 30 tests.
+- Full test suite passed: 21 files, 105 tests.
+- Typecheck passed.
+- Frontend production build passed with the existing large-bundle warning only.
+- Tauri `.app` bundle build passed with the existing EventKit macOS availability warnings only.
+- Installed `/Applications/Adaptive Surface.app` was replaced from the built bundle and ad-hoc signed.
+- Installed app passed code-sign verification.
+- Signed build and installed app executable hashes matched:
+  `6490e8e85b543e299d94b48de9eeb8daf253589b2d8c867c9bc011e1ef4145a1`
+
+Installed app backup:
+
+- `/Applications/Adaptive Surface.app.backup-20260623-074516`
+
+Manual installed-app retests logged in `docs/qa/adaptive-surface-user-stories.xlsx`:
+
+- Rows 49-53: `VJ-04-01-08` Direct, Conversational, Context-rich, Outcome-first, and Guardrail-first prompts all pass as preview-only `Inbox triage action` documents through `email_triage_artifact` with `mode=coordinate_action`.
+- All post-fix rows remained safe: no external app opened, no mail was sent, forwarded, archived, deleted, labeled, or modified, no full message bodies were read, and the artifact marked `writesToDisk=false`, `externalWrite=false`, `writesToMailbox=false`, and `fullBodiesRead=false`.
+
+Remaining work:
+
+- Continue `VJ-04-01-09`, starting with `Track progress, risks, and exceptions for inbox triage.`
+- Continue the remaining Email domain queue after the inbox-triage approved-action family.
+- Verify DeepSeek-backed behavior on prompt families that actually require model synthesis rather than deterministic local routing.
