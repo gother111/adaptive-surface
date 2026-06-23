@@ -151,12 +151,25 @@ impl TaskScheduler {
     }
 
     pub fn validate_graph(&self, graph: &TaskGraph) -> Result<(), ControlPlaneError> {
+        if graph.work_units.is_empty() {
+            return Err(ControlPlaneError::new(
+                ControlPlaneErrorKind::InvalidTransition,
+                "task graph must contain at least one work unit",
+            ));
+        }
+
         let mut ids = BTreeSet::new();
         for unit in &graph.work_units {
             if !ids.insert(unit.work_unit_id.clone()) {
                 return Err(ControlPlaneError::new(
                     ControlPlaneErrorKind::InvalidTransition,
                     "task graph contains a duplicate work-unit id",
+                ));
+            }
+            if unit.state != OperationState::Planned {
+                return Err(ControlPlaneError::new(
+                    ControlPlaneErrorKind::InvalidTransition,
+                    "task graph work units must start in planned state",
                 ));
             }
             if !self.registry.contains(&unit.capability_id) {
@@ -169,6 +182,18 @@ impl TaskScheduler {
                 return Err(ControlPlaneError::new(
                     ControlPlaneErrorKind::InvalidTransition,
                     "work-unit timeout must be greater than zero",
+                ));
+            }
+            if unit.execution_policy.approval_requirement != ApprovalRequirement::None {
+                return Err(ControlPlaneError::new(
+                    ControlPlaneErrorKind::PolicyBlocked,
+                    "approval-gated work units are not supported by the scheduler yet",
+                ));
+            }
+            if unit.execution_policy.retry_policy.max_attempts != 1 {
+                return Err(ControlPlaneError::new(
+                    ControlPlaneErrorKind::InvalidTransition,
+                    "scheduler retry execution is not implemented; maxAttempts must be 1",
                 ));
             }
             for dependency in &unit.dependencies {
@@ -1215,6 +1240,50 @@ mod tests {
         ]);
         let error = scheduler.validate_graph(&graph).expect_err("cycle should fail");
         assert_eq!(error.kind, ControlPlaneErrorKind::InvalidTransition);
+    }
+
+    #[test]
+    fn graph_validation_rejects_empty_graph() {
+        let harness = Arc::new(Harness::default());
+        let (_journal, scheduler) = scheduler_with_executor(Arc::new(BlockingExecutor { harness }));
+        let graph = graph(Vec::new());
+
+        let error = scheduler.validate_graph(&graph).expect_err("empty graph should fail");
+
+        assert_eq!(error.kind, ControlPlaneErrorKind::InvalidTransition);
+    }
+
+    #[test]
+    fn graph_validation_rejects_non_planned_initial_state() {
+        let harness = Arc::new(Harness::default());
+        let (_journal, scheduler) = scheduler_with_executor(Arc::new(BlockingExecutor { harness }));
+        let mut running = unit("a", "test.block", Vec::new(), 500);
+        running.state = OperationState::Running;
+        let graph = graph(vec![running]);
+
+        let error = scheduler.validate_graph(&graph).expect_err("running unit should fail");
+
+        assert_eq!(error.kind, ControlPlaneErrorKind::InvalidTransition);
+    }
+
+    #[test]
+    fn graph_validation_rejects_unsupported_approval_and_retry_policies() {
+        let harness = Arc::new(Harness::default());
+        let (_journal, scheduler) = scheduler_with_executor(Arc::new(BlockingExecutor { harness }));
+        let mut approval_required = unit("a", "test.block", Vec::new(), 500);
+        approval_required.execution_policy.approval_requirement = ApprovalRequirement::ExplicitUserApproval;
+        let approval_error = scheduler
+            .validate_graph(&graph(vec![approval_required]))
+            .expect_err("approval-gated unit should fail until scheduler supports approvals");
+
+        let mut retrying = unit("b", "test.block", Vec::new(), 500);
+        retrying.execution_policy.retry_policy.max_attempts = 2;
+        let retry_error = scheduler
+            .validate_graph(&graph(vec![retrying]))
+            .expect_err("retrying unit should fail until retry execution is implemented");
+
+        assert_eq!(approval_error.kind, ControlPlaneErrorKind::PolicyBlocked);
+        assert_eq!(retry_error.kind, ControlPlaneErrorKind::InvalidTransition);
     }
 
     #[test]

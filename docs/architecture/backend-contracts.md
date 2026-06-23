@@ -52,9 +52,9 @@ The deterministic resolver supports local fallback behavior without a cloud mode
 `DelegationPlan` and `DelegatedOperation` represent bounded increments, not large autonomous plans. Each operation has a correlation ID, timeout, retry policy, state, and idempotency key when safe.
 
 `ActivityEvent` remains the demo-fixture activity contract. The live service uses
-`RuntimeEventEnvelope`, which carries protocol version, event ID, global
-monotonic sequence, session/objective IDs, plan revision, optional graph and
-work-unit IDs, run ID, timestamp, and a discriminated payload.
+`RuntimeEventEnvelope`, which carries protocol version, globally unique event
+ID, per-session monotonic sequence, session/objective IDs, plan revision,
+optional graph and work-unit IDs, run ID, timestamp, and a discriminated payload.
 
 `TaskGraph`, `WorkUnit`, `ExecutionPolicy`, `JoinPolicy`, and `WorkDependency`
 represent finalized execution. Work units are the only objects that bind
@@ -67,7 +67,7 @@ acceptance events for compatibility, but frontend progress must not depend on a
 completed event batch in the response.
 
 `RuntimeEventsAfterInput` and `RuntimeEventsAfterResponse` provide bounded
-sequence catch-up for missed live delivery.
+per-session sequence catch-up for missed live delivery.
 
 `RequestLedgerRecord` persists `clientRequestId`, session/objective/run/graph
 identity, plan revision, request status, accepted timestamp, optional terminal
@@ -96,9 +96,10 @@ Mail metadata rows only, not full message bodies.
 
 `ControlPlaneSessionSnapshot` is the live persisted snapshot. It captures the
 latest task graphs, artifact envelopes, pending approvals, recent runtime
-events, plan revision, and next sequence. The SQLite repository ignores corrupt
-or unknown-future runtime events while replaying.
+events, plan revision, and the next sequence for that session. The SQLite
+repository ignores corrupt or unknown-future runtime events while replaying.
 
 The live repository also persists a request ledger and unique
-`(session_id, sequence)` event ordering. Every scheduler transition is appended
-before publication, so the event journal is the recovery source of truth.
+`(session_id, sequence)` event ordering. Event IDs remain globally unique. Every
+scheduler transition is appended before publication, so the event journal is the
+recovery source of truth.

@@ -72,7 +72,8 @@ flowchart TD
 ## Milestones
 
 1. Extend Rust contracts with task graph, work unit, runtime event, artifact
-   envelope, semantic capabilities, plan revisions, monotonic event sequence,
+   envelope, semantic capabilities, plan revisions, monotonic per-session event
+   sequence,
    cancellation, approvals, safe diagnostics, and protocol versioning.
 2. Add `ControlPlaneService`, a scheduler for the first vertical slice,
    canonical capability descriptors, cancellation and approval commands, session
@@ -113,8 +114,8 @@ flowchart TD
   executor.
 - Persistence leakage: persist bounded derived metadata, event payloads, and
   artifact summaries, not raw full message bodies or secrets.
-- Event replay bugs: use global monotonic sequence numbers, event IDs, and
-  idempotent frontend reducer logic.
+- Event replay bugs: use globally unique event IDs, per-session monotonic
+  sequence numbers, and idempotent frontend reducer logic.
 - UI overwrite: project only controlled workspace patches and preserve existing
   local interaction state outside the backend projection path.
 

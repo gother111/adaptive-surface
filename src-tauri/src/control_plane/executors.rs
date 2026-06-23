@@ -440,7 +440,7 @@ fn read_policy(idempotency_key: String) -> ExecutionPolicy {
         approval_requirement: ApprovalRequirement::None,
         side_effect_class: SideEffectClass::None,
         retry_policy: RetryPolicy {
-            max_attempts: 2,
+            max_attempts: 1,
             retry_idempotent_only: true,
         },
         idempotency_key: Some(idempotency_key),

@@ -74,6 +74,28 @@ describe("control-plane runtime events", () => {
     expect(caughtUp.workspaceSession.primarySurfaceId).toBe("control-plane-inbox-triage");
   });
 
+  it("ignores interleaved events from another session without creating a false gap", () => {
+    const responseA = createMockControlPlaneResponse("Catch me up on inbox triage.", 131);
+    const responseB = createMockControlPlaneResponse("Catch me up on inbox triage.", 132);
+    const [acceptedA, planA] = responseA.events;
+    const [acceptedB] = responseB.events;
+    const interleavedOtherSession = {
+      ...acceptedB,
+      sequence: 1,
+      eventId: "other-session-event-1",
+    };
+    const reduced = applyRuntimeEventsToWorkspace(
+      createInitialWorkspaceSession(),
+      createControlPlaneProjection(),
+      [acceptedA, interleavedOtherSession, planA],
+    );
+
+    expect(reduced.projection.sessionId).toBe(responseA.sessionId);
+    expect(reduced.projection.lastSequence).toBe(2);
+    expect(reduced.projection.needsCatchUpFrom).toBeNull();
+    expect(reduced.workspaceSession.primarySurfaceId).toBe("control-plane-inbox-triage");
+  });
+
   it("marks unsupported protocol events as failed without patching the workspace", () => {
     const response = createMockControlPlaneResponse("Catch me up on inbox triage.", 12);
     const badEvent: RuntimeEventEnvelope = {

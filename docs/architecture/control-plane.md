@@ -21,9 +21,9 @@ owns the local supervision layer, event history, provenance, and UI projection.
 - `repository.rs` provides the in-memory test repository and SQLite app
   repository for ordered events, request ledger records, catch-up queries, and
   session snapshots.
-- `journal.rs` is the short-lock persistence boundary. It allocates event
-  sequence numbers, updates snapshots, commits transitions, and publishes only
-  after durable storage succeeds.
+- `journal.rs` is the short-lock persistence boundary. It allocates per-session
+  event sequence numbers, updates snapshots, commits transitions, and publishes
+  only after durable storage succeeds.
 - `executors.rs` defines typed capability executors. Executors return typed
   outcomes and never patch React or Zustand directly.
 - `scheduler.rs` validates task graphs, finds dependency-ready work, dispatches
@@ -98,7 +98,7 @@ Every `RuntimeEventEnvelope` includes:
 
 - `protocolVersion`
 - `eventId`
-- monotonic `sequence`
+- per-session monotonic `sequence`
 - `sessionId`
 - `objectiveId`
 - `planRevision`
@@ -108,7 +108,7 @@ Every `RuntimeEventEnvelope` includes:
 - discriminated payload
 
 The frontend reducer rejects unsupported protocol versions, duplicate event IDs,
-and stale sequence numbers.
+events from a different active session, and stale sequence numbers.
 
 ## Capability Authority
 
@@ -147,7 +147,7 @@ is authoritative.
 Every transition follows this order:
 
 1. validate the transition;
-2. allocate the next sequence;
+2. allocate the next sequence for the session;
 3. append the runtime event and update the session snapshot;
 4. commit SQLite;
 5. publish `control-plane://runtime-event`.
@@ -155,7 +155,7 @@ Every transition follows this order:
 The frontend installs the listener before desktop submit, then calls
 `get_runtime_events_after(session_id, after_sequence, limit)` to close missed
 delivery windows. Duplicate live/catch-up events remain harmless because the
-reducer rejects duplicate event IDs and stale sequences.
+reducer rejects duplicate event IDs, other-session events, and stale sequences.
 
 ## Cancellation And Approval Binding
 

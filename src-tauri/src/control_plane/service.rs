@@ -593,6 +593,129 @@ mod tests {
     }
 
     #[test]
+    fn runtime_event_sequences_are_contiguous_per_session() {
+        let service = ControlPlaneService::with_fixture_mail(vec![mail_message("mail-1", "A", true)]);
+        let session_a = SessionId::new("session-a");
+        let session_b = SessionId::new("session-b");
+
+        let first_a = service
+            .submit_final_utterance(SubmitObjectiveInput {
+                utterance: "Catch me up on inbox triage.".to_string(),
+                session_id: Some(session_a.clone()),
+                client_request_id: Some("request-a-1".to_string()),
+                model_intent_hint: None,
+                now_ms: Some(13_100),
+            })
+            .expect("first session A run should accept");
+        let _ = wait_for_terminal(&service, &first_a.session_id);
+
+        let first_b = service
+            .submit_final_utterance(SubmitObjectiveInput {
+                utterance: "Catch me up on inbox triage.".to_string(),
+                session_id: Some(session_b.clone()),
+                client_request_id: Some("request-b-1".to_string()),
+                model_intent_hint: None,
+                now_ms: Some(13_200),
+            })
+            .expect("session B run should accept");
+        let _ = wait_for_terminal(&service, &first_b.session_id);
+
+        let second_a = service
+            .submit_final_utterance(SubmitObjectiveInput {
+                utterance: "Plan the next steps for inbox triage.".to_string(),
+                session_id: Some(session_a.clone()),
+                client_request_id: Some("request-a-2".to_string()),
+                model_intent_hint: None,
+                now_ms: Some(13_300),
+            })
+            .expect("second session A run should accept");
+        let _ = wait_for_terminal(&service, &second_a.session_id);
+
+        let events_a = service
+            .get_runtime_events_after(RuntimeEventsAfterInput {
+                session_id: session_a,
+                after_sequence: 0,
+                limit: Some(500),
+            })
+            .expect("session A catch-up should load")
+            .events;
+        let events_b = service
+            .get_runtime_events_after(RuntimeEventsAfterInput {
+                session_id: session_b,
+                after_sequence: 0,
+                limit: Some(500),
+            })
+            .expect("session B catch-up should load")
+            .events;
+
+        assert_eq!(events_a.first().map(|event| event.sequence), Some(1));
+        assert_eq!(events_b.first().map(|event| event.sequence), Some(1));
+        assert!(events_a
+            .windows(2)
+            .all(|pair| pair[1].sequence == pair[0].sequence.saturating_add(1)));
+        assert!(events_b
+            .windows(2)
+            .all(|pair| pair[1].sequence == pair[0].sequence.saturating_add(1)));
+    }
+
+    #[test]
+    fn restart_seeds_generated_ids_from_replayed_event_history() {
+        let path = std::env::temp_dir().join(format!(
+            "adaptive-surface-control-plane-id-seed-{}.sqlite3",
+            epoch_ms()
+        ));
+        let _ = std::fs::remove_file(&path);
+        {
+            let repository = SqliteControlPlaneRepository::open(path.clone()).expect("sqlite should open");
+            let service = ControlPlaneService::new(
+                Box::new(repository),
+                Arc::new(super::super::executors::FixtureMailMetadataProvider { messages: Vec::new() }),
+                SchedulerConfig {
+                    max_concurrency: 2,
+                    poll_interval_ms: 1,
+                },
+            )
+            .expect("service should initialize");
+            for index in 0..14 {
+                let response = service
+                    .submit_final_utterance(SubmitObjectiveInput {
+                        utterance: "Open the canvas".to_string(),
+                        session_id: Some(SessionId::new(format!("seed-session-{index}"))),
+                        client_request_id: Some(format!("seed-request-{index}")),
+                        model_intent_hint: None,
+                        now_ms: Some(18_000),
+                    })
+                    .expect("fallback should record");
+                assert!(response.completed);
+            }
+        }
+
+        let repository = SqliteControlPlaneRepository::open(path.clone()).expect("sqlite should reopen");
+        let service = ControlPlaneService::new(
+            Box::new(repository),
+            Arc::new(super::super::executors::FixtureMailMetadataProvider { messages: Vec::new() }),
+            SchedulerConfig {
+                max_concurrency: 2,
+                poll_interval_ms: 1,
+            },
+        )
+        .expect("service should replay");
+        let response = service
+            .submit_final_utterance(SubmitObjectiveInput {
+                utterance: "Open the canvas".to_string(),
+                session_id: Some(SessionId::new("seed-session-after-restart")),
+                client_request_id: Some("seed-request-after-restart".to_string()),
+                model_intent_hint: None,
+                now_ms: Some(18_000),
+            })
+            .expect("restarted service should not reuse event ids");
+        let _ = std::fs::remove_file(&path);
+
+        assert!(response.completed);
+        assert_eq!(response.events.len(), 2);
+    }
+
+    #[test]
     fn duplicate_client_request_after_restart_returns_original_run() {
         let path = std::env::temp_dir().join(format!(
             "adaptive-surface-control-plane-restart-{}.sqlite3",
@@ -649,5 +772,132 @@ mod tests {
         assert_eq!(duplicate.run_id, first_run_id);
         assert!(duplicate.events.is_empty());
         assert!(duplicate.completed);
+    }
+
+    #[test]
+    fn interrupted_request_after_restart_returns_terminal_snapshot() {
+        let path = std::env::temp_dir().join(format!(
+            "adaptive-surface-control-plane-interrupted-{}.sqlite3",
+            epoch_ms()
+        ));
+        let _ = std::fs::remove_file(&path);
+        {
+            let repository = SqliteControlPlaneRepository::open(path.clone()).expect("sqlite should open");
+            let journal = RuntimeJournal::new(
+                Box::new(repository),
+                super::super::publisher::SharedEventPublisher::noop(),
+            )
+            .expect("journal should initialize");
+            let session_id = SessionId::new("interrupted-session");
+            let objective_id = ObjectiveId::new("interrupted-objective");
+            let run_id = RunId::new("interrupted-run");
+            let graph_id = TaskGraphId::new("interrupted-graph");
+            let graph = build_inbox_triage_graph(
+                graph_id.clone(),
+                session_id.clone(),
+                objective_id.clone(),
+                1,
+                16_000,
+                "Catch me up on inbox triage.",
+                super::super::executors::EmailTriageMode::CatchUp,
+                WorkUnitId::new("mail-search"),
+                WorkUnitId::new("triage-classify"),
+                WorkUnitId::new("artifact-create"),
+            );
+            let mut store = journal.lock_store().expect("journal lock should work");
+            let accepted = store.record_event(
+                &session_id,
+                &objective_id,
+                1,
+                Some(graph_id.clone()),
+                None,
+                &run_id,
+                16_000,
+                RuntimeEventPayload::ObjectiveAccepted {
+                    utterance: "Catch me up on inbox triage.".to_string(),
+                    objective: "Run read-only inbox triage".to_string(),
+                    routed_by: "test".to_string(),
+                },
+            );
+            let planned = store.record_event(
+                &session_id,
+                &objective_id,
+                1,
+                Some(graph_id.clone()),
+                None,
+                &run_id,
+                16_000,
+                RuntimeEventPayload::PlanCreated {
+                    graph: graph.clone(),
+                    summary: "Created read-only inbox triage task graph.".to_string(),
+                },
+            );
+            let request = RequestLedgerRecord {
+                client_request_id: "interrupted-request".to_string(),
+                request_fingerprint: request_fingerprint("Catch me up on inbox triage."),
+                session_id: session_id.clone(),
+                objective_id: objective_id.clone(),
+                run_id: run_id.clone(),
+                graph_id: Some(graph_id.clone()),
+                plan_revision: 1,
+                status: RequestStatus::Accepted,
+                accepted_at_ms: 16_000,
+                terminal_at_ms: None,
+                safe_diagnostic: None,
+            };
+            store
+                .save_snapshot(
+                    session_id,
+                    Some(objective_id),
+                    Some(graph),
+                    1,
+                    Vec::new(),
+                    Vec::new(),
+                    &[accepted, planned],
+                    Some(&request),
+                )
+                .expect("accepted snapshot should persist");
+        }
+
+        let repository = SqliteControlPlaneRepository::open(path.clone()).expect("sqlite should reopen");
+        let service = ControlPlaneService::new(
+            Box::new(repository),
+            Arc::new(super::super::executors::FixtureMailMetadataProvider { messages: Vec::new() }),
+            SchedulerConfig {
+                max_concurrency: 2,
+                poll_interval_ms: 1,
+            },
+        )
+        .expect("service should reconcile interrupted request");
+        let duplicate = service
+            .submit_final_utterance(SubmitObjectiveInput {
+                utterance: "Catch me up on inbox triage.".to_string(),
+                session_id: None,
+                client_request_id: Some("interrupted-request".to_string()),
+                model_intent_hint: None,
+                now_ms: Some(17_000),
+            })
+            .expect("duplicate should resolve to interrupted run");
+        let _ = std::fs::remove_file(&path);
+
+        assert!(duplicate.completed);
+        assert!(duplicate.events.is_empty());
+        assert!(duplicate.snapshot.recent_events.iter().any(|event| matches!(
+            &event.payload,
+            RuntimeEventPayload::ExecutionCompleted {
+                status: RuntimeTerminalStatus::Failed,
+                ..
+            }
+        )));
+        let graph = duplicate
+            .snapshot
+            .task_graphs
+            .iter()
+            .find(|graph| graph.graph_id.as_str() == "interrupted-graph")
+            .expect("interrupted graph should remain available");
+        assert!(graph
+            .work_units
+            .iter()
+            .all(|unit| matches!(unit.state, OperationState::Failed)));
     }
 }

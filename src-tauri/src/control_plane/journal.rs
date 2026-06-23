@@ -17,6 +17,7 @@ pub struct RuntimeStore {
     pub active_session_id: Option<SessionId>,
     pub next_id: u64,
     pub next_sequence: u64,
+    pub next_sequence_by_session: BTreeMap<SessionId, u64>,
 }
 
 impl RuntimeJournal {
@@ -24,12 +25,26 @@ impl RuntimeJournal {
         mut repository: Box<dyn ControlPlaneRepository>,
         publisher: SharedEventPublisher,
     ) -> Result<Self, ControlPlaneError> {
-        let _events = repository.load_events()?;
+        let events = repository.load_events()?;
         let max_sequence = repository.max_event_sequence()?;
         let snapshots = repository.load_snapshots()?;
         let next_sequence = max_sequence.saturating_add(1);
+        let max_event_id_suffix = events
+            .iter()
+            .filter_map(|event| generated_id_suffix(event.event_id.as_str()))
+            .max()
+            .unwrap_or(0);
+        let next_id = max_event_id_suffix.max(
+            max_sequence
+                .max(events.len() as u64)
+                .saturating_add(1)
+                .saturating_mul(10),
+        );
         let mut sessions = BTreeMap::new();
+        let mut next_sequence_by_session = BTreeMap::new();
         for snapshot in snapshots {
+            next_sequence_by_session
+                .insert(snapshot.session_id.clone(), snapshot.next_sequence.max(1));
             sessions.insert(snapshot.session_id.clone(), snapshot);
         }
         let active_session_id = sessions.keys().next_back().cloned();
@@ -39,14 +54,18 @@ impl RuntimeJournal {
                 repository,
                 sessions,
                 active_session_id,
-                next_id: next_sequence.saturating_mul(10),
+                next_id,
                 next_sequence,
+                next_sequence_by_session,
             })),
             publisher,
         })
     }
 
-    pub fn set_publisher(&self, publisher: Arc<dyn RuntimeEventPublisher>) -> Result<(), ControlPlaneError> {
+    pub fn set_publisher(
+        &self,
+        publisher: Arc<dyn RuntimeEventPublisher>,
+    ) -> Result<(), ControlPlaneError> {
         self.publisher.replace(publisher)
     }
 
@@ -127,16 +146,7 @@ impl RuntimeJournal {
         let requests = store.repository.load_requests()?;
         for request in requests {
             if matches!(request.status, RequestStatus::Accepted | RequestStatus::Running) {
-                store.repository.update_request_status(
-                    &request.client_request_id,
-                    RequestStatus::FailedRetryable,
-                    Some(now_ms),
-                    Some(SafeDiagnostic {
-                        code: "run_interrupted".to_string(),
-                        message: "Run was interrupted before this service instance started; retry requires an explicit new request.".to_string(),
-                        retryable: true,
-                    }),
-                )?;
+                store.mark_request_interrupted(request, now_ms)?;
             }
         }
         Ok(())
@@ -161,10 +171,21 @@ impl RuntimeStore {
         now_ms: u64,
         payload: RuntimeEventPayload,
     ) -> RuntimeEventEnvelope {
+        let event_id = self.id("event", now_ms, RuntimeEventId::new);
+        let sequence = self
+            .next_sequence_by_session
+            .entry(session_id.clone())
+            .or_insert_with(|| {
+                self.sessions
+                    .get(session_id)
+                    .map(|snapshot| snapshot.next_sequence)
+                    .unwrap_or(1)
+                    .max(1)
+            });
         let event = RuntimeEventEnvelope {
             protocol_version: CONTROL_PLANE_PROTOCOL_VERSION.to_string(),
-            event_id: self.id("event", now_ms, RuntimeEventId::new),
-            sequence: self.next_sequence,
+            event_id,
+            sequence: *sequence,
             session_id: session_id.clone(),
             objective_id: objective_id.clone(),
             plan_revision,
@@ -174,7 +195,8 @@ impl RuntimeStore {
             occurred_at_ms: now_ms,
             payload,
         };
-        self.next_sequence = self.next_sequence.saturating_add(1);
+        *sequence = (*sequence).saturating_add(1);
+        self.next_sequence = self.next_sequence.max(*sequence);
         event
     }
 
@@ -185,7 +207,14 @@ impl RuntimeStore {
         self.sessions
             .get(&session_id)
             .cloned()
-            .unwrap_or_else(|| empty_snapshot(session_id, self.next_sequence))
+            .unwrap_or_else(|| {
+                let next_sequence = self
+                    .next_sequence_by_session
+                    .get(&session_id)
+                    .cloned()
+                    .unwrap_or(1);
+                empty_snapshot(session_id, next_sequence)
+            })
     }
 
     pub fn save_snapshot(
@@ -224,7 +253,7 @@ impl RuntimeStore {
             let keep_from = snapshot.recent_events.len().saturating_sub(80);
             snapshot.recent_events = snapshot.recent_events.split_off(keep_from);
         }
-        snapshot.next_sequence = self.next_sequence;
+        snapshot.next_sequence = self.next_sequence_for_session(&session_id);
         self.repository
             .save_events_snapshot_and_request(events, &snapshot, request)?;
         if !stale_revision {
@@ -271,7 +300,7 @@ impl RuntimeStore {
             let keep_from = snapshot.recent_events.len().saturating_sub(80);
             snapshot.recent_events = snapshot.recent_events.split_off(keep_from);
         }
-        snapshot.next_sequence = self.next_sequence;
+        snapshot.next_sequence = self.next_sequence_for_session(&session_id);
         self.repository
             .save_events_snapshot_and_request_status(events, &snapshot, request_status)?;
         if !stale_revision {
@@ -279,6 +308,98 @@ impl RuntimeStore {
         }
         self.sessions.insert(snapshot.session_id.clone(), snapshot.clone());
         Ok(snapshot)
+    }
+
+    fn next_sequence_for_session(&self, session_id: &SessionId) -> u64 {
+        self.next_sequence_by_session
+            .get(session_id)
+            .cloned()
+            .unwrap_or(1)
+            .max(1)
+    }
+
+    fn mark_request_interrupted(
+        &mut self,
+        request: RequestLedgerRecord,
+        now_ms: u64,
+    ) -> Result<(), ControlPlaneError> {
+        let diagnostic = SafeDiagnostic {
+            code: "run_interrupted".to_string(),
+            message: "Run was interrupted before this service instance started; retry requires an explicit new request.".to_string(),
+            retryable: true,
+        };
+
+        let Some(snapshot) = self.sessions.get(&request.session_id).cloned() else {
+            return self.repository.update_request_status(
+                &request.client_request_id,
+                RequestStatus::FailedRetryable,
+                Some(now_ms),
+                Some(diagnostic),
+            );
+        };
+
+        let mut events = Vec::new();
+        let graph = request.graph_id.as_ref().and_then(|graph_id| {
+            snapshot
+                .task_graphs
+                .iter()
+                .find(|graph| &graph.graph_id == graph_id)
+                .cloned()
+        });
+        let graph = graph.map(|mut graph| {
+            for unit in graph.work_units.iter_mut() {
+                if !is_terminal_state(&unit.state) {
+                    unit.state = OperationState::Failed;
+                    events.push(self.record_event(
+                        &request.session_id,
+                        &request.objective_id,
+                        request.plan_revision,
+                        Some(graph.graph_id.clone()),
+                        Some(unit.work_unit_id.clone()),
+                        &request.run_id,
+                        now_ms,
+                        RuntimeEventPayload::WorkUnitLifecycle {
+                            work_unit_id: unit.work_unit_id.clone(),
+                            state: OperationState::Failed,
+                            progress: 100,
+                            message: diagnostic.message.clone(),
+                        },
+                    ));
+                }
+            }
+            graph
+        });
+
+        events.push(self.record_event(
+            &request.session_id,
+            &request.objective_id,
+            request.plan_revision,
+            request.graph_id.clone(),
+            None,
+            &request.run_id,
+            now_ms,
+            RuntimeEventPayload::ExecutionCompleted {
+                status: RuntimeTerminalStatus::Failed,
+                summary: diagnostic.message.clone(),
+            },
+        ));
+
+        self.save_snapshot_and_request_status(
+            request.session_id.clone(),
+            Some(request.objective_id.clone()),
+            graph,
+            request.plan_revision,
+            Vec::new(),
+            snapshot.pending_approvals,
+            &events,
+            Some(RequestStatusUpdate {
+                client_request_id: &request.client_request_id,
+                status: RequestStatus::FailedRetryable,
+                terminal_at_ms: Some(now_ms),
+                safe_diagnostic: Some(&diagnostic),
+            }),
+        )?;
+        Ok(())
     }
 }
 
@@ -302,4 +423,19 @@ pub fn epoch_ms() -> u64 {
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_millis() as u64)
         .unwrap_or(0)
+}
+
+fn is_terminal_state(state: &OperationState) -> bool {
+    matches!(
+        state,
+        OperationState::Succeeded
+            | OperationState::PartiallySucceeded
+            | OperationState::Failed
+            | OperationState::Cancelled
+            | OperationState::Expired
+    )
+}
+
+fn generated_id_suffix(id: &str) -> Option<u64> {
+    id.rsplit_once('-')?.1.parse().ok()
 }
