@@ -1,5 +1,10 @@
 # Backend Control Plane Implementation Report
 
+Current status: this report describes the earlier deterministic demo foundation.
+The demo remains as an internal Rust fixture, but it is no longer exposed over
+the production Tauri IPC command surface. The live authority path is documented
+in `docs/reports/control-plane-live-authority-report.md`.
+
 ## 1. Executive result
 
 The backend control-plane foundation is implemented as a Rust/Tauri architecture slice. The most important outcome is that Adaptive Surface now has typed backend boundaries for context, intent, capabilities, delegation, activity, approval, provenance, and recovery, with a deterministic end-to-end test path that does not call cloud services or live external apps.
@@ -35,7 +40,8 @@ The new Rust module is `src-tauri/src/control_plane/`.
 
 - `contracts.rs` owns the serializable backend contract layer.
 - `engine.rs` owns deterministic control-plane behavior, policy gates, fake executors, activity replay/deduplication, lifecycle validation, recovery reporting, and JSON recovery snapshot helpers.
-- `src-tauri/src/lib.rs` exposes `run_control_plane_demo` over Tauri IPC.
+- `engine.rs` keeps `run_control_plane_demo` as an internal deterministic
+  fixture for contract and lifecycle tests.
 - `src/types/control-plane.ts` and `src/lib/control-plane-api.ts` provide a typed frontend IPC boundary.
 
 The design enforces "the surface owns the experience; existing tools own the work" by requiring every executable operation to bind to a declared `CapabilityDescriptor`. The deterministic slice can summarize bounded context, but the proposed `mail.send` mutation is not executed until a policy-created approval request for the exact plan revision is approved.
@@ -47,7 +53,8 @@ Rust backend:
 - `src-tauri/src/control_plane/mod.rs`: module boundary and exports.
 - `src-tauri/src/control_plane/contracts.rs`: typed contracts for observation, context, intent, capability, target binding, delegation, activity, approval, intervention, artifacts, receipts, recovery, and demo input/output.
 - `src-tauri/src/control_plane/engine.rs`: deterministic slice, state machine, policy gate, activity log, dispatch ledger, fake executors, recovery, JSON snapshot helpers, and tests.
-- `src-tauri/src/lib.rs`: registers `run_control_plane_demo`.
+- `src-tauri/src/lib.rs`: no longer registers the demo command in production
+  IPC; live control-plane commands are registered separately.
 
 Typed IPC/shared contracts:
 

@@ -1,7 +1,44 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::fmt;
 
 pub type Metadata = BTreeMap<String, String>;
+pub const CONTROL_PLANE_PROTOCOL_VERSION: &str = "control-plane.runtime.v1";
+
+macro_rules! stable_id {
+    ($name:ident) => {
+        #[derive(
+            Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+        )]
+        #[serde(transparent)]
+        pub struct $name(pub String);
+
+        impl $name {
+            pub fn new(value: impl Into<String>) -> Self {
+                Self(value.into())
+            }
+
+            pub fn as_str(&self) -> &str {
+                &self.0
+            }
+        }
+
+        impl fmt::Display for $name {
+            fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                self.0.fmt(formatter)
+            }
+        }
+    };
+}
+
+stable_id!(SessionId);
+stable_id!(ObjectiveId);
+stable_id!(TaskGraphId);
+stable_id!(WorkUnitId);
+stable_id!(RunId);
+stable_id!(RuntimeEventId);
+stable_id!(ArtifactId);
+stable_id!(ApprovalId);
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -518,4 +555,313 @@ pub struct ControlPlaneRunResult {
     pub recovery_snapshot: RecoverySnapshot,
     pub recovery_report: RecoveryReport,
     pub verified_non_execution: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkUnitKind {
+    MailSearch,
+    MailThreadRead,
+    TriageClassify,
+    ArtifactCreate,
+    PureSynthesis,
+    LegacyFallback,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DependencyKind {
+    RequiresSuccess,
+    RequiresTerminal,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkDependency {
+    pub upstream_work_unit_id: WorkUnitId,
+    pub dependency_kind: DependencyKind,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum JoinPolicy {
+    AllSucceeded,
+    AnyTerminal,
+    BestEffort,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ApprovalRequirement {
+    None,
+    Preview,
+    ExplicitUserApproval,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionPolicy {
+    pub timeout_ms: u64,
+    pub approval_requirement: ApprovalRequirement,
+    pub side_effect_class: SideEffectClass,
+    pub retry_policy: RetryPolicy,
+    pub idempotency_key: Option<String>,
+    pub supports_cancellation: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkUnit {
+    pub work_unit_id: WorkUnitId,
+    pub kind: WorkUnitKind,
+    pub capability_id: String,
+    pub title: String,
+    pub dependencies: Vec<WorkDependency>,
+    pub join_policy: JoinPolicy,
+    pub execution_policy: ExecutionPolicy,
+    pub input: Metadata,
+    pub state: OperationState,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskGraph {
+    pub graph_id: TaskGraphId,
+    pub session_id: SessionId,
+    pub objective_id: ObjectiveId,
+    pub plan_revision: u64,
+    pub work_units: Vec<WorkUnit>,
+    pub created_at_ms: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RuntimeTerminalStatus {
+    Succeeded,
+    Failed,
+    Cancelled,
+    LegacyFallback,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SafeDiagnostic {
+    pub code: String,
+    pub message: String,
+    pub retryable: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtifactEnvelope {
+    pub artifact_id: ArtifactId,
+    pub artifact_type: String,
+    pub title: String,
+    pub summary: String,
+    pub body: Option<String>,
+    pub items: Vec<Metadata>,
+    pub status: ArtifactStatus,
+    pub source_capability_id: String,
+    pub source_references: Vec<String>,
+    pub metadata: Metadata,
+    pub created_at_ms: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RuntimeEventKind {
+    ObjectiveAccepted,
+    PlanCreated,
+    WorkUnitQueued,
+    WorkUnitStarted,
+    WorkUnitProgressed,
+    WorkUnitCompleted,
+    WorkUnitFailed,
+    WorkUnitCancelled,
+    ArtifactAdded,
+    ApprovalRequired,
+    ApprovalResolved,
+    ConflictDetected,
+    SnapshotRecovered,
+    ExecutionCompleted,
+    LegacyFallbackRequested,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(
+    tag = "type",
+    content = "data",
+    rename_all = "snake_case",
+    rename_all_fields = "camelCase"
+)]
+pub enum RuntimeEventPayload {
+    ObjectiveAccepted {
+        utterance: String,
+        objective: String,
+        routed_by: String,
+    },
+    PlanCreated {
+        graph: TaskGraph,
+        summary: String,
+    },
+    WorkUnitLifecycle {
+        work_unit_id: WorkUnitId,
+        state: OperationState,
+        progress: u8,
+        message: String,
+    },
+    ArtifactAdded {
+        artifact: ArtifactEnvelope,
+    },
+    ApprovalRequired {
+        approval: ApprovalRequest,
+    },
+    ApprovalResolved {
+        approval_id: ApprovalId,
+        decision: ApprovalDecision,
+    },
+    ConflictDetected {
+        message: String,
+        safe_diagnostic: SafeDiagnostic,
+    },
+    SnapshotRecovered {
+        recovered_event_count: usize,
+    },
+    ExecutionCompleted {
+        status: RuntimeTerminalStatus,
+        summary: String,
+    },
+    LegacyFallbackRequested {
+        reason: String,
+    },
+}
+
+impl RuntimeEventPayload {
+    pub fn kind(&self) -> RuntimeEventKind {
+        match self {
+            Self::ObjectiveAccepted { .. } => RuntimeEventKind::ObjectiveAccepted,
+            Self::PlanCreated { .. } => RuntimeEventKind::PlanCreated,
+            Self::WorkUnitLifecycle { state, .. } => match state {
+                OperationState::Planned | OperationState::Ready => RuntimeEventKind::WorkUnitQueued,
+                OperationState::Dispatched | OperationState::Acknowledged | OperationState::Running => {
+                    RuntimeEventKind::WorkUnitStarted
+                }
+                OperationState::Succeeded | OperationState::PartiallySucceeded => {
+                    RuntimeEventKind::WorkUnitCompleted
+                }
+                OperationState::Failed | OperationState::Expired => RuntimeEventKind::WorkUnitFailed,
+                OperationState::Cancelled => RuntimeEventKind::WorkUnitCancelled,
+                OperationState::Paused | OperationState::AwaitingApproval => {
+                    RuntimeEventKind::WorkUnitProgressed
+                }
+            },
+            Self::ArtifactAdded { .. } => RuntimeEventKind::ArtifactAdded,
+            Self::ApprovalRequired { .. } => RuntimeEventKind::ApprovalRequired,
+            Self::ApprovalResolved { .. } => RuntimeEventKind::ApprovalResolved,
+            Self::ConflictDetected { .. } => RuntimeEventKind::ConflictDetected,
+            Self::SnapshotRecovered { .. } => RuntimeEventKind::SnapshotRecovered,
+            Self::ExecutionCompleted { status, .. } => match status {
+                RuntimeTerminalStatus::LegacyFallback => RuntimeEventKind::LegacyFallbackRequested,
+                _ => RuntimeEventKind::ExecutionCompleted,
+            },
+            Self::LegacyFallbackRequested { .. } => RuntimeEventKind::LegacyFallbackRequested,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeEventEnvelope {
+    pub protocol_version: String,
+    pub event_id: RuntimeEventId,
+    pub sequence: u64,
+    pub session_id: SessionId,
+    pub objective_id: ObjectiveId,
+    pub plan_revision: u64,
+    pub graph_id: Option<TaskGraphId>,
+    pub work_unit_id: Option<WorkUnitId>,
+    pub run_id: RunId,
+    pub occurred_at_ms: u64,
+    pub payload: RuntimeEventPayload,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SemanticRiskClass {
+    SafeRead,
+    LocalWrite,
+    ExternalWrite,
+    Destructive,
+    Unknown,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SemanticCapabilityDescriptor {
+    pub capability_id: String,
+    pub provider_binding: String,
+    pub input_contract: String,
+    pub output_contract: String,
+    pub availability: CapabilityAvailability,
+    pub risk_class: SemanticRiskClass,
+    pub approval_requirement: ApprovalRequirement,
+    pub timeout_ms: u64,
+    pub supports_cancellation: bool,
+    pub idempotency_semantics: String,
+    pub side_effect_class: SideEffectClass,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubmitObjectiveInput {
+    pub utterance: String,
+    pub session_id: Option<SessionId>,
+    pub client_request_id: Option<String>,
+    pub model_intent_hint: Option<String>,
+    pub now_ms: Option<u64>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SubmitObjectiveRoute {
+    Handled,
+    LegacyFallback,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubmitObjectiveResponse {
+    pub route: SubmitObjectiveRoute,
+    pub session_id: SessionId,
+    pub objective_id: ObjectiveId,
+    pub graph_id: Option<TaskGraphId>,
+    pub plan_revision: u64,
+    pub events: Vec<RuntimeEventEnvelope>,
+    pub snapshot: ControlPlaneSessionSnapshot,
+    pub pending_approvals: Vec<ApprovalRequest>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OperationCommand {
+    pub session_id: SessionId,
+    pub work_unit_id: WorkUnitId,
+    pub plan_revision: u64,
+    pub approval_id: Option<ApprovalId>,
+    pub now_ms: Option<u64>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ControlPlaneSessionSnapshot {
+    pub protocol_version: String,
+    pub session_id: SessionId,
+    pub objective_id: Option<ObjectiveId>,
+    pub active_graph_id: Option<TaskGraphId>,
+    pub plan_revision: u64,
+    pub next_sequence: u64,
+    pub task_graphs: Vec<TaskGraph>,
+    pub artifacts: Vec<ArtifactEnvelope>,
+    pub pending_approvals: Vec<ApprovalRequest>,
+    pub recent_events: Vec<RuntimeEventEnvelope>,
 }

@@ -14,7 +14,10 @@ tldraw.
 - tldraw-powered editable canvas.
 - Floating microphone button using the Web Speech API with a runtime fallback
   message.
-- Zustand store prepared for incremental agent streaming updates.
+- Zustand store prepared for runtime-event projection updates.
+- Rust control-plane service for finalized objective increments, task graphs,
+  runtime events, SQLite-backed recovery snapshots, and the migrated read-only
+  inbox-triage slice.
 - Rust `run_applescript` command placeholder for future approval-gated macOS
   automation.
 - Dark-first Tailwind v4 token system compatible with shadcn/ui conventions.
@@ -149,11 +152,12 @@ the approval flow.
 
 ## Next engineering steps
 
-- Connect `useSurfaceStore` to a local LangGraph or FastAPI streaming backend.
-- Add typed model routing for surface selection, state patches, and approval
-  cards.
-- Replace the AppleScript placeholder with a small allowlisted action registry.
+- Expand the Rust control-plane task graph beyond inbox triage while keeping
+  each new capability typed and approval-gated.
+- Move non-migrated finalized routes out of TypeScript compatibility fallback.
+- Add planner shadow mode and richer executor receipts before enabling new
+  external mutations.
 - Add permission checks for Accessibility, Apple Events, microphone, and file
   access before enabling integrations.
-- Add Playwright or WebDriver smoke tests for the web shell and Tauri command
-  tests for the Rust bridge.
+- Add browser or WebDriver smoke tests for the web shell and Tauri command tests
+  for the Rust bridge.

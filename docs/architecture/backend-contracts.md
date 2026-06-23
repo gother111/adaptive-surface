@@ -51,13 +51,25 @@ The deterministic resolver supports local fallback behavior without a cloud mode
 
 `DelegationPlan` and `DelegatedOperation` represent bounded increments, not large autonomous plans. Each operation has a correlation ID, timeout, retry policy, state, and idempotency key when safe.
 
-`ActivityEvent` normalizes executor-specific progress into a stable stream with deterministic per-operation sequence numbers and deduplicated provider events.
+`ActivityEvent` remains the demo-fixture activity contract. The live service uses
+`RuntimeEventEnvelope`, which carries protocol version, event ID, global
+monotonic sequence, session/objective IDs, plan revision, optional graph and
+work-unit IDs, run ID, timestamp, and a discriminated payload.
+
+`TaskGraph`, `WorkUnit`, `ExecutionPolicy`, `JoinPolicy`, and `WorkDependency`
+represent finalized execution. Work units are the only objects that bind
+capabilities to executable work.
 
 ## Approval, Artifacts, and Receipts
 
 `ApprovalRequest` names the target, scope, expected effect, data disclosure, reversibility, preview, expiry, and exact plan revision.
 
 `NormalizedArtifact` distinguishes derived interpretation from source material and committed results.
+
+`ArtifactEnvelope` is the live artifact contract projected to the frontend. It
+stores title, summary, optional body, bounded display rows, source references,
+metadata, source capability, and artifact status. The inbox-triage slice stores
+Mail metadata rows only, not full message bodies.
 
 `ExecutionReceipt` is required before claiming an external mutation succeeded. Reject and cancel paths instead produce verified non-execution.
 
@@ -68,3 +80,8 @@ The deterministic resolver supports local fallback behavior without a cloud mode
 - expired approvals
 - stale context references
 - non-idempotent in-flight operations requiring verification before replay
+
+`ControlPlaneSessionSnapshot` is the live persisted snapshot. It captures the
+latest task graphs, artifact envelopes, pending approvals, recent runtime
+events, plan revision, and next sequence. The SQLite repository ignores corrupt
+or unknown-future runtime events while replaying.

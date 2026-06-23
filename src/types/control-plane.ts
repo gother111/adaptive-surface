@@ -232,7 +232,232 @@ export interface ControlPlaneRunResult {
   approvalRequests: ApprovalRequest[];
   artifacts: NormalizedArtifact[];
   receipts: ExecutionReceipt[];
-  recoverySnapshot: unknown;
+  recoverySnapshot: RecoverySnapshot;
   recoveryReport: RecoveryReport;
   verifiedNonExecution: boolean;
+}
+
+export interface RecoverySnapshot {
+  snapshotId: string;
+  capturedAtMs: number;
+  contextSnapshot: ContextSnapshot;
+  plan: DelegationPlan;
+  activityEvents: ActivityEvent[];
+  approvalRequests: ApprovalRequest[];
+  artifacts: NormalizedArtifact[];
+  receipts: ExecutionReceipt[];
+}
+
+export const CONTROL_PLANE_PROTOCOL_VERSION = "control-plane.runtime.v1";
+
+export type WorkUnitKind =
+  | "mail_search"
+  | "mail_thread_read"
+  | "triage_classify"
+  | "artifact_create"
+  | "pure_synthesis"
+  | "legacy_fallback";
+
+export type DependencyKind = "requires_success" | "requires_terminal";
+export type JoinPolicy = "all_succeeded" | "any_terminal" | "best_effort";
+export type ApprovalRequirement = "none" | "preview" | "explicit_user_approval";
+export type RuntimeTerminalStatus = "succeeded" | "failed" | "cancelled" | "legacy_fallback";
+export type SemanticRiskClass = "safe_read" | "local_write" | "external_write" | "destructive" | "unknown";
+export type SubmitObjectiveRoute = "handled" | "legacy_fallback";
+
+export interface WorkDependency {
+  upstreamWorkUnitId: string;
+  dependencyKind: DependencyKind;
+}
+
+export interface ExecutionPolicy {
+  timeoutMs: number;
+  approvalRequirement: ApprovalRequirement;
+  sideEffectClass: string;
+  retryPolicy: {
+    maxAttempts: number;
+    retryIdempotentOnly: boolean;
+  };
+  idempotencyKey?: string | null;
+  supportsCancellation: boolean;
+}
+
+export interface WorkUnit {
+  workUnitId: string;
+  kind: WorkUnitKind;
+  capabilityId: string;
+  title: string;
+  dependencies: WorkDependency[];
+  joinPolicy: JoinPolicy;
+  executionPolicy: ExecutionPolicy;
+  input: Record<string, string>;
+  state: OperationState;
+}
+
+export interface TaskGraph {
+  graphId: string;
+  sessionId: string;
+  objectiveId: string;
+  planRevision: number;
+  workUnits: WorkUnit[];
+  createdAtMs: number;
+}
+
+export interface SafeDiagnostic {
+  code: string;
+  message: string;
+  retryable: boolean;
+}
+
+export interface ArtifactEnvelope {
+  artifactId: string;
+  artifactType: string;
+  title: string;
+  summary: string;
+  body?: string | null;
+  items: Array<Record<string, string>>;
+  status: string;
+  sourceCapabilityId: string;
+  sourceReferences: string[];
+  metadata: Record<string, string>;
+  createdAtMs: number;
+}
+
+export type RuntimeEventPayload =
+  | {
+      type: "objective_accepted";
+      data: {
+        utterance: string;
+        objective: string;
+        routedBy: string;
+      };
+    }
+  | {
+      type: "plan_created";
+      data: {
+        graph: TaskGraph;
+        summary: string;
+      };
+    }
+  | {
+      type: "work_unit_lifecycle";
+      data: {
+        workUnitId: string;
+        state: OperationState;
+        progress: number;
+        message: string;
+      };
+    }
+  | {
+      type: "artifact_added";
+      data: {
+        artifact: ArtifactEnvelope;
+      };
+    }
+  | {
+      type: "approval_required";
+      data: {
+        approval: ApprovalRequest;
+      };
+    }
+  | {
+      type: "approval_resolved";
+      data: {
+        approvalId: string;
+        decision: "approve" | "reject" | "cancel";
+      };
+    }
+  | {
+      type: "conflict_detected";
+      data: {
+        message: string;
+        safeDiagnostic: SafeDiagnostic;
+      };
+    }
+  | {
+      type: "snapshot_recovered";
+      data: {
+        recoveredEventCount: number;
+      };
+    }
+  | {
+      type: "execution_completed";
+      data: {
+        status: RuntimeTerminalStatus;
+        summary: string;
+      };
+    }
+  | {
+      type: "legacy_fallback_requested";
+      data: {
+        reason: string;
+      };
+    };
+
+export interface RuntimeEventEnvelope {
+  protocolVersion: string;
+  eventId: string;
+  sequence: number;
+  sessionId: string;
+  objectiveId: string;
+  planRevision: number;
+  graphId?: string | null;
+  workUnitId?: string | null;
+  runId: string;
+  occurredAtMs: number;
+  payload: RuntimeEventPayload;
+}
+
+export interface SemanticCapabilityDescriptor {
+  capabilityId: string;
+  providerBinding: string;
+  inputContract: string;
+  outputContract: string;
+  availability: string;
+  riskClass: SemanticRiskClass;
+  approvalRequirement: ApprovalRequirement;
+  timeoutMs: number;
+  supportsCancellation: boolean;
+  idempotencySemantics: string;
+  sideEffectClass: string;
+}
+
+export interface SubmitObjectiveInput {
+  utterance: string;
+  sessionId?: string | null;
+  clientRequestId?: string | null;
+  modelIntentHint?: string | null;
+  nowMs?: number | null;
+}
+
+export interface ControlPlaneSessionSnapshot {
+  protocolVersion: string;
+  sessionId: string;
+  objectiveId?: string | null;
+  activeGraphId?: string | null;
+  planRevision: number;
+  nextSequence: number;
+  taskGraphs: TaskGraph[];
+  artifacts: ArtifactEnvelope[];
+  pendingApprovals: ApprovalRequest[];
+  recentEvents: RuntimeEventEnvelope[];
+}
+
+export interface SubmitObjectiveResponse {
+  route: SubmitObjectiveRoute;
+  sessionId: string;
+  objectiveId: string;
+  graphId?: string | null;
+  planRevision: number;
+  events: RuntimeEventEnvelope[];
+  snapshot: ControlPlaneSessionSnapshot;
+  pendingApprovals: ApprovalRequest[];
+}
+
+export interface OperationCommand {
+  sessionId: string;
+  workUnitId: string;
+  planRevision: number;
+  approvalId?: string | null;
+  nowMs?: number | null;
 }

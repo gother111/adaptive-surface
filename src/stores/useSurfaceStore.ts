@@ -1,4 +1,11 @@
 import { create } from "zustand";
+import {
+  applyRuntimeEventsToWorkspace,
+  createControlPlaneProjection,
+  createMockControlPlaneResponse,
+  isMigratedControlPlaneUtterance,
+  type ControlPlaneProjection,
+} from "@/control-plane/runtime-event-reducer";
 import { classifyPartialTranscript } from "@/intent/intent-classifier";
 import type { IntentDetection } from "@/intent/types";
 import {
@@ -7,6 +14,7 @@ import {
   defaultTrustedFileRoots,
 } from "@/lib/context-sources";
 import { loadAppleContextBundle } from "@/lib/context-api";
+import { submitFinalUtterance } from "@/lib/control-plane-api";
 import { defaultModelProviderStatus, loadModelProviderStatus, refineVoiceIntentWithModel } from "@/lib/model-intent-api";
 import { initialSurfaces } from "@/lib/surface-fixtures";
 import { isTauriRuntime } from "@/lib/tauri";
@@ -38,6 +46,7 @@ import { applyWorkspacePatches, createInitialWorkspaceSession } from "@/workspac
 import { assignWorkspaceLayout, shouldCommandBecomePrimary } from "@/workspace/layout/workspace-layout-engine";
 import type {
   CalendarPanelProps,
+  FoundationSurfaceProps,
   MailPanelProps,
   NotesPanelProps,
   RemindersPanelProps,
@@ -97,6 +106,7 @@ interface SurfaceState {
   lastGoldenEvalStatus: string | null;
   modelRouting: ModelRoutingState;
   foundationCommandMemory: FoundationCommandMemory;
+  controlPlane: ControlPlaneProjection;
   draftSurface: SurfaceConfig | null;
   firstPartialLatencyMs: number | null;
   transcript: TranscriptEntry[];
@@ -173,6 +183,7 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
     lastError: null,
   },
   foundationCommandMemory: {},
+  controlPlane: createControlPlaneProjection(),
   draftSurface: null,
   firstPartialLatencyMs: null,
   transcript: [],
@@ -264,7 +275,7 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
       return;
     }
 
-    routeFinalVoiceUtterance(set, get, text, text, null);
+    void routeFinalVoiceThroughControlPlane(set, get, text, text, null);
   },
   clearVoiceDraft: () =>
     set((state) => ({
@@ -287,6 +298,7 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
       lastCapabilityAction: null,
       lastApprovalRequired: false,
       foundationCommandMemory: {},
+      controlPlane: createControlPlaneProjection(),
       modelRouting: { ...state.modelRouting, phase: "idle", requestId: null },
       debugHudOpen: false,
     })),
@@ -311,6 +323,7 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
       lastCapabilityAction: null,
       lastApprovalRequired: false,
       foundationCommandMemory: {},
+      controlPlane: createControlPlaneProjection(),
       modelRouting: { ...state.modelRouting, phase: "idle", requestId: null },
       transcript: commitTranscript(state.transcript, "clear workspace"),
     })),
@@ -545,7 +558,7 @@ async function routeFinalVoiceWithModel(
         lastError: refinement.status === "used" ? null : refinement.reason,
       },
     }));
-    routeFinalVoiceUtterance(set, get, text, routedText, refinement);
+    void routeFinalVoiceThroughControlPlane(set, get, text, routedText, refinement);
   } catch (error) {
     if (get().modelRouting.requestId !== requestId) {
       return;
@@ -560,8 +573,137 @@ async function routeFinalVoiceWithModel(
         lastError: message,
       },
     }));
-    routeFinalVoiceUtterance(set, get, text, text, null);
+    void routeFinalVoiceThroughControlPlane(set, get, text, text, null);
   }
+}
+
+async function routeFinalVoiceThroughControlPlane(
+  set: SurfaceStoreSet,
+  get: SurfaceStoreGet,
+  originalText: string,
+  routingText: string,
+  refinement: ModelIntentRefinement | null,
+) {
+  const shouldUseControlPlane = isMigratedControlPlaneUtterance(routingText);
+
+  if (!shouldUseControlPlane) {
+    routeFinalVoiceUtterance(set, get, originalText, routingText, refinement);
+    return;
+  }
+
+  set((state) => ({
+    controlPlane: {
+      ...state.controlPlane,
+      phase: "routing",
+      lastError: null,
+    },
+  }));
+
+  try {
+    const response = isTauriRuntime()
+      ? await submitFinalUtterance({
+          utterance: originalText,
+          sessionId: get().controlPlane.sessionId,
+          clientRequestId: crypto.randomUUID(),
+          modelIntentHint: refinement ? `${refinement.status}:${routingText}` : null,
+        })
+      : createMockControlPlaneResponse(routingText);
+
+    if (response.route === "legacy_fallback") {
+      const message = "The Rust control plane did not accept this migrated command, so no legacy action was run.";
+      const patches = controlPlaneFailurePatches(originalText, message);
+      set((state) => ({
+        partialTranscript: "",
+        committedTranscript: `${state.committedTranscript} ${originalText}`.trim(),
+        transcript: commitTranscript(state.transcript, originalText),
+        activeIntent: null,
+        workspaceSession: applyWorkspacePatches(state.workspaceSession, patches),
+        workspacePatches: [...patches, ...state.workspacePatches].slice(0, 36),
+        controlPlane: {
+          ...state.controlPlane,
+          phase: "failed",
+          sessionId: response.sessionId,
+          objectiveId: response.objectiveId,
+          graphId: response.graphId ?? state.controlPlane.graphId,
+          planRevision: response.planRevision,
+          lastError: message,
+        },
+      }));
+      return;
+    }
+
+    set((state) => {
+      const reduced = applyRuntimeEventsToWorkspace(
+        state.workspaceSession,
+        state.controlPlane,
+        response.events,
+      );
+      return {
+        partialTranscript: "",
+        committedTranscript: `${state.committedTranscript} ${originalText}`.trim(),
+        transcript: commitTranscript(state.transcript, originalText),
+        activeIntent: null,
+        workspaceSession: reduced.workspaceSession,
+        workspacePatches: [...reduced.patches, ...state.workspacePatches].slice(0, 36),
+        controlPlane: {
+          ...reduced.projection,
+          pendingApprovalCount: response.pendingApprovals.length,
+        },
+        modelRouting: refinement
+          ? { ...state.modelRouting, lastRefinement: refinement }
+          : state.modelRouting,
+      };
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Control-plane route failed.";
+    const patches = controlPlaneFailurePatches(originalText, message);
+    set((state) => ({
+      partialTranscript: "",
+      committedTranscript: `${state.committedTranscript} ${originalText}`.trim(),
+      transcript: commitTranscript(state.transcript, originalText),
+      activeIntent: null,
+      workspaceSession: applyWorkspacePatches(state.workspaceSession, patches),
+      workspacePatches: [...patches, ...state.workspacePatches].slice(0, 36),
+      controlPlane: {
+        ...state.controlPlane,
+        phase: "failed",
+        lastError: message,
+      },
+    }));
+  }
+}
+
+function controlPlaneFailurePatches(command: string, message: string): WorkspacePatch[] {
+  const now = Date.now();
+  return [
+    {
+      type: "UPSERT_SURFACE",
+      surface: {
+        id: "control-plane-command-error",
+        kind: "command_error",
+        role: "supporting",
+        zone: "rightRail",
+        status: "active",
+        createdAt: now,
+        updatedAt: now,
+        props: {
+          title: "Control plane failed",
+          status: "adapter_error",
+          command,
+          adapter: "control-plane",
+          provider: "Rust ControlPlaneService",
+          errorKind: "adapter",
+          error: message,
+          summary: "The migrated control-plane command stopped before any legacy action could run.",
+          suggestedNextAction: "Try again after checking the local app state.",
+          detail: {
+            route: "inbox_triage",
+            failClosed: "true",
+          },
+        } satisfies FoundationSurfaceProps,
+      },
+    },
+  ];
 }
 
 function routeFinalVoiceUtterance(
@@ -699,6 +841,7 @@ function resetWorkspaceState() {
     lastCapabilityAction: null,
     lastApprovalRequired: false,
     foundationCommandMemory: {},
+    controlPlane: createControlPlaneProjection(),
     debugHudOpen: false,
   };
 }
