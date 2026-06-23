@@ -123,3 +123,51 @@ Manual UI re-test still needs to run after the macOS session is unlocked:
 - The current fix is metadata-only. It improves broad triage shape and safety, but it does not prove thread-level decisions from full message bodies.
 - Full evidence extraction will require explicit body/thread reads for selected messages and must stay approval-aware for any external or mailbox-changing action.
 - DeepSeek should be verified in the installed UI once the session is unlocked, because current automated checks prove routing behavior but not a visible model-routing trace in the locked desktop.
+
+## Post-Unblock Update
+
+Follow-up fix: draft-artifact and operating-plan refinements for inbox triage.
+
+Changed behavior:
+
+- `Draft the main business artifact for inbox triage.` now routes to `create_email_triage_artifact` with `mode=draft_artifact`.
+- Draft artifacts now display as `Inbox triage draft` and include a preview-only draft frame, working version, input scope, first-version lanes, and an approval boundary.
+- `plan_next_steps` artifacts now include an `Operating Plan` section with owner, metadata date range, dependencies, constraints, checkpoints, and fallback path.
+- The local app remains metadata-only for broad triage prompts: no full message bodies, mailbox writes, disk writes, or external app actions are run.
+
+Verification completed after the follow-up fix:
+
+```bash
+node_modules/.bin/vitest run src/test/foundation-command-router.test.ts src/test/foundation-command-lifecycle.test.ts
+node_modules/.bin/tsc --noEmit
+node_modules/.bin/vitest run
+node_modules/.bin/vite build
+node node_modules/@tauri-apps/cli/tauri.js build --bundles app --config '{"build":{"beforeBuildCommand":""}}'
+```
+
+Results:
+
+- Targeted router/lifecycle tests passed: 2 files, 28 tests.
+- Full test suite passed: 21 files, 103 tests.
+- Typecheck passed.
+- Frontend production build passed with the existing large-bundle warning only.
+- Tauri `.app` bundle build passed with the existing EventKit macOS availability warnings only.
+- Installed `/Applications/Adaptive Surface.app` was replaced from the built bundle and ad-hoc signed.
+- Installed app passed code-sign verification.
+- Signed build and installed app executable hashes matched:
+  `b43c00ed7e3d150f6d9708fa54af9f8c3218b759671af8b0df50c1f1126ee3a0`
+
+Installed app backup:
+
+- `/Applications/Adaptive Surface.app.backup-20260623-071344`
+
+Manual installed-app retests logged in `docs/qa/adaptive-surface-user-stories.xlsx`:
+
+- Row 28: `VJ-04-01-06` Direct prompt now passes as an `Inbox triage draft` document through `email_triage_artifact`.
+- Row 29: `VJ-04-01-05` Guardrail-first prompt now passes as an `Inbox triage plan` document with an `Operating Plan`.
+
+Remaining work:
+
+- Continue `VJ-04-01-06` conversational, context-rich, outcome-first, and guardrail-first prompts.
+- Continue the remaining Email domain queue after the inbox-triage draft family.
+- Verify DeepSeek-backed behavior on prompt families that actually require model synthesis rather than deterministic local routing.

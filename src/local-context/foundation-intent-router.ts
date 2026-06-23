@@ -234,9 +234,9 @@ function high(intent: FoundationIntentName, normalizedText: string, reason: stri
 
 function isInboxTriageWork(text: string) {
   if (!/\b(email|emails|mail|inbox|message|messages)\b/.test(text)) return false;
-  if (!/\b(triage|catch up|catch|decisions?|records?|requests?|organize|context|compare|options?|plan|next steps?|actionable|sources?|assumptions?|gaps?)\b/.test(text)) return false;
+  if (!/\b(triage|catch up|catch|decisions?|records?|requests?|organize|context|compare|options?|plan|next steps?|actionable|sources?|assumptions?|gaps?|draft|artifact|version|configuration|calculation)\b/.test(text)) return false;
 
-  return /\b(catch up|catch|find|key|organize|compare|plan|next steps?|actionable|looking across|show.*sources?|assumptions?|gaps?)\b/.test(text);
+  return /\b(catch up|catch|find|key|organize|compare|plan|next steps?|actionable|looking across|show.*sources?|assumptions?|gaps?|draft|artifact|version|configuration|calculation)\b/.test(text);
 }
 
 function extractRoot(text: string): FoundationIntentResult["root"] {

@@ -474,6 +474,8 @@ function emailTriageTitle(mode: unknown) {
       return "Inbox triage options";
     case "plan_next_steps":
       return "Inbox triage plan";
+    case "draft_artifact":
+      return "Inbox triage draft";
     default:
       return "Inbox triage catch-up";
   }
@@ -513,6 +515,8 @@ function emailTriageBody(utterance: string, messages: AppleMailMessage[], mode: 
       ? `${messages.length} recent messages were loaded for ${modeLabel}. ${unread.length} are currently unread in the metadata sample.`
       : "No recent messages were available from Apple Mail metadata.",
     "",
+    ...emailTriageModeSection(mode, messages),
+    "",
     "## Sources Used",
     ...(recentLines.length ? recentLines : ["- No mail metadata rows were returned."]),
     "",
@@ -538,6 +542,46 @@ function emailTriageBody(utterance: string, messages: AppleMailMessage[], mode: 
   ].join("\n");
 }
 
+function emailTriageModeSection(mode: unknown, messages: AppleMailMessage[]) {
+  const oldest = messages.at(-1)?.receivedAt ?? "oldest sampled message";
+  const newest = messages[0]?.receivedAt ?? "newest sampled message";
+
+  switch (mode) {
+    case "plan_next_steps":
+      return [
+        "## Operating Plan",
+        "- Owner: user reviews and chooses the next message; Adaptive Surface only prepares previews until approval.",
+        `- Date range: metadata sample spans ${oldest} to ${newest}.`,
+        "- Dependencies: Apple Mail metadata is available; full bodies and attachments require a specific follow-up command.",
+        "- Constraints: no reply, send, archive, delete, label, file, reminder, or external-app write is allowed from this artifact.",
+        "- Checkpoint 1: confirm whether the newest unread message is the right starting point.",
+        "- Checkpoint 2: request a full latest-email summary only when body evidence is needed.",
+        "- Fallback path: if metadata is ambiguous, keep the item in review instead of committing to a conclusion.",
+      ];
+    case "draft_artifact":
+      return [
+        "## Draft Artifact",
+        "- Draft status: preview only.",
+        "- Working version: Inbox triage draft v1.",
+        `- Input scope: ${messages.length} Apple Mail metadata rows, not full message bodies.`,
+        "- Suggested sections: source list, inferred priorities, open decisions, missing evidence, proposed next action, approval boundary.",
+        "- Approval boundary: the draft can be revised in-app, but no external write or mailbox change happens until a later explicit approval step.",
+        "",
+        "## First Version",
+        "- Priority lane: start with unread or newest messages from the source list.",
+        "- Records lane: capture decisions or commitments only after a body-level summary proves them.",
+        "- Follow-up lane: turn a confirmed item into a draft, reminder, or task only after previewing the exact content.",
+        "- Evidence lane: mark ambiguous metadata as needs-review instead of inventing owners, dates, or intent.",
+      ];
+    default:
+      return [
+        "## Review Frame",
+        "- Separate observed metadata from proposed next actions.",
+        "- Treat every proposed action as uncommitted until the user approves a specific preview.",
+      ];
+  }
+}
+
 function emailTriageModeLabel(mode: unknown) {
   switch (mode) {
     case "extract_records":
@@ -548,6 +592,8 @@ function emailTriageModeLabel(mode: unknown) {
       return "comparing available triage options";
     case "plan_next_steps":
       return "planning next steps";
+    case "draft_artifact":
+      return "drafting a reviewable business artifact";
     default:
       return "catching up on inbox triage";
   }

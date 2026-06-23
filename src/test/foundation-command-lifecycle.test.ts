@@ -379,9 +379,51 @@ describe("foundation command lifecycle", () => {
       mode: "plan_next_steps",
     });
     expect(String(surface?.props.body)).toContain("## Sources Used");
+    expect(String(surface?.props.body)).toContain("## Operating Plan");
+    expect(String(surface?.props.body)).toContain("Owner: user reviews and chooses the next message");
+    expect(String(surface?.props.body)).toContain("Fallback path");
     expect(String(surface?.props.body)).toContain("## Assumptions");
     expect(String(surface?.props.body)).toContain("## Gaps");
     expect(String(surface?.props.body)).toContain("## Next Steps");
+  });
+
+  it("creates a preview-only inbox triage draft artifact from mail metadata", async () => {
+    contextMocks.loadMailMessages.mockResolvedValue([
+      {
+        id: "mail-1",
+        mailbox: "Inbox",
+        subject: "Invoice approval needed",
+        sender: "Alex <alex@example.com>",
+        receivedAt: "2026-05-24T10:00:00Z",
+        isRead: false,
+        preview: "Please approve the May invoice before Friday.",
+      },
+    ]);
+
+    const result = await runFoundationCommand({
+      kind: "create_email_triage_artifact",
+      utterance: "Draft the main business artifact for inbox triage.",
+      surfaceKind: "document",
+      adapter: "email_triage_artifact",
+      requiresApproval: false,
+      payload: { mode: "draft_artifact" },
+    }, createInitialWorkspaceSession(), {});
+    const next = applyWorkspacePatches(createInitialWorkspaceSession(), result.patches);
+    const surface = next.surfaces[0];
+
+    expect(contextMocks.readMailMessage).not.toHaveBeenCalled();
+    expect(surface?.props.title).toBe("Inbox triage draft");
+    expect(surface?.props.detail).toMatchObject({
+      writesToDisk: false,
+      externalWrite: false,
+      writesToMailbox: false,
+      fullBodiesRead: false,
+      mode: "draft_artifact",
+    });
+    expect(String(surface?.props.body)).toContain("## Draft Artifact");
+    expect(String(surface?.props.body)).toContain("Draft status: preview only");
+    expect(String(surface?.props.body)).toContain("## First Version");
+    expect(String(surface?.props.body)).toContain("Approval boundary");
   });
 
   it("queues local writes for approval before creating anything", async () => {

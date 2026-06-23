@@ -68,6 +68,9 @@ describe("foundation command router", () => {
     expect(routeFoundationCommand("Organize the work and context for inbox triage.")?.payload.mode).toBe("organize_context");
     expect(routeFoundationCommand("Compare the available options for inbox triage.")?.payload.mode).toBe("compare_options");
     expect(routeFoundationCommand("Plan the next steps for inbox triage.")?.payload.mode).toBe("plan_next_steps");
+    const draftArtifact = routeFoundationCommand("Draft the main business artifact for inbox triage.");
+    expect(draftArtifact?.kind).toBe("create_email_triage_artifact");
+    expect(draftArtifact?.payload.mode).toBe("draft_artifact");
   });
 
   it("keeps local context phrases in the foundation path even when unsupported", () => {

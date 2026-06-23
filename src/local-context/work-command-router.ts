@@ -182,6 +182,7 @@ function isImplementedEmailReadCommand(text: string) {
 }
 
 function inferEmailTriageMode(text: string) {
+  if (/\b(draft|artifact|version|configuration|calculation)\b/.test(text)) return "draft_artifact";
   if (/\b(compare|options?)\b/.test(text)) return "compare_options";
   if (/\b(plan|next steps?|actionable)\b/.test(text)) return "plan_next_steps";
   if (/\b(organize|context)\b/.test(text)) return "organize_context";
