@@ -3,6 +3,7 @@ import {
   type ArtifactEnvelope,
   type ControlPlaneSessionSnapshot,
   type RuntimeEventEnvelope,
+  type RuntimeTerminalStatus,
   type SubmitObjectiveResponse,
   type TaskGraph,
 } from "@/types/control-plane";
@@ -12,12 +13,14 @@ import { applyWorkspacePatches } from "@/workspace/workspace-reducer";
 const CONTROL_PLANE_SURFACE_ID = "control-plane-inbox-triage";
 
 export interface ControlPlaneProjection {
-  phase: "idle" | "routing" | "running" | "succeeded" | "failed" | "fallback";
+  phase: "idle" | "routing" | "running" | "succeeded" | "failed" | "cancelled" | "timed_out" | "fallback";
   sessionId: string | null;
   objectiveId: string | null;
+  runId: string | null;
   graphId: string | null;
   planRevision: number;
   lastSequence: number;
+  needsCatchUpFrom: number | null;
   seenEventIds: string[];
   lastError: string | null;
   pendingApprovalCount: number;
@@ -28,9 +31,11 @@ export function createControlPlaneProjection(): ControlPlaneProjection {
     phase: "idle",
     sessionId: null,
     objectiveId: null,
+    runId: null,
     graphId: null,
     planRevision: 0,
     lastSequence: 0,
+    needsCatchUpFrom: null,
     seenEventIds: [],
     lastError: null,
     pendingApprovalCount: 0,
@@ -65,7 +70,42 @@ export function applyRuntimeEventsToWorkspace(
       continue;
     }
 
+    if (!nextProjection.sessionId && nextProjection.phase !== "routing") {
+      const canStartIdleProjection =
+        nextProjection.phase === "idle"
+        && event.sequence === 1
+        && event.payload.type === "objective_accepted";
+      if (!canStartIdleProjection) {
+        continue;
+      }
+    }
+
+    if (!nextProjection.sessionId && nextProjection.phase !== "routing" && nextProjection.phase !== "idle") {
+      continue;
+    }
+
+    if (nextProjection.sessionId && event.sessionId !== nextProjection.sessionId) {
+      continue;
+    }
+
+    if (
+      nextProjection.runId
+      && event.runId !== nextProjection.runId
+      && nextProjection.phase !== "routing"
+    ) {
+      continue;
+    }
+
     if (nextProjection.seenEventIds.includes(event.eventId) || event.sequence <= nextProjection.lastSequence) {
+      continue;
+    }
+
+    if (event.sequence > nextProjection.lastSequence + 1) {
+      nextProjection = {
+        ...nextProjection,
+        sessionId: event.sessionId,
+        needsCatchUpFrom: nextProjection.lastSequence,
+      };
       continue;
     }
 
@@ -77,9 +117,11 @@ export function applyRuntimeEventsToWorkspace(
       ...nextProjection,
       sessionId: event.sessionId,
       objectiveId: event.objectiveId,
+      runId: event.runId,
       graphId: event.graphId ?? nextProjection.graphId,
       planRevision: event.planRevision,
       lastSequence: event.sequence,
+      needsCatchUpFrom: null,
     };
 
     switch (event.payload.type) {
@@ -116,6 +158,23 @@ export function applyRuntimeEventsToWorkspace(
               workUnitId: event.payload.data.workUnitId,
             },
           }));
+        } else if (event.payload.data.state === "cancelled" || event.payload.data.state === "expired") {
+          nextProjection.phase = event.payload.data.state === "expired" ? "timed_out" : "cancelled";
+          nextProjection.lastError = event.payload.data.message;
+          patches.push(updateFoundationSurface({
+            title: "Inbox triage",
+            status: "adapter_error",
+            command: "Inbox triage",
+            adapter: "control-plane",
+            provider: "Rust ControlPlaneService",
+            summary: event.payload.data.message,
+            detail: {
+              sessionId: event.sessionId,
+              planRevision: event.planRevision,
+              workUnitId: event.payload.data.workUnitId,
+              progress: event.payload.data.progress,
+            },
+          }));
         } else if (event.payload.data.state === "running" || event.payload.data.state === "ready") {
           nextProjection.phase = "running";
           patches.push(updateFoundationSurface({
@@ -144,7 +203,11 @@ export function applyRuntimeEventsToWorkspace(
           ? "succeeded"
           : event.payload.data.status === "legacy_fallback"
             ? "fallback"
-            : "failed";
+            : event.payload.data.status === "cancelled"
+              ? "cancelled"
+              : event.payload.data.status === "timed_out"
+                ? "timed_out"
+                : "failed";
         if (event.payload.data.status !== "succeeded" && event.payload.data.status !== "legacy_fallback") {
           nextProjection.lastError = event.payload.data.summary;
         }
@@ -175,24 +238,120 @@ export function applyRuntimeEventsToWorkspace(
 }
 
 export function projectionFromSnapshot(snapshot: ControlPlaneSessionSnapshot): ControlPlaneProjection {
+  const terminalEvent = lastExecutionCompletedEvent(snapshot.recentEvents);
+  const phase = terminalEvent
+    ? terminalEvent.payload.data.status === "succeeded"
+      ? "succeeded"
+      : terminalEvent.payload.data.status === "legacy_fallback"
+        ? "fallback"
+        : terminalEvent.payload.data.status === "cancelled"
+          ? "cancelled"
+          : terminalEvent.payload.data.status === "timed_out"
+            ? "timed_out"
+            : "failed"
+    : snapshot.activeGraphId
+      ? "running"
+      : "idle";
   return {
-    phase: snapshot.activeGraphId ? "running" : "idle",
+    phase,
     sessionId: snapshot.sessionId,
     objectiveId: snapshot.objectiveId ?? null,
+    runId: snapshot.recentEvents.at(-1)?.runId ?? null,
     graphId: snapshot.activeGraphId ?? null,
     planRevision: snapshot.planRevision,
     lastSequence: Math.max(0, ...snapshot.recentEvents.map((event) => event.sequence)),
+    needsCatchUpFrom: null,
     seenEventIds: snapshot.recentEvents.map((event) => event.eventId).slice(-160),
-    lastError: null,
+    lastError: terminalEvent && terminalEvent.payload.data.status !== "succeeded"
+      ? terminalEvent.payload.data.summary
+      : null,
     pendingApprovalCount: snapshot.pendingApprovals.length,
   };
+}
+
+function lastExecutionCompletedEvent(events: RuntimeEventEnvelope[]) {
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events[index];
+    if (event.payload.type === "execution_completed") {
+      return event as RuntimeEventEnvelope & {
+        payload: { type: "execution_completed"; data: { status: RuntimeTerminalStatus; summary: string } };
+      };
+    }
+  }
+  return null;
 }
 
 export function createMockControlPlaneResponse(utterance: string, now = Date.now()): SubmitObjectiveResponse {
   const sessionId = `mock-session-${now}`;
   const objectiveId = `mock-objective-${now}`;
   const graphId = `mock-graph-${now}`;
-  const artifact: ArtifactEnvelope = {
+  const runId = `mock-run-${now}`;
+  const graph: TaskGraph = {
+    graphId,
+    sessionId,
+    objectiveId,
+    planRevision: 1,
+    createdAtMs: now,
+    workUnits: [],
+  };
+  const events: RuntimeEventEnvelope[] = [
+    event(1, sessionId, objectiveId, graphId, runId, now, {
+      type: "objective_accepted",
+      data: { utterance, objective: "Run read-only inbox triage", routedBy: "browser-mock" },
+    }),
+    event(2, sessionId, objectiveId, graphId, runId, now, {
+      type: "plan_created",
+      data: { graph, summary: "Created browser-only mock control-plane graph." },
+    }),
+  ];
+  const snapshot: ControlPlaneSessionSnapshot = {
+    protocolVersion: CONTROL_PLANE_PROTOCOL_VERSION,
+    sessionId,
+    objectiveId,
+    activeGraphId: graphId,
+    planRevision: 1,
+    nextSequence: 3,
+    taskGraphs: [graph],
+    artifacts: [],
+    pendingApprovals: [],
+    recentEvents: events,
+  };
+  return {
+    route: "handled",
+    sessionId,
+    objectiveId,
+    runId: `mock-run-${now}`,
+    graphId,
+    planRevision: 1,
+    acceptedSequence: 1,
+    completed: false,
+    events,
+    snapshot,
+    pendingApprovals: [],
+  };
+}
+
+export function createMockControlPlaneCompletionEvents(
+  response: SubmitObjectiveResponse,
+  utterance: string,
+): RuntimeEventEnvelope[] {
+  const now = response.events[0]?.occurredAtMs ?? Date.now();
+  const artifact = createMockArtifact(utterance, now);
+  const graphId = response.graphId ?? `mock-graph-${now}`;
+  return [
+    event(3, response.sessionId, response.objectiveId, graphId, response.runId, now, {
+      type: "artifact_added",
+      data: { artifact },
+    }),
+    event(4, response.sessionId, response.objectiveId, graphId, response.runId, now, {
+      type: "execution_completed",
+      data: { status: "succeeded", summary: "Browser mock completed." },
+    }),
+  ];
+}
+
+function createMockArtifact(utterance: string, now: number): ArtifactEnvelope {
+  return {
     artifactId: `mock-artifact-${now}`,
     artifactType: "text/markdown",
     title: "Inbox triage catch-up",
@@ -212,54 +371,6 @@ export function createMockControlPlaneResponse(utterance: string, now = Date.now
     },
     createdAtMs: now,
   };
-  const graph: TaskGraph = {
-    graphId,
-    sessionId,
-    objectiveId,
-    planRevision: 1,
-    createdAtMs: now,
-    workUnits: [],
-  };
-  const events: RuntimeEventEnvelope[] = [
-    event(1, sessionId, objectiveId, graphId, now, {
-      type: "objective_accepted",
-      data: { utterance, objective: "Run read-only inbox triage", routedBy: "browser-mock" },
-    }),
-    event(2, sessionId, objectiveId, graphId, now, {
-      type: "plan_created",
-      data: { graph, summary: "Created browser-only mock control-plane graph." },
-    }),
-    event(3, sessionId, objectiveId, graphId, now, {
-      type: "artifact_added",
-      data: { artifact },
-    }),
-    event(4, sessionId, objectiveId, graphId, now, {
-      type: "execution_completed",
-      data: { status: "succeeded", summary: "Browser mock completed." },
-    }),
-  ];
-  const snapshot: ControlPlaneSessionSnapshot = {
-    protocolVersion: CONTROL_PLANE_PROTOCOL_VERSION,
-    sessionId,
-    objectiveId,
-    activeGraphId: graphId,
-    planRevision: 1,
-    nextSequence: 5,
-    taskGraphs: [graph],
-    artifacts: [artifact],
-    pendingApprovals: [],
-    recentEvents: events,
-  };
-  return {
-    route: "handled",
-    sessionId,
-    objectiveId,
-    graphId,
-    planRevision: 1,
-    events,
-    snapshot,
-    pendingApprovals: [],
-  };
 }
 
 function event(
@@ -267,6 +378,7 @@ function event(
   sessionId: string,
   objectiveId: string,
   graphId: string,
+  runId: string,
   now: number,
   payload: RuntimeEventEnvelope["payload"],
 ): RuntimeEventEnvelope {
@@ -279,7 +391,7 @@ function event(
     planRevision: 1,
     graphId,
     workUnitId: null,
-    runId: `mock-run-${now}`,
+    runId,
     occurredAtMs: now,
     payload,
   };
@@ -299,7 +411,7 @@ function upsertLoadingSurface(summary: string, graph: TaskGraph, now: number): W
       props: {
         title: "Inbox triage",
         status: "loading",
-        command: graph.workUnits[0]?.input.utterance ?? "Inbox triage",
+        command: graph.workUnits.find((unit) => unit.input.utterance)?.input.utterance ?? "Inbox triage",
         adapter: "control-plane",
         provider: "Rust ControlPlaneService",
         summary,

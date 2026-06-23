@@ -9,8 +9,10 @@ sequenceDiagram
   participant Client as ControlPlaneClient
   participant IPC as Tauri IPC
   participant CP as ControlPlaneService
+  participant Scheduler as TaskScheduler
   participant Repo as SQLite repository
   participant Mail as Apple Mail metadata adapter
+  participant Pub as EventPublisher
   participant Reducer as Runtime-event reducer
 
   UI->>UI: receiveVoicePartial
@@ -18,20 +20,25 @@ sequenceDiagram
   UI->>UI: speculative intent/transcript UI
 
   UI->>Client: migrated finalized utterance
+  Client->>Client: install runtime-event listener once
   Client->>IPC: submit_final_utterance(input)
   IPC->>CP: typed SubmitObjectiveInput
-  CP->>Repo: replay/load current session snapshot
-  CP->>CP: accept objective and allocate plan revision
+  CP->>CP: validate and deduplicate clientRequestId
   CP->>CP: create TaskGraph and WorkUnits
-  CP->>Mail: mail.search metadata only
-  Mail-->>CP: AppleMailMessage metadata rows
-  CP->>CP: triage.classify and artifact.create
-  CP->>Repo: append ordered RuntimeEvents
-  CP->>Repo: save ControlPlaneSessionSnapshot
+  CP->>Repo: commit request ledger, accepted events, snapshot
+  CP->>Scheduler: enqueue accepted run
   CP-->>IPC: SubmitObjectiveResponse
-  IPC-->>Client: ordered RuntimeEvents
-  Client-->>UI: response
-  UI->>Reducer: reduce events
+  IPC-->>Client: accepted run metadata
+  Client->>Repo: get_runtime_events_after(lastSequence)
+  Scheduler->>Repo: commit work-unit ready/running
+  Scheduler->>Mail: mail.search metadata only
+  Mail-->>Scheduler: AppleMailMessage metadata rows
+  Scheduler->>Repo: commit work-unit success
+  Scheduler->>Repo: commit artifact and run terminal events
+  Repo-->>Pub: committed events
+  Pub-->>Client: control-plane://runtime-event
+  Client-->>UI: live and catch-up events
+  UI->>Reducer: reduce events idempotently
   Reducer-->>UI: WorkspacePatch projection
 ```
 
@@ -48,6 +55,18 @@ content, call a model, or contact external services at startup.
 
 Partial voice remains independent of that startup path, so first-intent UI stays
 local and fast.
+
+Final submit no longer waits for Mail metadata, triage, artifact creation, or
+run completion. It waits only for validation, request-ledger deduplication, and
+the durable accepted-run commit. Progress and completion arrive through the
+runtime-event stream or sequence catch-up.
+
+## Cancellation And Deadlines
+
+The scheduler wraps work-unit execution with cancellation tokens and deadlines.
+Cooperative executors stop when signaled. Synchronous native adapters are run
+outside the journal lock; if they return after cancellation or timeout, the
+scheduler discards the late result and does not publish artifacts or success.
 
 ## Atlas Policy
 

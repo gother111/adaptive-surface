@@ -640,6 +640,7 @@ pub enum RuntimeTerminalStatus {
     Succeeded,
     Failed,
     Cancelled,
+    TimedOut,
     LegacyFallback,
 }
 
@@ -823,6 +824,34 @@ pub struct SubmitObjectiveInput {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+pub enum RequestStatus {
+    Accepted,
+    Running,
+    Completed,
+    FailedRetryable,
+    FailedTerminal,
+    Cancelled,
+    TimedOut,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RequestLedgerRecord {
+    pub client_request_id: String,
+    pub request_fingerprint: String,
+    pub session_id: SessionId,
+    pub objective_id: ObjectiveId,
+    pub run_id: RunId,
+    pub graph_id: Option<TaskGraphId>,
+    pub plan_revision: u64,
+    pub status: RequestStatus,
+    pub accepted_at_ms: u64,
+    pub terminal_at_ms: Option<u64>,
+    pub safe_diagnostic: Option<SafeDiagnostic>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum SubmitObjectiveRoute {
     Handled,
     LegacyFallback,
@@ -834,11 +863,31 @@ pub struct SubmitObjectiveResponse {
     pub route: SubmitObjectiveRoute,
     pub session_id: SessionId,
     pub objective_id: ObjectiveId,
+    pub run_id: RunId,
     pub graph_id: Option<TaskGraphId>,
     pub plan_revision: u64,
+    pub accepted_sequence: u64,
+    pub completed: bool,
     pub events: Vec<RuntimeEventEnvelope>,
     pub snapshot: ControlPlaneSessionSnapshot,
     pub pending_approvals: Vec<ApprovalRequest>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeEventsAfterInput {
+    pub session_id: SessionId,
+    pub after_sequence: u64,
+    pub limit: Option<usize>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeEventsAfterResponse {
+    pub session_id: SessionId,
+    pub after_sequence: u64,
+    pub next_sequence: u64,
+    pub events: Vec<RuntimeEventEnvelope>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

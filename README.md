@@ -14,9 +14,10 @@ tldraw.
 - tldraw-powered editable canvas.
 - Floating microphone button using the Web Speech API with a runtime fallback
   message.
-- Zustand store prepared for runtime-event projection updates.
-- Rust control-plane service for finalized objective increments, task graphs,
-  runtime events, SQLite-backed recovery snapshots, and the migrated read-only
+- Zustand store wired to live runtime-event projection and catch-up.
+- Rust control-plane service for finalized objective increments, durable
+  accepted-run responses, dependency-aware task scheduling, runtime events,
+  SQLite-backed request/session recovery, and the migrated read-only
   inbox-triage slice.
 - Rust `run_applescript` command placeholder for future approval-gated macOS
   automation.
@@ -152,8 +153,8 @@ the approval flow.
 
 ## Next engineering steps
 
-- Expand the Rust control-plane task graph beyond inbox triage while keeping
-  each new capability typed and approval-gated.
+- Migrate one additional read-only workflow through the generic Rust scheduler
+  while keeping each new capability typed and approval-gated.
 - Move non-migrated finalized routes out of TypeScript compatibility fallback.
 - Add planner shadow mode and richer executor receipts before enabling new
   external mutations.

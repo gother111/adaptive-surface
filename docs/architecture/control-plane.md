@@ -19,14 +19,24 @@ owns the local supervision layer, event history, provenance, and UI projection.
 - `engine.rs` keeps the deterministic demo and contract-state tests as a fixture
   for lower-level invariants.
 - `repository.rs` provides the in-memory test repository and SQLite app
-  repository for ordered events and session snapshots.
-- `service.rs` implements `ControlPlaneService`, canonical migrated
-  capabilities, inbox-triage task graph execution, event sequencing, persistence,
-  cancellation, approval/rejection commands, and replay reconstruction.
+  repository for ordered events, request ledger records, catch-up queries, and
+  session snapshots.
+- `journal.rs` is the short-lock persistence boundary. It allocates event
+  sequence numbers, updates snapshots, commits transitions, and publishes only
+  after durable storage succeeds.
+- `executors.rs` defines typed capability executors. Executors return typed
+  outcomes and never patch React or Zustand directly.
+- `scheduler.rs` validates task graphs, finds dependency-ready work, dispatches
+  with bounded concurrency, enforces deadlines, and suppresses late results
+  after cancellation or timeout.
+- `publisher.rs` owns best-effort Tauri event delivery on
+  `control-plane://runtime-event`.
+- `service.rs` implements the lightweight `ControlPlaneService` facade for
+  durable request acceptance, command validation, approvals, and snapshots.
 - `lib.rs` registers live commands:
   `submit_final_utterance`, `cancel_operation`, `approve_operation`,
-  `reject_operation`, `get_session_snapshot`, `list_pending_approvals`, and
-  `list_control_plane_capabilities`.
+  `reject_operation`, `get_session_snapshot`, `get_runtime_events_after`,
+  `list_pending_approvals`, and `list_control_plane_capabilities`.
 - `src/control-plane/runtime-event-reducer.ts` is the single frontend projection
   path from runtime events to workspace patches.
 
@@ -42,28 +52,31 @@ control-plane log.
 flowchart LR
   A["Final utterance"] --> B["ControlPlaneClient"]
   B --> C["Rust ControlPlaneService"]
-  C --> D["Objective session"]
-  C --> E["TaskGraph and WorkUnits"]
-  E --> F["Canonical capabilities"]
-  F --> G["Executor adapter"]
-  G --> H["RuntimeEventEnvelope stream"]
-  H --> I["Frontend runtime-event reducer"]
-  I --> J["Workspace projection"]
-  C --> K["SQLite event and snapshot repository"]
+  C --> D["Durable acceptance"]
+  D --> E["SQLite event, request, and snapshot journal"]
+  D --> F["TaskScheduler"]
+  F --> G["ExecutorRegistry"]
+  G --> H["Typed executor outcomes"]
+  H --> I["Journal transition commit"]
+  I --> J["EventPublisher"]
+  J --> K["Frontend runtime-event reducer"]
+  K --> L["Workspace projection"]
 ```
 
 ## Migrated Slice
 
 The first migrated vertical slice is read-only inbox triage:
 
-1. `submit_final_utterance` accepts a finalized inbox-triage utterance.
+1. `submit_final_utterance` accepts a finalized inbox-triage utterance and
+   returns accepted-run metadata after durable acceptance.
 2. Rust creates a `TaskGraph` with `mail.search`, `triage.classify`, and
    `artifact.create` work units.
-3. The Mail work unit loads Apple Mail metadata only.
-4. The artifact work unit creates an in-app Markdown document envelope.
-5. Ordered runtime events are returned and also emitted on
-   `control-plane://runtime-event`.
-6. The frontend reducer projects the artifact into the existing `document`
+3. The scheduler executes ready units through typed executors instead of
+   positional `work_units` indexing.
+4. The Mail work unit loads Apple Mail metadata only.
+5. The artifact work unit creates an in-app Markdown document envelope.
+6. Each lifecycle transition is committed before live publication.
+7. The frontend reducer projects progress and the final artifact into the existing `document`
    surface.
 
 The slice does not read full message bodies, write files, send mail, archive,
@@ -115,6 +128,7 @@ local-reversible.
 The app repository is SQLite-backed and stores:
 
 - ordered runtime events
+- a restart-safe request ledger keyed by `clientRequestId`
 - latest session snapshots
 - task graphs
 - artifact envelopes
@@ -122,15 +136,37 @@ The app repository is SQLite-backed and stores:
 
 The repository ignores corrupt or unknown-future event payloads during replay.
 This keeps recovery conservative without treating stale or unknown data as live
-truth.
+truth. Duplicate client requests resolve to the original run identity after
+service reconstruction.
+
+## Event Delivery And Catch-Up
+
+Live Tauri event delivery is best effort and at least once. The durable journal
+is authoritative.
+
+Every transition follows this order:
+
+1. validate the transition;
+2. allocate the next sequence;
+3. append the runtime event and update the session snapshot;
+4. commit SQLite;
+5. publish `control-plane://runtime-event`.
+
+The frontend installs the listener before desktop submit, then calls
+`get_runtime_events_after(session_id, after_sequence, limit)` to close missed
+delivery windows. Duplicate live/catch-up events remain harmless because the
+reducer rejects duplicate event IDs and stale sequences.
 
 ## Cancellation And Approval Binding
 
 `cancel_operation`, `approve_operation`, and `reject_operation` use typed
 `OperationCommand` inputs with session ID, work-unit ID, plan revision, and
-optional approval ID. Stale plan revisions are rejected. Mutating operations for
-future slices must use approval records bound to the exact plan revision before
-dispatch.
+optional approval ID. Stale plan revisions are rejected. Cancellation records
+the transition before signaling executor tokens. Cooperative executors stop when
+they observe the token. Blocking native calls cannot be preempted, so the
+scheduler records cancellation or timeout and discards any later success result.
+Mutating operations for future slices must use approval records bound to the
+exact plan revision before dispatch.
 
 ## Extension Point
 

@@ -60,6 +60,19 @@ work-unit IDs, run ID, timestamp, and a discriminated payload.
 represent finalized execution. Work units are the only objects that bind
 capabilities to executable work.
 
+`SubmitObjectiveResponse` now returns accepted-run metadata: route, session ID,
+objective ID, run ID, optional graph ID, plan revision, accepted sequence,
+completion flag, pending approvals, and a snapshot. It may include initial
+acceptance events for compatibility, but frontend progress must not depend on a
+completed event batch in the response.
+
+`RuntimeEventsAfterInput` and `RuntimeEventsAfterResponse` provide bounded
+sequence catch-up for missed live delivery.
+
+`RequestLedgerRecord` persists `clientRequestId`, session/objective/run/graph
+identity, plan revision, request status, accepted timestamp, optional terminal
+timestamp, and a safe diagnostic. This is the restart-safe deduplication record.
+
 ## Approval, Artifacts, and Receipts
 
 `ApprovalRequest` names the target, scope, expected effect, data disclosure, reversibility, preview, expiry, and exact plan revision.
@@ -85,3 +98,7 @@ Mail metadata rows only, not full message bodies.
 latest task graphs, artifact envelopes, pending approvals, recent runtime
 events, plan revision, and next sequence. The SQLite repository ignores corrupt
 or unknown-future runtime events while replaying.
+
+The live repository also persists a request ledger and unique
+`(session_id, sequence)` event ordering. Every scheduler transition is appended
+before publication, so the event journal is the recovery source of truth.

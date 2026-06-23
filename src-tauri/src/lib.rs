@@ -10,7 +10,7 @@ use apple::{
     load_calendar_events, load_capability_diagnostics, load_mail_messages, load_notes,
     load_reminders, read_mail_message, read_note, search_contacts, update_reminder,
 };
-use control_plane::{OperationCommand, SubmitObjectiveInput};
+use control_plane::{OperationCommand, RuntimeEventsAfterInput, SubmitObjectiveInput};
 use deepseek::{load_model_provider_status, refine_voice_intent_with_model};
 use desktop_control::{
     desktop_observe, desktop_open_app, desktop_paste_text, desktop_permission_status,
@@ -22,9 +22,8 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::Arc;
 use std::time::SystemTime;
-use tauri::Emitter;
 
 const MAX_SCANNED_ENTRIES: usize = 12_000;
 const MAX_RECENT_FILES: usize = 6;
@@ -333,79 +332,62 @@ fn read_local_file(query: FileReadQuery) -> Result<FileReadResult, String> {
 #[tauri::command]
 fn submit_final_utterance(
     app: tauri::AppHandle,
-    state: tauri::State<'_, Mutex<control_plane::ControlPlaneService>>,
+    state: tauri::State<'_, control_plane::ControlPlaneService>,
     input: SubmitObjectiveInput,
 ) -> Result<control_plane::SubmitObjectiveResponse, String> {
-    let response = {
-        let mut service = state
-            .lock()
-            .map_err(|_| "control-plane service lock was poisoned".to_string())?;
-        service
-            .submit_final_utterance(input)
-            .map_err(|error| error.message)?
-    };
-
-    for event in &response.events {
-        let _ = app.emit("control-plane://runtime-event", event);
-    }
-
-    Ok(response)
+    state
+        .set_event_publisher(Arc::new(control_plane::TauriEventPublisher::new(app)))
+        .map_err(|error| error.message)?;
+    state.submit_final_utterance(input).map_err(|error| error.message)
 }
 
 #[tauri::command]
 fn cancel_operation(
-    state: tauri::State<'_, Mutex<control_plane::ControlPlaneService>>,
+    state: tauri::State<'_, control_plane::ControlPlaneService>,
     command: OperationCommand,
 ) -> Result<control_plane::ControlPlaneSessionSnapshot, String> {
-    let mut service = state
-        .lock()
-        .map_err(|_| "control-plane service lock was poisoned".to_string())?;
-    service.cancel_operation(command).map_err(|error| error.message)
+    state.cancel_operation(command).map_err(|error| error.message)
 }
 
 #[tauri::command]
 fn approve_operation(
-    state: tauri::State<'_, Mutex<control_plane::ControlPlaneService>>,
+    state: tauri::State<'_, control_plane::ControlPlaneService>,
     command: OperationCommand,
 ) -> Result<control_plane::ControlPlaneSessionSnapshot, String> {
-    let mut service = state
-        .lock()
-        .map_err(|_| "control-plane service lock was poisoned".to_string())?;
-    service.approve_operation(command).map_err(|error| error.message)
+    state.approve_operation(command).map_err(|error| error.message)
 }
 
 #[tauri::command]
 fn reject_operation(
-    state: tauri::State<'_, Mutex<control_plane::ControlPlaneService>>,
+    state: tauri::State<'_, control_plane::ControlPlaneService>,
     command: OperationCommand,
 ) -> Result<control_plane::ControlPlaneSessionSnapshot, String> {
-    let mut service = state
-        .lock()
-        .map_err(|_| "control-plane service lock was poisoned".to_string())?;
-    service.reject_operation(command).map_err(|error| error.message)
+    state.reject_operation(command).map_err(|error| error.message)
 }
 
 #[tauri::command]
 fn get_session_snapshot(
-    state: tauri::State<'_, Mutex<control_plane::ControlPlaneService>>,
+    state: tauri::State<'_, control_plane::ControlPlaneService>,
     session_id: String,
 ) -> Result<control_plane::ControlPlaneSessionSnapshot, String> {
-    let mut service = state
-        .lock()
-        .map_err(|_| "control-plane service lock was poisoned".to_string())?;
-    service
+    state
         .get_session_snapshot(control_plane::contracts::SessionId::new(session_id))
         .map_err(|error| error.message)
 }
 
 #[tauri::command]
+fn get_runtime_events_after(
+    state: tauri::State<'_, control_plane::ControlPlaneService>,
+    input: RuntimeEventsAfterInput,
+) -> Result<control_plane::RuntimeEventsAfterResponse, String> {
+    state.get_runtime_events_after(input).map_err(|error| error.message)
+}
+
+#[tauri::command]
 fn list_pending_approvals(
-    state: tauri::State<'_, Mutex<control_plane::ControlPlaneService>>,
+    state: tauri::State<'_, control_plane::ControlPlaneService>,
 ) -> Result<Vec<control_plane::contracts::ApprovalRequest>, String> {
-    let service = state
-        .lock()
-        .map_err(|_| "control-plane service lock was poisoned".to_string())?;
-    Ok(service.list_pending_approvals())
+    state.list_pending_approvals().map_err(|error| error.message)
 }
 
 #[tauri::command]
@@ -419,7 +401,7 @@ pub fn run() {
         .expect("control-plane SQLite repository should initialize");
 
     tauri::Builder::default()
-        .manage(Mutex::new(control_plane_service))
+        .manage(control_plane_service)
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
@@ -457,6 +439,7 @@ pub fn run() {
             approve_operation,
             reject_operation,
             get_session_snapshot,
+            get_runtime_events_after,
             list_pending_approvals,
             list_control_plane_capabilities
         ])

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import {
   applyRuntimeEventsToWorkspace,
   createControlPlaneProjection,
+  createMockControlPlaneCompletionEvents,
   createMockControlPlaneResponse,
   isMigratedControlPlaneUtterance,
   type ControlPlaneProjection,
@@ -14,7 +15,11 @@ import {
   defaultTrustedFileRoots,
 } from "@/lib/context-sources";
 import { loadAppleContextBundle } from "@/lib/context-api";
-import { submitFinalUtterance } from "@/lib/control-plane-api";
+import {
+  ensureControlPlaneRuntimeEventListener,
+  getRuntimeEventsAfter,
+  submitFinalUtterance,
+} from "@/lib/control-plane-api";
 import { defaultModelProviderStatus, loadModelProviderStatus, refineVoiceIntentWithModel } from "@/lib/model-intent-api";
 import { initialSurfaces } from "@/lib/surface-fixtures";
 import { isTauriRuntime } from "@/lib/tauri";
@@ -59,6 +64,9 @@ import { connectContextToObjective } from "@/work-pipeline/connect-context-to-ob
 import { ingestAppleContextBundle } from "@/work-pipeline/ingest-local-context";
 import { mergeWorkObjectIndex, type WorkObjectIndex } from "@/work-objects/work-object-index";
 import type { WorkObject } from "@/work-objects/work-object-types";
+
+const CONTROL_PLANE_PENDING_REQUEST_KEY = "adaptiveSurface.controlPlane.pendingRequest.v1";
+const pendingControlPlaneCatchUps = new Set<string>();
 
 interface TranscriptEntry {
   id: string;
@@ -600,11 +608,18 @@ async function routeFinalVoiceThroughControlPlane(
   }));
 
   try {
-    const response = isTauriRuntime()
+    const isDesktopRuntime = isTauriRuntime();
+    if (isDesktopRuntime) {
+      await ensureControlPlaneRuntimeEventListener((event) => {
+        applyControlPlaneRuntimeEvents(set, get, [event]);
+      });
+    }
+
+    const response = isDesktopRuntime
       ? await submitFinalUtterance({
           utterance: originalText,
           sessionId: get().controlPlane.sessionId,
-          clientRequestId: crypto.randomUUID(),
+          clientRequestId: stableControlPlaneClientRequestId(originalText),
           modelIntentHint: refinement ? `${refinement.status}:${routingText}` : null,
         })
       : createMockControlPlaneResponse(routingText);
@@ -633,20 +648,21 @@ async function routeFinalVoiceThroughControlPlane(
     }
 
     set((state) => {
-      const reduced = applyRuntimeEventsToWorkspace(
-        state.workspaceSession,
-        state.controlPlane,
-        response.events,
-      );
       return {
         partialTranscript: "",
         committedTranscript: `${state.committedTranscript} ${originalText}`.trim(),
         transcript: commitTranscript(state.transcript, originalText),
         activeIntent: null,
-        workspaceSession: reduced.workspaceSession,
-        workspacePatches: [...reduced.patches, ...state.workspacePatches].slice(0, 36),
+        workspaceSession: state.workspaceSession,
+        workspacePatches: state.workspacePatches,
         controlPlane: {
-          ...reduced.projection,
+          ...state.controlPlane,
+          phase: "running",
+          sessionId: response.sessionId,
+          objectiveId: response.objectiveId,
+          runId: response.runId,
+          graphId: response.graphId ?? state.controlPlane.graphId,
+          planRevision: response.planRevision,
           pendingApprovalCount: response.pendingApprovals.length,
         },
         modelRouting: refinement
@@ -654,6 +670,22 @@ async function routeFinalVoiceThroughControlPlane(
           : state.modelRouting,
       };
     });
+    applyControlPlaneRuntimeEvents(set, get, response.events);
+    if (isDesktopRuntime) {
+      const cursor = get().controlPlane.lastSequence;
+      const catchUp = await getRuntimeEventsAfter({
+        sessionId: response.sessionId,
+        afterSequence: cursor,
+        limit: 200,
+      });
+      applyControlPlaneRuntimeEvents(set, get, catchUp.events);
+    } else {
+      applyControlPlaneRuntimeEvents(
+        set,
+        get,
+        createMockControlPlaneCompletionEvents(response, routingText),
+      );
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Control-plane route failed.";
     const patches = controlPlaneFailurePatches(originalText, message);
@@ -671,6 +703,90 @@ async function routeFinalVoiceThroughControlPlane(
       },
     }));
   }
+}
+
+function applyControlPlaneRuntimeEvents(
+  set: SurfaceStoreSet,
+  get: SurfaceStoreGet,
+  events: Parameters<typeof applyRuntimeEventsToWorkspace>[2],
+) {
+  if (!events.length) {
+    return;
+  }
+  set((state) => {
+    const reduced = applyRuntimeEventsToWorkspace(
+      state.workspaceSession,
+      state.controlPlane,
+      events,
+    );
+    return {
+      workspaceSession: reduced.workspaceSession,
+      workspacePatches: [...reduced.patches, ...state.workspacePatches].slice(0, 36),
+      controlPlane: reduced.projection,
+    };
+  });
+
+  const projection = get().controlPlane;
+  if (projection.needsCatchUpFrom !== null && projection.sessionId && isTauriRuntime()) {
+    const catchUpKey = `${projection.sessionId}:${projection.needsCatchUpFrom}`;
+    if (!pendingControlPlaneCatchUps.has(catchUpKey)) {
+      pendingControlPlaneCatchUps.add(catchUpKey);
+      void getRuntimeEventsAfter({
+        sessionId: projection.sessionId,
+        afterSequence: projection.needsCatchUpFrom,
+        limit: 200,
+      })
+        .then((catchUp) => {
+          applyControlPlaneRuntimeEvents(set, get, catchUp.events);
+        })
+        .finally(() => {
+          pendingControlPlaneCatchUps.delete(catchUpKey);
+        });
+    }
+  }
+
+  if (["succeeded", "failed", "cancelled", "timed_out", "fallback"].includes(projection.phase)) {
+    clearStableControlPlaneClientRequestId();
+  }
+}
+
+function stableControlPlaneClientRequestId(utterance: string) {
+  const fingerprint = fingerprintUtterance(utterance);
+  try {
+    const existing = window.localStorage.getItem(CONTROL_PLANE_PENDING_REQUEST_KEY);
+    if (existing) {
+      const parsed = JSON.parse(existing) as { fingerprint?: string; clientRequestId?: string };
+      if (parsed.fingerprint === fingerprint && parsed.clientRequestId) {
+        return parsed.clientRequestId;
+      }
+    }
+    const clientRequestId = crypto.randomUUID();
+    window.localStorage.setItem(
+      CONTROL_PLANE_PENDING_REQUEST_KEY,
+      JSON.stringify({ fingerprint, clientRequestId, createdAt: Date.now() }),
+    );
+    return clientRequestId;
+  } catch {
+    return crypto.randomUUID();
+  }
+}
+
+function clearStableControlPlaneClientRequestId() {
+  try {
+    window.localStorage.removeItem(CONTROL_PLANE_PENDING_REQUEST_KEY);
+  } catch {
+    // Storage may be unavailable in tests or hardened browser contexts.
+  }
+}
+
+function fingerprintUtterance(utterance: string) {
+  const normalized = utterance.toLowerCase().replace(/\s+/g, " ").trim();
+  let hash = 0xcbf29ce4;
+  for (let index = 0; index < normalized.length; index += 1) {
+    hash ^= normalized.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
 }
 
 function controlPlaneFailurePatches(command: string, message: string): WorkspacePatch[] {

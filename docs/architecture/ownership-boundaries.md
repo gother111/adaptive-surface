@@ -38,10 +38,10 @@ Adaptive Surface is the local control plane. It owns the experience and supervis
 
 The control plane may persist IDs, references, derived metadata, bounded snapshots, activity events, approvals, receipts, and provenance. It must not silently become a duplicate Mail, Calendar, filesystem, spreadsheet, design, or project database.
 
-The live repository stores ordered runtime events and session snapshots in a
-local SQLite database. For inbox triage it stores Mail metadata-derived rows and
-artifact summaries only; it does not store full message bodies or mutate the
-mailbox.
+The live repository stores ordered runtime events, request-ledger rows, and
+session snapshots in a local SQLite database. For inbox triage it stores Mail
+metadata-derived rows and artifact summaries only; it does not store full
+message bodies or mutate the mailbox.
 
 ## Speculative Versus Authoritative UI
 
@@ -51,5 +51,16 @@ mailbox.
 - The frontend runtime-event reducer projects Rust events into existing
   workspace surfaces and rejects duplicate, stale, or unsupported-protocol
   events.
+- The frontend listener treats Tauri delivery as at least once and uses
+  `get_runtime_events_after` to close missed-event windows.
 - Compatibility fallback for non-migrated routes is explicit and should shrink
   as more routes move behind Rust capabilities.
+
+## Runtime Authority Boundary
+
+- `ControlPlaneService` accepts or rejects finalized requests.
+- `TaskScheduler` owns graph validation, readiness, bounded dispatch,
+  cancellation, timeout, and run aggregation.
+- Executors own capability-specific work only and return typed outcomes.
+- The journal owns transition commits and sequence allocation.
+- Event publishers are delivery mechanisms, not durable authority.

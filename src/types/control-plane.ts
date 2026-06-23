@@ -261,9 +261,17 @@ export type WorkUnitKind =
 export type DependencyKind = "requires_success" | "requires_terminal";
 export type JoinPolicy = "all_succeeded" | "any_terminal" | "best_effort";
 export type ApprovalRequirement = "none" | "preview" | "explicit_user_approval";
-export type RuntimeTerminalStatus = "succeeded" | "failed" | "cancelled" | "legacy_fallback";
+export type RuntimeTerminalStatus = "succeeded" | "failed" | "cancelled" | "timed_out" | "legacy_fallback";
 export type SemanticRiskClass = "safe_read" | "local_write" | "external_write" | "destructive" | "unknown";
 export type SubmitObjectiveRoute = "handled" | "legacy_fallback";
+export type RequestStatus =
+  | "accepted"
+  | "running"
+  | "completed"
+  | "failed_retryable"
+  | "failed_terminal"
+  | "cancelled"
+  | "timed_out";
 
 export interface WorkDependency {
   upstreamWorkUnitId: string;
@@ -447,11 +455,27 @@ export interface SubmitObjectiveResponse {
   route: SubmitObjectiveRoute;
   sessionId: string;
   objectiveId: string;
+  runId: string;
   graphId?: string | null;
   planRevision: number;
+  acceptedSequence: number;
+  completed: boolean;
   events: RuntimeEventEnvelope[];
   snapshot: ControlPlaneSessionSnapshot;
   pendingApprovals: ApprovalRequest[];
+}
+
+export interface RuntimeEventsAfterInput {
+  sessionId: string;
+  afterSequence: number;
+  limit?: number | null;
+}
+
+export interface RuntimeEventsAfterResponse {
+  sessionId: string;
+  afterSequence: number;
+  nextSequence: number;
+  events: RuntimeEventEnvelope[];
 }
 
 export interface OperationCommand {

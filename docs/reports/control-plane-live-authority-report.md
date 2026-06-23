@@ -12,7 +12,16 @@ Partial voice remains local and fast.
 - Rust owns finalized objective/session records for the migrated route.
 - Rust creates task graphs and work units for `mail.search`,
   `triage.classify`, and `artifact.create`.
-- Runtime events are ordered globally and persisted.
+- `submit_final_utterance` durably accepts the request and returns accepted-run
+  metadata before executor completion.
+- A generic scheduler validates task graphs, identifies dependency-ready work,
+  dispatches typed executors with bounded concurrency, and applies terminal
+  aggregation.
+- Runtime events are ordered, persisted per transition, and published only after
+  commit.
+- `get_runtime_events_after` provides bounded catch-up for missed live events.
+- A request ledger persists `clientRequestId` identity so duplicate requests
+  after service reconstruction return the original run.
 - The frontend uses one reducer to project runtime events into workspace
   surfaces.
 - Browser-only development uses a mock transport that produces the same event
@@ -25,12 +34,22 @@ Partial voice remains local and fast.
 The app uses a SQLite repository under the local app support directory for:
 
 - ordered runtime events
+- request ledger records
 - latest session snapshots
 - task graphs
 - artifact envelopes
 - pending approvals inside snapshots
 
 The repository ignores corrupt or unknown-future event payloads during replay.
+It enforces unique event identity and per-session sequence ordering.
+
+## Cancellation And Deadlines
+
+Cancellation is cooperative at the executor boundary. The scheduler records the
+cancel or timeout transition, signals cancellation tokens, and suppresses late
+success or artifact commits. Synchronous native provider calls may continue
+until the OS call returns, but their result is no longer authoritative after a
+terminal scheduler transition.
 
 ## Privacy And Safety
 
@@ -44,8 +63,8 @@ The migrated inbox-triage slice reads Mail metadata only. It does not:
 
 ## Verification Targets
 
-- Rust: contract serialization and lifecycle coverage remains in
-  `engine.rs`; live service coverage is in `service.rs`.
+- Rust: scheduler coverage is in `scheduler.rs`; live service coverage is in
+  `service.rs`; contract fixture coverage remains in `engine.rs`.
 - Frontend: event projection, duplicate/stale rejection, unsupported protocol
   rejection, and browser mock coverage are in
   `src/test/control-plane-runtime-events.test.ts`.
