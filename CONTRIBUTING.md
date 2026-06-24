@@ -20,6 +20,20 @@ so the safest contributions are small, typed, and easy to verify.
 4. Do not broaden macOS permissions, file access, Apple Events, microphone
    access, or external app automation without documenting the privacy impact.
 
+## Local setup
+
+Use Node.js 20.20.0 or newer for local development. If you use `nvm`, run:
+
+```bash
+nvm install
+```
+
+Then install dependencies:
+
+```bash
+npm install
+```
+
 ## Local checks
 
 Run the checks that match your change:
