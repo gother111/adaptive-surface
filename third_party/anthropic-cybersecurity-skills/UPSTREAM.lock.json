@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/mukul975/Anthropic-Cybersecurity-Skills",
+  "release": "v1.3.0",
+  "commit": "101ca0bd887a295e39cc20a100efa571937ca969",
+  "reviewDate": "2026-06-24",
+  "allowlistedSkillIds": [
+    "auditing-mcp-servers-for-tool-poisoning",
+    "detecting-ai-model-prompt-injection-attacks",
+    "implementing-llm-guardrails-for-security",
+    "implementing-secret-scanning-with-gitleaks",
+    "performing-threat-modeling-with-owasp-threat-dragon",
+    "analyzing-sbom-for-supply-chain-vulnerabilities",
+    "implementing-sigstore-for-software-signing",
+    "implementing-supply-chain-security-with-in-toto"
+  ],
+  "skills": [
+    {
+      "id": "auditing-mcp-servers-for-tool-poisoning",
+      "upstreamPath": "skills/auditing-mcp-servers-for-tool-poisoning",
+      "retainedFiles": [
+        "LICENSE",
+        "references/api-reference.md",
+        "references/standards.md",
+        "SKILL.md"
+      ],
+      "sourceSha256": "efcf2f5d77647dd44db2f9b181d5447107d5ee7cb94bfbedc5d04bb70596b579"
+    },
+    {
+      "id": "detecting-ai-model-prompt-injection-attacks",
+      "upstreamPath": "skills/detecting-ai-model-prompt-injection-attacks",
+      "retainedFiles": [
+        "LICENSE",
+        "references/api-reference.md",
+        "SKILL.md"
+      ],
+      "sourceSha256": "404dc1296acaeecd9f89f79bafe6d99425894030b60ceec542d56cf948350970"
+    },
+    {
+      "id": "implementing-llm-guardrails-for-security",
+      "upstreamPath": "skills/implementing-llm-guardrails-for-security",
+      "retainedFiles": [
+        "LICENSE",
+        "references/api-reference.md",
+        "SKILL.md"
+      ],
+      "sourceSha256": "1cf02a88ea563459705e0f6a48a019ca5ae65711b3b736985b9004083d97a209"
+    },
+    {
+      "id": "implementing-secret-scanning-with-gitleaks",
+      "upstreamPath": "skills/implementing-secret-scanning-with-gitleaks",
+      "retainedFiles": [
+        "assets/template.md",
+        "LICENSE",
+        "references/api-reference.md",
+        "references/standards.md",
+        "references/workflows.md",
+        "SKILL.md"
+      ],
+      "sourceSha256": "b4edc041a407d5b88dc54de6085088c797cd97a63d82de605c39436346ff4cc4"
+    },
+    {
+      "id": "performing-threat-modeling-with-owasp-threat-dragon",
+      "upstreamPath": "skills/performing-threat-modeling-with-owasp-threat-dragon",
+      "retainedFiles": [
+        "assets/template.md",
+        "LICENSE",
+        "references/api-reference.md",
+        "references/standards.md",
+        "references/workflows.md",
+        "SKILL.md"
+      ],
+      "sourceSha256": "f343a1c66955144e9c38a0839af1a0d51134ea33383933568444e94adb062737"
+    },
+    {
+      "id": "analyzing-sbom-for-supply-chain-vulnerabilities",
+      "upstreamPath": "skills/analyzing-sbom-for-supply-chain-vulnerabilities",
+      "retainedFiles": [
+        "LICENSE",
+        "references/api-reference.md",
+        "SKILL.md"
+      ],
+      "sourceSha256": "23d96721e66fbe5327d25641115e76eb7711c065defbb0ccaadd585fe008a391"
+    },
+    {
+      "id": "implementing-sigstore-for-software-signing",
+      "upstreamPath": "skills/implementing-sigstore-for-software-signing",
+      "retainedFiles": [
+        "LICENSE",
+        "references/api-reference.md",
+        "SKILL.md"
+      ],
+      "sourceSha256": "4f1db3501f4427d3e78bd6c07e95dcbd70b8af1fde4d8e77615106b9bea76418"
+    },
+    {
+      "id": "implementing-supply-chain-security-with-in-toto",
+      "upstreamPath": "skills/implementing-supply-chain-security-with-in-toto",
+      "retainedFiles": [
+        "assets/template.md",
+        "LICENSE",
+        "references/api-reference.md",
+        "references/standards.md",
+        "references/workflows.md",
+        "SKILL.md"
+      ],
+      "sourceSha256": "4934298a2df5e0462a212418fe8ecd5125452cb5d35d63164e9b043c22291438"
+    }
+  ],
+  "retainedSourceFileHashes": {
+    "source/skills/analyzing-sbom-for-supply-chain-vulnerabilities/LICENSE": "a941b58ef0ba43a31e24ae7ece1b743a585efed9e37792b9ca063e0798be1cbe",
+    "source/skills/analyzing-sbom-for-supply-chain-vulnerabilities/references/api-reference.md": "9fcd7cdfb12d249cf191dda95562dc4f4f87a358409a9e23ec5f9b36d51f0d90",
+    "source/skills/analyzing-sbom-for-supply-chain-vulnerabilities/SKILL.md": "23d96721e66fbe5327d25641115e76eb7711c065defbb0ccaadd585fe008a391",
+    "source/skills/auditing-mcp-servers-for-tool-poisoning/LICENSE": "a941b58ef0ba43a31e24ae7ece1b743a585efed9e37792b9ca063e0798be1cbe",
+    "source/skills/auditing-mcp-servers-for-tool-poisoning/references/api-reference.md": "bcc5f1efc8be610024c2aac285f8e0bffc3d0cb0160e178e2099e97ce251e5fd",
+    "source/skills/auditing-mcp-servers-for-tool-poisoning/references/standards.md": "45eb1a0a36299b9dc6b86a29b756562a6a2ed34b1956ce028e287f2d7969a155",
+    "source/skills/auditing-mcp-servers-for-tool-poisoning/SKILL.md": "efcf2f5d77647dd44db2f9b181d5447107d5ee7cb94bfbedc5d04bb70596b579",
+    "source/skills/detecting-ai-model-prompt-injection-attacks/LICENSE": "a941b58ef0ba43a31e24ae7ece1b743a585efed9e37792b9ca063e0798be1cbe",
+    "source/skills/detecting-ai-model-prompt-injection-attacks/references/api-reference.md": "7d2f99f0711dec1a81569e78cce70e0eebf233253652dea5947b15b2620c52e6",
+    "source/skills/detecting-ai-model-prompt-injection-attacks/SKILL.md": "404dc1296acaeecd9f89f79bafe6d99425894030b60ceec542d56cf948350970",
+    "source/skills/implementing-llm-guardrails-for-security/LICENSE": "a941b58ef0ba43a31e24ae7ece1b743a585efed9e37792b9ca063e0798be1cbe",
+    "source/skills/implementing-llm-guardrails-for-security/references/api-reference.md": "37fcb04bab7b12727dbb08537c675d2bcdec77a48a093a696fa70946a674bbce",
+    "source/skills/implementing-llm-guardrails-for-security/SKILL.md": "1cf02a88ea563459705e0f6a48a019ca5ae65711b3b736985b9004083d97a209",
+    "source/skills/implementing-secret-scanning-with-gitleaks/assets/template.md": "9823e7b3ea0bbf35d1cd987b0fd4bbbd9c0ce04d8b4c172099832c96e7c75801",
+    "source/skills/implementing-secret-scanning-with-gitleaks/LICENSE": "a941b58ef0ba43a31e24ae7ece1b743a585efed9e37792b9ca063e0798be1cbe",
+    "source/skills/implementing-secret-scanning-with-gitleaks/references/api-reference.md": "4320f48b138106322a0a4d1ebb708a909e8f67781894e91956aa74eae561320e",
+    "source/skills/implementing-secret-scanning-with-gitleaks/references/standards.md": "64008c4c0b735f058646824b188aa616cfdbd6774baacd00bdf427467fd26774",
+    "source/skills/implementing-secret-scanning-with-gitleaks/references/workflows.md": "1c73aecc583c5dae8acc94fdc62bbc2f2fe7c7293687a855714929fc4d4c8488",
+    "source/skills/implementing-secret-scanning-with-gitleaks/SKILL.md": "b4edc041a407d5b88dc54de6085088c797cd97a63d82de605c39436346ff4cc4",
+    "source/skills/implementing-sigstore-for-software-signing/LICENSE": "a941b58ef0ba43a31e24ae7ece1b743a585efed9e37792b9ca063e0798be1cbe",
+    "source/skills/implementing-sigstore-for-software-signing/references/api-reference.md": "a53145df205618e7dbbeb24e32726ad9ba51b43fff47ed6fd58f3d9c3958e701",
+    "source/skills/implementing-sigstore-for-software-signing/SKILL.md": "4f1db3501f4427d3e78bd6c07e95dcbd70b8af1fde4d8e77615106b9bea76418",
+    "source/skills/implementing-supply-chain-security-with-in-toto/assets/template.md": "0aff87bc03f88bb31933a36ddd27d2649979054b76d80abfdf3a94f71daaf469",
+    "source/skills/implementing-supply-chain-security-with-in-toto/LICENSE": "a941b58ef0ba43a31e24ae7ece1b743a585efed9e37792b9ca063e0798be1cbe",
+    "source/skills/implementing-supply-chain-security-with-in-toto/references/api-reference.md": "117591ee9d9b19f4ab3bd1990551ac0b61d758f9d74325ac703201ace15a2e88",
+    "source/skills/implementing-supply-chain-security-with-in-toto/references/standards.md": "42d29863a39eeae133f9631cf95c9789f3245a9d5a2a6f3e9f53326622a3d54e",
+    "source/skills/implementing-supply-chain-security-with-in-toto/references/workflows.md": "8138f537b81f050fa1156be61eb3e65b08e34d492f8e33c2f7b79ab6c905717e",
+    "source/skills/implementing-supply-chain-security-with-in-toto/SKILL.md": "4934298a2df5e0462a212418fe8ecd5125452cb5d35d63164e9b043c22291438",
+    "source/skills/performing-threat-modeling-with-owasp-threat-dragon/assets/template.md": "04cad45c323d0d455ad228cc6a0886a06076a190e6f3f41cf2bf142fe1000697",
+    "source/skills/performing-threat-modeling-with-owasp-threat-dragon/LICENSE": "a941b58ef0ba43a31e24ae7ece1b743a585efed9e37792b9ca063e0798be1cbe",
+    "source/skills/performing-threat-modeling-with-owasp-threat-dragon/references/api-reference.md": "ad5f24a8628af8c20e7ca0035a725dc5f00902b9c2eac1327463d564a218a8cd",
+    "source/skills/performing-threat-modeling-with-owasp-threat-dragon/references/standards.md": "31a3cc04d99b5d356810bea4e2167d0819a6040b14c108c45f1ce1393219cad0",
+    "source/skills/performing-threat-modeling-with-owasp-threat-dragon/references/workflows.md": "69572edf48ddebd7b4f371f60e12aa9ed4caf6387a595fb8626a082371062636",
+    "source/skills/performing-threat-modeling-with-owasp-threat-dragon/SKILL.md": "f343a1c66955144e9c38a0839af1a0d51134ea33383933568444e94adb062737"
+  },
+  "aggregateSourceSha256": "821980335c8c2c32892f9aba1631c0b0979111503b0d7d4fcd2fc9a8c2df365a",
+  "excludedFilePatterns": [
+    "**/scripts/**",
+    "**/.*/**",
+    "**/*.py",
+    "**/*.sh",
+    "**/*.zip",
+    "**/*.tar",
+    "**/*.gz",
+    "**/*.bin",
+    "**/*.exe",
+    "**/*.wasm",
+    "**/node_modules/**",
+    "**/.venv/**"
+  ]
+}

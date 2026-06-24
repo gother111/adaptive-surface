@@ -7,6 +7,7 @@ export type IntentKind =
   | "decision_help"
   | "quick_note"
   | "research_mode"
+  | "security_review"
   | "catch_up"
   | "comparison_table"
   | "approval_flow"

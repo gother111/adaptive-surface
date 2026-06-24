@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "eval:golden": "tsx src/evals/run-golden-tasks.ts",
+    "security:vendor": "node scripts/security-pack-vendor.mjs",
+    "security:verify-vendor": "node scripts/security-pack-verify-vendor.mjs",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:app": "tauri build --bundles app",
