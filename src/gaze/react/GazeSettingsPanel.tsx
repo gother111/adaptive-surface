@@ -1,10 +1,11 @@
-import { Bug, Camera, Crosshair, EyeOff, MousePointer2, RotateCcw } from "lucide-react";
+import { Bug, Camera, Crosshair, EyeOff, Hand, MousePointer2, RotateCcw } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useGaze } from "@/gaze/react/useGaze";
 import type { GazeProviderId } from "@/gaze/types";
 import { cn } from "@/lib/utils";
+import { usePerception } from "@/perception/react/usePerception";
 
 const providers: Array<{ id: GazeProviderId; label: string; icon: typeof EyeOff }> = [
   { id: "off", label: "Off", icon: EyeOff },
@@ -31,6 +32,16 @@ export function GazeSettingsPanel({ className }: GazeSettingsPanelProps) {
     clearCalibration,
     updateSettings,
   } = useGaze();
+  const {
+    handGesturesEnabled,
+    handStatus,
+    handError,
+    camera,
+    lastGesture,
+    armedTarget,
+    startHandTracking,
+    stopHandTracking,
+  } = usePerception();
   const active = status === "active" || status === "starting" || status === "calibrating" || status === "paused";
   const canCalibrate = providerId === "webgazer" && status === "active";
 
@@ -75,9 +86,12 @@ export function GazeSettingsPanel({ className }: GazeSettingsPanelProps) {
           onClick={() => {
             if (active) {
               void stop();
+              void stopHandTracking();
               return;
             }
-            void start(providerId);
+            void start(providerId).then(() => {
+              if (handGesturesEnabled) void startHandTracking();
+            });
           }}
         >
           <Crosshair className="size-4" />
@@ -102,12 +116,25 @@ export function GazeSettingsPanel({ className }: GazeSettingsPanelProps) {
           checked={settings.showDebugHud}
           onCheckedChange={(checked) => updateSettings({ showDebugHud: checked })}
         />
+        <ToggleRow
+          icon={<Hand className="size-4 text-primary" />}
+          label="Hand gesture confirmation"
+          checked={handGesturesEnabled}
+          onCheckedChange={(checked) => {
+            updateSettings({ handGesturesEnabled: checked });
+          }}
+        />
       </div>
 
       <div className="mt-3 text-xs leading-5 text-muted-foreground">
         <div>Target: {currentTarget?.metadata?.label ?? currentTarget?.id ?? "none"}</div>
-        <div>Calibration: {calibration.status} / {calibration.quality}</div>
+        <div>Camera: {camera.status}{camera.activeConsumerIds.length ? ` (${camera.activeConsumerIds.join(" + ")})` : ""}</div>
+        <div>Hand: {handGesturesEnabled ? handStatus : "off"}</div>
+        <div>Gesture: {lastGesture ? `${lastGesture.kind} / ${lastGesture.phase}` : "none"}</div>
+        {settings.showDebugHud ? <div>Armed: {armedTarget?.metadata?.label ?? armedTarget?.id ?? "none"}</div> : null}
+        <div>Calibration: {calibration.status} / {calibration.quality}{calibration.medianErrorPx ? ` / median ${Math.round(calibration.medianErrorPx)}px` : ""}</div>
         {lastError ? <div className="mt-1 text-destructive">Error: {lastError}</div> : null}
+        {handError ? <div className="mt-1 text-destructive">Hand error: {handError}</div> : null}
         {status === "unsupported" && providerId === "webgazer" ? (
           <div className="mt-2 rounded-md border border-amber-500/20 bg-amber-500/5 p-2 text-amber-50/85">
             Webcam gaze is unavailable in this runtime. Check camera permission and WebView media support.
@@ -120,6 +147,10 @@ export function GazeSettingsPanel({ className }: GazeSettingsPanelProps) {
           Clear calibration
         </Button>
       </div>
+
+      <p className="mt-2 text-[11px] leading-4 text-muted-foreground">
+        Gaze and hand input are local and opt-in. Video frames are not recorded or uploaded.
+      </p>
     </section>
   );
 }

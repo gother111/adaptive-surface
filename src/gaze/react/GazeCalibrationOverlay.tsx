@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { createCalibrationTargets } from "@/gaze/calibration";
+import { createDefaultCalibrationPlan } from "@/gaze/calibration";
 import type { GazeCalibrationSample, SmoothedGazePoint } from "@/gaze/types";
 
 interface GazeCalibrationOverlayProps {
@@ -19,7 +19,8 @@ export function GazeCalibrationOverlay({
   onSample,
   onComplete,
 }: GazeCalibrationOverlayProps) {
-  const targets = useMemo(() => createCalibrationTargets(9), []);
+  const plan = useMemo(() => createDefaultCalibrationPlan(), []);
+  const targets = plan.all;
   const [index, setIndex] = useState(0);
   const [samples, setSamples] = useState<GazeCalibrationSample[]>([]);
 
@@ -51,6 +52,7 @@ export function GazeCalibrationOverlay({
 
   const target = targets[index];
   const progress = `${index + 1} / ${targets.length}`;
+  const phaseLabel = target.phase === "validation" ? "Validation" : "Training";
 
   function recordSample() {
     const width = Math.max(window.innerWidth, 1);
@@ -60,9 +62,13 @@ export function GazeCalibrationOverlay({
       targetY: target.y * height,
       measuredX: smoothedPoint?.viewportX,
       measuredY: smoothedPoint?.viewportY,
-      timestamp: Date.now(),
+      timestamp: performance.now(),
+      phase: target.phase,
+      accepted: Boolean(smoothedPoint),
     };
-    onSample?.(sample);
+    if (target.phase === "training") {
+      onSample?.(sample);
+    }
 
     const nextSamples = [
       ...samples,
@@ -85,9 +91,9 @@ export function GazeCalibrationOverlay({
           <div>
             <h2 className="text-sm font-semibold">Gaze calibration</h2>
             <p className="mt-2 text-xs leading-5 text-muted-foreground">
-              Look at the dot, then click or press Space. Gaze only nominates targets; it never clicks.
+              Look at the dot, then click or press Space. Training points update WebGazer; validation points only score accuracy.
             </p>
-            <div className="mt-3 text-xs text-primary">{progress}</div>
+            <div className="mt-3 text-xs text-primary">{phaseLabel} {progress}</div>
           </div>
           <Button variant="ghost" size="icon" onClick={(event) => { event.stopPropagation(); onCancel(); }} aria-label="Cancel calibration">
             <X className="size-4" />

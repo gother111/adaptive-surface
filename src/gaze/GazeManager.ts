@@ -1,14 +1,21 @@
 import { gazeDefaults, initialCalibration } from "@/gaze/config";
 import { GazeTargetRegistry } from "@/gaze/GazeTargetRegistry";
-import { resolveGazeTarget, type GazeTargetResolverState } from "@/gaze/GazeTargetResolver";
+import {
+  clearResolverState,
+  initialGazeTargetResolverState,
+  resolveGazeTarget,
+  type GazeTargetResolverState,
+} from "@/gaze/GazeTargetResolver";
 import { GazeSmoother } from "@/gaze/smoothing";
 import { setCurrentGazeAttentionTarget } from "@/gaze/attention";
+import { shouldAcceptGazeObservation } from "@/gaze/observations";
 import { MouseGazeProvider } from "@/gaze/providers/MouseGazeProvider";
 import { NullGazeProvider } from "@/gaze/providers/NullGazeProvider";
 import { UnsupportedGazeProvider } from "@/gaze/providers/UnsupportedGazeProvider";
 import { WebGazerProvider } from "@/gaze/providers/WebGazerProvider";
 import type {
   GazeCalibrationOptions,
+  GazeObservation,
   GazeCalibrationSample,
   GazeCalibrationState,
   GazeInputProvider,
@@ -25,6 +32,7 @@ const defaultSettings: GazeSettings = {
   providerId: "off",
   showFocusRing: true,
   showDebugHud: false,
+  handGesturesEnabled: false,
 };
 
 export class GazeManager {
@@ -35,9 +43,12 @@ export class GazeManager {
   private unsubscribeProviderPoint: (() => void) | null = null;
   private unsubscribeProviderStatus: (() => void) | null = null;
   private smoother = new GazeSmoother();
-  private resolverState: GazeTargetResolverState = { previousTarget: null };
+  private resolverState: GazeTargetResolverState = initialGazeTargetResolverState();
   private listeners = new Set<(snapshot: GazeSnapshot) => void>();
   private lastEmittedAt = 0;
+  private latestAcceptedSequence = -1;
+  private latestAcceptedCapturedAt = -1;
+  private watchdog: ReturnType<typeof setInterval> | null = null;
   private snapshot: GazeSnapshot;
 
   constructor() {
@@ -53,6 +64,7 @@ export class GazeManager {
     this.snapshot = {
       providerId: this.activeProvider.id,
       status: this.activeProvider.getStatus(),
+      latestObservation: null,
       latestPoint: null,
       smoothedPoint: null,
       currentTarget: null,
@@ -81,13 +93,15 @@ export class GazeManager {
 
     await this.stop();
     this.smoother.reset();
-    this.resolverState.previousTarget = null;
+    clearResolverState(this.resolverState);
+    this.resetObservationClocks();
     const nextProvider = this.providers[providerId] ?? this.providers.off;
     this.activeProvider = nextProvider;
     this.setSettings({ providerId });
     this.setSnapshot({
       providerId,
       status: nextProvider.getStatus(),
+      latestObservation: null,
       latestPoint: null,
       smoothedPoint: null,
       currentTarget: null,
@@ -99,9 +113,10 @@ export class GazeManager {
   async start(providerId = this.snapshot.providerId) {
     await this.setProvider(providerId);
     this.unsubscribeActiveProvider();
+    this.resetObservationClocks();
 
     const provider = this.activeProvider;
-    this.unsubscribeProviderPoint = provider.subscribe((point) => this.receivePoint(point));
+    this.unsubscribeProviderPoint = provider.subscribe((observation) => this.receiveObservation(observation));
     this.unsubscribeProviderStatus = provider.onStatusChange?.((status) => {
       this.setSnapshot({ status });
     }) ?? null;
@@ -109,6 +124,7 @@ export class GazeManager {
     try {
       await provider.start({ debug: this.snapshot.settings.showDebugHud });
       this.setSnapshot({ status: provider.getStatus(), lastError: null });
+      this.startWatchdog();
     } catch (error) {
       await this.handleProviderError(error);
     }
@@ -119,10 +135,13 @@ export class GazeManager {
     try {
       await this.activeProvider.stop();
     } finally {
+      this.stopWatchdog();
       this.smoother.reset();
-      this.resolverState.previousTarget = null;
+      clearResolverState(this.resolverState);
+      this.resetObservationClocks();
       this.setSnapshot({
         status: this.activeProvider.getStatus(),
+        latestObservation: null,
         latestPoint: null,
         smoothedPoint: null,
         currentTarget: null,
@@ -138,8 +157,9 @@ export class GazeManager {
 
     this.setSnapshot({
       status: "calibrating",
-      calibration: { status: "in-progress", sampleCount: 0, quality: "unknown" },
+      calibration: { status: "in-progress", phase: "training", sampleCount: 0, quality: "unknown" },
     });
+    this.cancelAttention("calibration-start");
 
     try {
       const calibration = await this.activeProvider.calibrate(options);
@@ -165,31 +185,75 @@ export class GazeManager {
     void this.activeProvider.recordCalibrationSample?.(sample);
   }
 
+  cancelAttention(_reason = "cancelled") {
+    this.smoother.reset();
+    clearResolverState(this.resolverState);
+    setCurrentGazeAttentionTarget(null);
+    this.setSnapshot({
+      latestPoint: null,
+      smoothedPoint: null,
+      currentTarget: null,
+    });
+  }
+
   setSettings(settings: Partial<GazeSettings>) {
     const nextSettings = { ...this.snapshot.settings, ...settings };
     this.setSnapshot({ settings: nextSettings });
     writeStoredSettings(nextSettings);
   }
 
-  private receivePoint(point: GazePoint) {
+  private receiveObservation(observation: GazeObservation) {
+    if (!this.acceptObservation(observation)) {
+      return;
+    }
+
+    const point = observationToPoint(observation);
+    if (!point) {
+      this.smoother.reset();
+      const currentTarget = resolveGazeTarget(null, this.registry.list(), this.resolverState, {
+        now: observation.emittedAt,
+      });
+      setCurrentGazeAttentionTarget(currentTarget);
+      this.setSnapshot({
+        latestObservation: observation,
+        latestPoint: null,
+        smoothedPoint: null,
+        currentTarget,
+      }, true);
+      return;
+    }
+
     const smoothedPoint = this.smoother.smooth(point);
+    if (!smoothedPoint) {
+      const currentTarget = resolveGazeTarget(null, this.registry.list(), this.resolverState, {
+        now: point.timestamp,
+      });
+      setCurrentGazeAttentionTarget(currentTarget);
+      this.setSnapshot({
+        latestObservation: observation,
+        latestPoint: point,
+        smoothedPoint: null,
+        currentTarget,
+      }, true);
+      return;
+    }
+
     const currentTarget = resolveGazeTarget(
       smoothedPoint,
       this.registry.list(),
       this.resolverState,
     );
 
-    this.resolverState.previousTarget = currentTarget;
     setCurrentGazeAttentionTarget(currentTarget);
-    this.setSnapshot({ latestPoint: point, smoothedPoint, currentTarget }, true);
+    this.setSnapshot({ latestObservation: observation, latestPoint: point, smoothedPoint, currentTarget }, true);
   }
 
   private async handleProviderError(error: unknown) {
     const status: GazeProviderStatus = /permission|denied|notallowed/i.test(errorMessage(error))
       ? "permission-denied"
       : "error";
+    this.cancelAttention("provider-error");
     this.setSnapshot({ status, lastError: errorMessage(error), currentTarget: null });
-    setCurrentGazeAttentionTarget(null);
   }
 
   private unsubscribeActiveProvider() {
@@ -197,6 +261,52 @@ export class GazeManager {
     this.unsubscribeProviderStatus?.();
     this.unsubscribeProviderPoint = null;
     this.unsubscribeProviderStatus = null;
+  }
+
+  private acceptObservation(observation: GazeObservation) {
+    const capturedAt = observation.capturedAt ?? observation.emittedAt;
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const decision = shouldAcceptGazeObservation(observation, {
+      latestSequence: this.latestAcceptedSequence,
+      latestCapturedAt: this.latestAcceptedCapturedAt,
+    }, {
+      now,
+      maxAgeMs: gazeDefaults.maxObservationAgeMs,
+    });
+    if (!decision.accept) {
+      if (decision.reason === "stale") {
+        this.cancelAttention("stale-observation");
+      }
+      return false;
+    }
+
+    this.latestAcceptedSequence = observation.sequence;
+    this.latestAcceptedCapturedAt = capturedAt;
+    return true;
+  }
+
+  private startWatchdog() {
+    this.stopWatchdog();
+    this.watchdog = setInterval(() => {
+      const latestAt = this.snapshot.latestObservation?.capturedAt ?? this.snapshot.latestObservation?.emittedAt ?? null;
+      if (latestAt === null) return;
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      if (now - latestAt > gazeDefaults.noTargetTimeoutMs + gazeDefaults.maxObservationAgeMs) {
+        this.cancelAttention("watchdog");
+      }
+    }, gazeDefaults.watchdogIntervalMs);
+  }
+
+  private stopWatchdog() {
+    if (this.watchdog) {
+      clearInterval(this.watchdog);
+      this.watchdog = null;
+    }
+  }
+
+  private resetObservationClocks() {
+    this.latestAcceptedSequence = -1;
+    this.latestAcceptedCapturedAt = -1;
   }
 
   private setSnapshot(patch: Partial<GazeSnapshot>, throttle = false) {
@@ -224,6 +334,7 @@ function readStoredSettings(): GazeSettings {
       providerId: isProviderId(parsed.providerId) ? parsed.providerId : defaultSettings.providerId,
       showFocusRing: typeof parsed.showFocusRing === "boolean" ? parsed.showFocusRing : defaultSettings.showFocusRing,
       showDebugHud: typeof parsed.showDebugHud === "boolean" ? parsed.showDebugHud : defaultSettings.showDebugHud,
+      handGesturesEnabled: typeof parsed.handGesturesEnabled === "boolean" ? parsed.handGesturesEnabled : defaultSettings.handGesturesEnabled,
     };
   } catch {
     return defaultSettings;
@@ -250,4 +361,22 @@ function isProviderId(value: unknown): value is GazeProviderId {
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
+}
+
+function observationToPoint(observation: GazeObservation): GazePoint | null {
+  if (!observation.point) return null;
+  const timestamp = observation.capturedAt ?? observation.emittedAt;
+  return {
+    ...observation.point,
+    confidence: observation.confidence,
+    timestamp,
+    capturedAt: observation.capturedAt,
+    sequence: observation.sequence,
+    trackingState: observation.trackingState,
+    facePresent: observation.facePresent,
+    eyesOpen: observation.eyesOpen,
+    eyeRegion: observation.eyeRegion,
+    source: observation.source,
+    debug: observation.debug,
+  };
 }

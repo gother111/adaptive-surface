@@ -2,8 +2,8 @@ import { initialCalibration } from "@/gaze/config";
 import { ProviderEvents } from "@/gaze/providers/ProviderEvents";
 import type {
   GazeCalibrationState,
+  GazeObservation,
   GazeInputProvider,
-  GazePoint,
   GazeProviderStatus,
 } from "@/gaze/types";
 
@@ -20,6 +20,7 @@ export class MouseGazeProvider implements GazeInputProvider {
   private events = new ProviderEvents();
   private status: GazeProviderStatus = "idle";
   private removePointerListener: (() => void) | null = null;
+  private sequence = 0;
 
   getStatus() {
     return this.status;
@@ -36,7 +37,7 @@ export class MouseGazeProvider implements GazeInputProvider {
 
     const onPointerMove = (event: PointerEvent) => {
       if (this.status !== "active") return;
-      this.events.emitPoint(createMousePoint(event.clientX, event.clientY, event));
+      this.events.emitPoint(createMouseObservation(event.clientX, event.clientY, ++this.sequence));
     };
 
     window.addEventListener("pointermove", onPointerMove, { passive: true });
@@ -64,7 +65,7 @@ export class MouseGazeProvider implements GazeInputProvider {
     return initialCalibration;
   }
 
-  subscribe(listener: (point: GazePoint) => void) {
+  subscribe(listener: (observation: GazeObservation) => void) {
     return this.events.subscribe(listener);
   }
 
@@ -83,19 +84,26 @@ export class MouseGazeProvider implements GazeInputProvider {
   }
 }
 
-function createMousePoint(viewportX: number, viewportY: number, raw: PointerEvent): GazePoint {
+function createMouseObservation(viewportX: number, viewportY: number, sequence: number): GazeObservation {
   const width = Math.max(window.innerWidth, 1);
   const height = Math.max(window.innerHeight, 1);
+  const at = performance.now();
 
   return {
-    viewportX,
-    viewportY,
-    normalizedX: clamp(viewportX / width, 0, 1),
-    normalizedY: clamp(viewportY / height, 0, 1),
+    sequence,
+    capturedAt: at,
+    emittedAt: at,
+    point: {
+      viewportX,
+      viewportY,
+      normalizedX: clamp(viewportX / width, 0, 1),
+      normalizedY: clamp(viewportY / height, 0, 1),
+    },
     confidence: 1,
-    timestamp: performance.now(),
+    trackingState: "usable",
+    facePresent: null,
+    eyesOpen: null,
     source: "mouse-simulated",
-    raw,
   };
 }
 

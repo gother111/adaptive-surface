@@ -44,6 +44,20 @@ describe("GazeSmoother", () => {
     expect(smoother.smooth(point({ confidence: 0.2 }))).toBeNull();
     expect(smoother.smooth(point({ viewportX: Number.NaN }))).toBeNull();
   });
+
+  it("accepts unavailable confidence when tracking is usable", () => {
+    const smoother = new GazeSmoother({ minConfidence: 0.5 });
+    expect(smoother.smooth(point({ confidence: null }))).not.toBeNull();
+  });
+
+  it("resets on loss instead of manufacturing stale points", () => {
+    const smoother = new GazeSmoother({ smoothingAlpha: 0.25, minConfidence: 0.1 });
+    smoother.smooth(point({ viewportX: 100, viewportY: 100, timestamp: 0 }), { width: 1000, height: 800 });
+    expect(smoother.smooth(point({ trackingState: "lost", timestamp: 20 }))).toBeNull();
+    const next = smoother.smooth(point({ viewportX: 400, viewportY: 400, timestamp: 40 }), { width: 1000, height: 800 });
+
+    expect(next?.viewportX).toBe(400);
+  });
 });
 
 function point(overrides: Partial<GazePoint> = {}): GazePoint {
@@ -54,6 +68,11 @@ function point(overrides: Partial<GazePoint> = {}): GazePoint {
     normalizedY: 0.1,
     confidence: 1,
     timestamp: 0,
+    capturedAt: 0,
+    sequence: 1,
+    trackingState: "usable",
+    facePresent: null,
+    eyesOpen: null,
     source: "mouse-simulated",
     ...overrides,
   };

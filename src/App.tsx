@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { GazeProviderRoot } from "@/gaze/react/GazeContext";
 import { useDebugShortcut } from "@/hooks/useDebugShortcut";
 import { useGlobalShortcut } from "@/hooks/useGlobalShortcut";
+import { PerceptionProviderRoot } from "@/perception/react/PerceptionContext";
 import { ThemePreferenceProvider, useThemePreference } from "@/surface-system/theme";
 import { VoiceController } from "@/voice/VoiceController";
 
@@ -27,13 +28,15 @@ function AppContent() {
   return (
     <TooltipProvider>
       <div className="h-screen overflow-hidden bg-background text-foreground">
-        <GazeProviderRoot>
-          <VoiceController />
-          <AppShell />
-          <CommandPalette />
-          <DebugHUD />
-          <FloatingMicButton />
-        </GazeProviderRoot>
+        <PerceptionProviderRoot>
+          <GazeProviderRoot>
+            <VoiceController />
+            <AppShell />
+            <CommandPalette />
+            <DebugHUD />
+            <FloatingMicButton />
+          </GazeProviderRoot>
+        </PerceptionProviderRoot>
         <Toaster theme={resolvedTheme} position="top-right" richColors />
       </div>
     </TooltipProvider>

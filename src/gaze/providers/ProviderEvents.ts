@@ -1,10 +1,10 @@
-import type { GazePoint, GazeProviderStatus } from "@/gaze/types";
+import type { GazeObservation, GazeProviderStatus } from "@/gaze/types";
 
 export class ProviderEvents {
-  private pointListeners = new Set<(point: GazePoint) => void>();
+  private pointListeners = new Set<(observation: GazeObservation) => void>();
   private statusListeners = new Set<(status: GazeProviderStatus) => void>();
 
-  subscribe(listener: (point: GazePoint) => void) {
+  subscribe(listener: (observation: GazeObservation) => void) {
     this.pointListeners.add(listener);
     return () => {
       this.pointListeners.delete(listener);
@@ -18,8 +18,8 @@ export class ProviderEvents {
     };
   }
 
-  emitPoint(point: GazePoint) {
-    this.pointListeners.forEach((listener) => listener(point));
+  emitPoint(observation: GazeObservation) {
+    this.pointListeners.forEach((listener) => listener(observation));
   }
 
   emitStatus(status: GazeProviderStatus) {

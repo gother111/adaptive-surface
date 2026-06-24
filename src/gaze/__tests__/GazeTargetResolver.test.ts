@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { resolveGazeTarget } from "@/gaze/GazeTargetResolver";
-import type { GazeTargetDescriptor, ResolvedGazeTarget, SmoothedGazePoint } from "@/gaze/types";
+import { initialGazeTargetResolverState, resolveGazeTarget } from "@/gaze/GazeTargetResolver";
+import type { GazeTargetDescriptor, SmoothedGazePoint } from "@/gaze/types";
 
 describe("resolveGazeTarget", () => {
   it("returns null without a usable point", () => {
@@ -27,11 +27,10 @@ describe("resolveGazeTarget", () => {
   });
 
   it("applies hysteresis and tracks dwell", () => {
-    const state: { previousTarget: ResolvedGazeTarget | null } = { previousTarget: null };
+    const state = initialGazeTargetResolverState();
     const first = resolveGazeTarget(point({ viewportX: 50, viewportY: 50, timestamp: 1000 }), [
       target("a", rect(0, 0, 100, 100)),
     ], state);
-    state.previousTarget = first;
 
     const second = resolveGazeTarget(point({ viewportX: 180, viewportY: 50, timestamp: 1100 }), [
       target("a", rect(0, 0, 100, 100)),
@@ -40,6 +39,66 @@ describe("resolveGazeTarget", () => {
 
     expect(second?.id).toBe("a");
     expect(second?.dwellMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it("switches after a competing candidate remains through hysteresis", () => {
+    const state = initialGazeTargetResolverState();
+    const targets = [
+      target("a", rect(0, 0, 100, 100)),
+      target("b", rect(150, 0, 100, 100)),
+    ];
+
+    expect(resolveGazeTarget(point({ viewportX: 50, viewportY: 50, timestamp: 1000 }), targets, state)?.id).toBe("a");
+    expect(resolveGazeTarget(point({ viewportX: 180, viewportY: 50, timestamp: 1050 }), targets, state)?.id).toBe("a");
+    expect(resolveGazeTarget(point({ viewportX: 180, viewportY: 50, timestamp: 1300 }), targets, state)?.id).toBe("b");
+  });
+
+  it("starts loss once and clears after timeout despite repeated no-target frames", () => {
+    const state = initialGazeTargetResolverState();
+    const targets = [target("a", rect(0, 0, 100, 100))];
+
+    resolveGazeTarget(point({ viewportX: 50, viewportY: 50, timestamp: 1000 }), targets, state);
+    expect(resolveGazeTarget(point({ viewportX: 500, viewportY: 500, timestamp: 1100 }), targets, state)?.id).toBe("a");
+    expect(resolveGazeTarget(point({ viewportX: 500, viewportY: 500, timestamp: 1250 }), targets, state)?.id).toBe("a");
+    expect(resolveGazeTarget(point({ viewportX: 500, viewportY: 500, timestamp: 1500 }), targets, state)).toBeNull();
+  });
+
+  it("does not let degraded observations renew the hold forever", () => {
+    const state = initialGazeTargetResolverState();
+    const targets = [target("a", rect(0, 0, 100, 100))];
+
+    resolveGazeTarget(point({ viewportX: 50, viewportY: 50, timestamp: 1000 }), targets, state);
+    expect(resolveGazeTarget(point({ viewportX: 50, viewportY: 50, timestamp: 1100, trackingState: "degraded" }), targets, state)?.id).toBe("a");
+    expect(resolveGazeTarget(point({ viewportX: 50, viewportY: 50, timestamp: 1500, trackingState: "degraded" }), targets, state)).toBeNull();
+  });
+
+  it("keeps same-target dwell monotonic and starts a new interval when switching back", () => {
+    const state = initialGazeTargetResolverState();
+    const targets = [
+      target("a", rect(0, 0, 100, 100)),
+      target("b", rect(150, 0, 100, 100)),
+    ];
+
+    const first = resolveGazeTarget(point({ viewportX: 50, viewportY: 50, timestamp: 1000 }), targets, state);
+    const second = resolveGazeTarget(point({ viewportX: 55, viewportY: 55, timestamp: 1200 }), targets, state);
+    resolveGazeTarget(point({ viewportX: 180, viewportY: 50, timestamp: 1500 }), targets, state);
+    const switched = resolveGazeTarget(point({ viewportX: 180, viewportY: 50, timestamp: 1800 }), targets, state);
+    resolveGazeTarget(point({ viewportX: 50, viewportY: 50, timestamp: 2100 }), targets, state);
+    const back = resolveGazeTarget(point({ viewportX: 50, viewportY: 50, timestamp: 2400 }), targets, state);
+
+    expect(second?.dwellMs).toBeGreaterThan(first?.dwellMs ?? 0);
+    expect(switched?.id).toBe("b");
+    expect(back?.id).toBe("a");
+    expect(back?.dwellMs).toBeLessThan(500);
+  });
+
+  it("does not keep a disabled target armed", () => {
+    const state = initialGazeTargetResolverState();
+    const enabled = target("a", rect(0, 0, 100, 100));
+    resolveGazeTarget(point({ viewportX: 50, viewportY: 50, timestamp: 1000 }), [enabled], state);
+
+    const disabled = target("a", rect(0, 0, 100, 100), { disabled: true });
+    expect(resolveGazeTarget(point({ viewportX: 50, viewportY: 50, timestamp: 1200 }), [disabled], state)).toBeNull();
   });
 
   it("ignores disabled and zero-size targets", () => {
@@ -72,6 +131,11 @@ function point(overrides: Partial<SmoothedGazePoint> = {}): SmoothedGazePoint {
     normalizedY: 0.1,
     confidence: 1,
     timestamp: 0,
+    capturedAt: 0,
+    sequence: 1,
+    trackingState: "usable",
+    facePresent: null,
+    eyesOpen: null,
     source: "mouse-simulated",
     isFixating: false,
     ...overrides,

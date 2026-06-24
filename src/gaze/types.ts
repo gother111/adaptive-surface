@@ -13,15 +13,55 @@ export type GazeProviderStatus =
 
 export type GazePointSource = "mouse-simulated" | "webgazer" | "webeyetrack-placeholder";
 
+export type TrackingState = "unknown" | "usable" | "degraded" | "lost";
+
+export interface NormalizedRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface GazePoint {
   viewportX: number;
   viewportY: number;
   normalizedX: number;
   normalizedY: number;
-  confidence: number;
+  confidence: number | null;
   timestamp: number;
+  capturedAt: number | null;
+  sequence: number;
+  trackingState: TrackingState;
+  facePresent: boolean | null;
+  eyesOpen: boolean | null;
+  eyeRegion?: NormalizedRect;
   source: GazePointSource;
-  raw?: unknown;
+  debug?: {
+    provider: GazePointSource;
+    reason?: string;
+  };
+}
+
+export interface GazeObservation {
+  sequence: number;
+  capturedAt: number | null;
+  emittedAt: number;
+  point: {
+    viewportX: number;
+    viewportY: number;
+    normalizedX: number;
+    normalizedY: number;
+  } | null;
+  confidence: number | null;
+  trackingState: TrackingState;
+  facePresent: boolean | null;
+  eyesOpen: boolean | null;
+  eyeRegion?: NormalizedRect;
+  source: GazePointSource;
+  debug?: {
+    provider: GazePointSource;
+    reason?: string;
+  };
 }
 
 export interface SmoothedGazePoint extends GazePoint {
@@ -65,11 +105,14 @@ export interface GazeTargetDescriptor {
 export interface ResolvedGazeTarget {
   id: string;
   type: GazeTargetType;
-  confidence: number;
+  confidence: number | null;
   dwellMs: number;
   rect: DOMRect;
   metadata?: GazeTargetMetadata;
   resolvedAt: number;
+  activeSince: number;
+  lastObservedAt: number;
+  source: GazePointSource;
 }
 
 export interface GazeCalibrationSample {
@@ -78,14 +121,34 @@ export interface GazeCalibrationSample {
   measuredX?: number;
   measuredY?: number;
   timestamp: number;
+  phase?: "training" | "validation";
+  accepted?: boolean;
 }
+
+export type CalibrationPhase =
+  | "idle"
+  | "instructions"
+  | "training"
+  | "validation"
+  | "complete"
+  | "failed";
 
 export interface GazeCalibrationState {
   status: "not-calibrated" | "in-progress" | "complete" | "failed";
+  phase?: CalibrationPhase;
   sampleCount: number;
+  trainingProgress?: { completed: number; total: number };
+  validationProgress?: { completed: number; total: number };
   validationErrorPx?: number;
+  medianErrorPx?: number;
+  p90ErrorPx?: number;
+  normalizedError?: number;
+  validValidationPointCount?: number;
+  rejectedSampleCount?: number;
   quality: "unknown" | "poor" | "fair" | "good";
   completedAt?: number;
+  profileKey?: string;
+  invalidationReason?: string;
 }
 
 export interface GazeProviderCapabilities {
@@ -120,7 +183,7 @@ export interface GazeInputProvider {
   calibrate?(options?: GazeCalibrationOptions): Promise<GazeCalibrationState>;
   recordCalibrationSample?(sample: GazeCalibrationSample): void | Promise<void>;
   clearCalibration?(): Promise<void>;
-  subscribe(listener: (point: GazePoint) => void): () => void;
+  subscribe(listener: (observation: GazeObservation) => void): () => void;
   onStatusChange?(listener: (status: GazeProviderStatus) => void): () => void;
 }
 
@@ -128,11 +191,13 @@ export interface GazeSettings {
   providerId: GazeProviderId;
   showFocusRing: boolean;
   showDebugHud: boolean;
+  handGesturesEnabled: boolean;
 }
 
 export interface GazeSnapshot {
   providerId: GazeProviderId;
   status: GazeProviderStatus;
+  latestObservation: GazeObservation | null;
   latestPoint: GazePoint | null;
   smoothedPoint: SmoothedGazePoint | null;
   currentTarget: ResolvedGazeTarget | null;
@@ -144,5 +209,5 @@ export interface GazeSnapshot {
 export interface AttentionContext {
   target: ResolvedGazeTarget | null;
   source: "gaze" | "pointer" | "keyboard" | "none";
-  confidence: number;
+  confidence: number | null;
 }

@@ -1,7 +1,9 @@
 import { useGaze } from "@/gaze/react/useGaze";
+import { usePerception } from "@/perception/react/usePerception";
 
 export function GazeFocusOverlay() {
   const { currentTarget, settings, smoothedPoint, status } = useGaze();
+  const { armedTarget } = usePerception();
 
   const canShow = status === "active" || status === "calibrating" || status === "poor-tracking";
   if (!settings.showFocusRing || !canShow) {
@@ -10,11 +12,14 @@ export function GazeFocusOverlay() {
 
   if (currentTarget) {
     const rect = currentTarget.rect;
+    const armed = armedTarget?.id === currentTarget.id;
 
     return (
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed z-30 rounded-lg border border-primary/55 bg-primary/5 shadow-[0_0_32px_var(--surface-glow)] transition-[left,top,width,height,opacity] duration-150 motion-reduce:transition-none"
+        className={armed
+          ? "pointer-events-none fixed z-30 rounded-lg border border-ring bg-accent/15 shadow-[0_0_32px_var(--surface-glow)] transition-[left,top,width,height,opacity] duration-150 motion-reduce:transition-none"
+          : "pointer-events-none fixed z-30 rounded-lg border border-primary/55 bg-primary/5 shadow-[0_0_32px_var(--surface-glow)] transition-[left,top,width,height,opacity] duration-150 motion-reduce:transition-none"}
         style={{
           left: rect.left - 4,
           top: rect.top - 4,

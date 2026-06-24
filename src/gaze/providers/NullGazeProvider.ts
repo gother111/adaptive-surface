@@ -2,8 +2,8 @@ import { initialCalibration } from "@/gaze/config";
 import { ProviderEvents } from "@/gaze/providers/ProviderEvents";
 import type {
   GazeCalibrationState,
+  GazeObservation,
   GazeInputProvider,
-  GazePoint,
   GazeProviderStatus,
 } from "@/gaze/types";
 
@@ -36,7 +36,7 @@ export class NullGazeProvider implements GazeInputProvider {
     return initialCalibration;
   }
 
-  subscribe(listener: (point: GazePoint) => void) {
+  subscribe(listener: (observation: GazeObservation) => void) {
     return this.events.subscribe(listener);
   }
 

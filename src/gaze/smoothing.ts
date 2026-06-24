@@ -16,7 +16,8 @@ export class GazeSmoother {
 
   smooth(point: GazePoint, viewport = readViewport()): SmoothedGazePoint | null {
     const minConfidence = this.options.minConfidence ?? gazeDefaults.minConfidence;
-    if (!isUsablePoint(point) || point.confidence < minConfidence) {
+    if (!isUsablePoint(point) || point.trackingState !== "usable" || (point.confidence !== null && point.confidence < minConfidence)) {
+      this.reset();
       return null;
     }
 
@@ -83,6 +84,11 @@ function anchorPoint(viewportX: number, viewportY: number, timestamp: number): S
     normalizedY: 0,
     confidence: 1,
     timestamp,
+    capturedAt: timestamp,
+    sequence: 0,
+    trackingState: "usable",
+    facePresent: null,
+    eyesOpen: null,
     source: "mouse-simulated",
     velocityPxPerMs: 0,
     isFixating: false,
@@ -90,7 +96,9 @@ function anchorPoint(viewportX: number, viewportY: number, timestamp: number): S
 }
 
 function isUsablePoint(point: GazePoint) {
-  return Number.isFinite(point.viewportX) && Number.isFinite(point.viewportY) && Number.isFinite(point.confidence);
+  return Number.isFinite(point.viewportX)
+    && Number.isFinite(point.viewportY)
+    && (point.confidence === null || Number.isFinite(point.confidence));
 }
 
 function readViewport() {

@@ -11,21 +11,43 @@ export interface GazeTargetResolverOptions {
   targetRectInflationPx?: number;
   nearestTargetMaxDistancePx?: number;
   noTargetTimeoutMs?: number;
+  now?: number;
 }
 
 export interface GazeTargetResolverState {
-  previousTarget: ResolvedGazeTarget | null;
+  activeTarget: ResolvedGazeTarget | null;
+  activeSince: number | null;
+  candidateTargetId: string | null;
+  candidateSince: number | null;
+  lastObservedAt: number | null;
+  lostAt: number | null;
 }
+
+export const initialGazeTargetResolverState = (): GazeTargetResolverState => ({
+  activeTarget: null,
+  activeSince: null,
+  candidateTargetId: null,
+  candidateSince: null,
+  lastObservedAt: null,
+  lostAt: null,
+});
 
 export function resolveGazeTarget(
   point: SmoothedGazePoint | null,
   targets: GazeTargetDescriptor[],
-  state: GazeTargetResolverState = { previousTarget: null },
+  state: GazeTargetResolverState = initialGazeTargetResolverState(),
   options: GazeTargetResolverOptions = {},
 ): ResolvedGazeTarget | null {
-  const previousTarget = state.previousTarget;
-  if (!point || point.confidence < (options.minConfidence ?? gazeDefaults.minConfidence)) {
-    return holdPreviousTarget(point, previousTarget, options);
+  const now = point?.timestamp ?? options.now ?? readNow();
+  let activeTarget = state.activeTarget;
+
+  if (!point || !isUsableForTargeting(point, options)) {
+    return handleLoss(now, state, options);
+  }
+
+  if (activeTarget && !targetStillAvailable(activeTarget, targets)) {
+    clearResolverState(state);
+    activeTarget = null;
   }
 
   const candidates = targets
@@ -40,28 +62,65 @@ export function resolveGazeTarget(
 
   const candidate = (containing.length ? containing.sort(sortCandidate)[0] : nearest) ?? null;
   if (!candidate) {
-    return holdPreviousTarget(point, previousTarget, options);
+    return handleLoss(point.timestamp, state, options);
   }
 
-  if (previousTarget && previousTarget.id !== candidate.target.id) {
+  state.lostAt = null;
+
+  if (activeTarget && activeTarget.id === candidate.target.id) {
+    state.candidateTargetId = null;
+    state.candidateSince = null;
+    state.lastObservedAt = point.timestamp;
+    const activeSince = state.activeSince ?? activeTarget.activeSince ?? point.timestamp;
+    const next = toResolvedTarget(candidate, point, activeSince, state.lastObservedAt);
+    state.activeTarget = next;
+    return next;
+  }
+
+  if (activeTarget && activeTarget.id !== candidate.target.id) {
     const hysteresisMs = options.targetHysteresisMs ?? gazeDefaults.targetHysteresisMs;
-    if (point.timestamp - previousTarget.resolvedAt < hysteresisMs) {
-      return { ...previousTarget, resolvedAt: point.timestamp };
+    if (state.candidateTargetId !== candidate.target.id) {
+      state.candidateTargetId = candidate.target.id;
+      state.candidateSince = point.timestamp;
+    }
+
+    if (point.timestamp - (state.candidateSince ?? point.timestamp) < hysteresisMs) {
+      const held = targetStillAvailable(activeTarget, targets)
+        ? { ...activeTarget, resolvedAt: point.timestamp }
+        : null;
+      if (held) {
+        state.activeTarget = held;
+      }
+      return held;
     }
   }
 
-  const dwellStartedAt = previousTarget?.id === candidate.target.id
-    ? previousTarget.resolvedAt - previousTarget.dwellMs
-    : point.timestamp;
+  state.candidateTargetId = null;
+  state.candidateSince = null;
+  state.activeSince = point.timestamp;
+  state.lastObservedAt = point.timestamp;
+  const next = toResolvedTarget(candidate, point, point.timestamp, point.timestamp);
+  state.activeTarget = next;
+  return next;
+}
 
+function toResolvedTarget(
+  candidate: TargetCandidate,
+  point: SmoothedGazePoint,
+  activeSince: number,
+  lastObservedAt: number,
+): ResolvedGazeTarget {
   return {
     id: candidate.target.id,
     type: candidate.target.type,
     confidence: point.confidence,
-    dwellMs: Math.max(0, point.timestamp - dwellStartedAt),
+    dwellMs: Math.max(0, point.timestamp - activeSince),
     rect: candidate.rect,
     metadata: candidate.target.metadata,
     resolvedAt: point.timestamp,
+    activeSince,
+    lastObservedAt,
+    source: point.source,
   };
 }
 
@@ -98,15 +157,45 @@ function sortCandidate(a: TargetCandidate, b: TargetCandidate) {
     || a.rect.width * a.rect.height - b.rect.width * b.rect.height;
 }
 
-function holdPreviousTarget(
-  point: SmoothedGazePoint | null,
-  previousTarget: ResolvedGazeTarget | null,
+function handleLoss(
+  now: number,
+  state: GazeTargetResolverState,
   options: GazeTargetResolverOptions,
-) {
-  if (!point || !previousTarget) return null;
+): ResolvedGazeTarget | null {
+  const activeTarget = state.activeTarget;
+  if (!activeTarget) return null;
+
+  if (state.lostAt === null) {
+    state.lostAt = now;
+  }
+
   const noTargetTimeoutMs = options.noTargetTimeoutMs ?? gazeDefaults.noTargetTimeoutMs;
-  if (point.timestamp - previousTarget.resolvedAt > noTargetTimeoutMs) return null;
-  return { ...previousTarget, resolvedAt: point.timestamp };
+  if (now - state.lostAt > noTargetTimeoutMs) {
+    clearResolverState(state);
+    return null;
+  }
+
+  const held = { ...activeTarget, resolvedAt: now };
+  state.activeTarget = held;
+  return held;
+}
+
+function isUsableForTargeting(point: SmoothedGazePoint, options: GazeTargetResolverOptions) {
+  const minConfidence = options.minConfidence ?? gazeDefaults.minConfidence;
+  return point.trackingState === "usable" && (point.confidence === null || point.confidence >= minConfidence);
+}
+
+function targetStillAvailable(target: ResolvedGazeTarget, targets: GazeTargetDescriptor[]) {
+  return targets.some((descriptor) => descriptor.id === target.id && !descriptor.disabled && Boolean(descriptor.getRect()));
+}
+
+export function clearResolverState(state: GazeTargetResolverState) {
+  state.activeTarget = null;
+  state.activeSince = null;
+  state.candidateTargetId = null;
+  state.candidateSince = null;
+  state.lastObservedAt = null;
+  state.lostAt = null;
 }
 
 function inflateRect(rect: DOMRect, amount: number): DOMRect {
@@ -128,4 +217,8 @@ function distanceToRect(x: number, y: number, rect: DOMRect) {
   const dx = x < rect.left ? rect.left - x : x > rect.right ? x - rect.right : 0;
   const dy = y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0;
   return Math.hypot(dx, dy);
+}
+
+function readNow() {
+  return typeof performance !== "undefined" ? performance.now() : Date.now();
 }
