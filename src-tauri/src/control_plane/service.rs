@@ -1,3 +1,4 @@
+use super::authorization::validate_approval_binding;
 use super::contracts::*;
 use super::executors::{
     build_inbox_triage_graph, canonical_capabilities, infer_email_triage_mode,
@@ -65,6 +66,7 @@ impl ControlPlaneService {
             SchedulerConfig {
                 max_concurrency: 2,
                 poll_interval_ms: 1,
+                ..SchedulerConfig::default()
             },
         )
         .unwrap_or_else(|error| panic!("fixture service should initialize: {}", error.message))
@@ -108,37 +110,113 @@ impl ControlPlaneService {
         &self,
         command: OperationCommand,
     ) -> Result<ControlPlaneSessionSnapshot, ControlPlaneError> {
+        let now_ms = command.now_ms.unwrap_or_else(epoch_ms);
         let approval_id = command.approval_id.clone().ok_or_else(|| {
             ControlPlaneError::new(ControlPlaneErrorKind::PolicyBlocked, "approval id is required")
         })?;
-        let mut store = self.journal.lock_store()?;
-        let mut snapshot = store
-            .sessions
-            .get(&command.session_id)
-            .cloned()
-            .ok_or_else(|| {
-                ControlPlaneError::new(
-                    ControlPlaneErrorKind::RecoveryRequiresVerification,
-                    format!("session {} was not found", command.session_id),
-                )
+        let (event, snapshot) = {
+            let mut store = self.journal.lock_store()?;
+            let snapshot = store
+                .sessions
+                .get(&command.session_id)
+                .cloned()
+                .ok_or_else(|| {
+                    ControlPlaneError::new(
+                        ControlPlaneErrorKind::RecoveryRequiresVerification,
+                        format!("session {} was not found", command.session_id),
+                    )
+                })?;
+            let approval = snapshot
+                .pending_approvals
+                .iter()
+                .find(|approval| approval.approval_id == approval_id.as_str())
+                .cloned()
+                .ok_or_else(|| {
+                    ControlPlaneError::new(ControlPlaneErrorKind::PolicyBlocked, "approval request was not found")
+                })?;
+
+            if approval.plan_revision != command.plan_revision || snapshot.plan_revision != command.plan_revision {
+                return Err(ControlPlaneError::new(
+                    ControlPlaneErrorKind::PolicyBlocked,
+                    "approval request does not match the current plan revision",
+                ));
+            }
+
+            let graph_id = snapshot
+                .active_graph_id
+                .clone()
+                .unwrap_or_else(|| TaskGraphId::new(approval.plan_id.clone()));
+            let mut graph = snapshot
+                .task_graphs
+                .iter()
+                .find(|graph| graph.graph_id == graph_id || graph.graph_id.as_str() == approval.plan_id)
+                .cloned()
+                .ok_or_else(|| ControlPlaneError::new(ControlPlaneErrorKind::InvalidTransition, "approval graph was not found"))?;
+            let operation = graph
+                .work_units
+                .iter()
+                .find(|unit| unit.work_unit_id == command.work_unit_id)
+                .cloned()
+                .ok_or_else(|| ControlPlaneError::new(ControlPlaneErrorKind::InvalidTransition, "approval operation was not found"))?;
+
+            if operation.state != OperationState::AwaitingApproval {
+                return Err(ControlPlaneError::new(
+                    ControlPlaneErrorKind::InvalidTransition,
+                    "operation is not waiting for approval",
+                ));
+            }
+
+            validate_approval_binding(&graph, &operation, &approval, now_ms)?;
+
+            if let Some(unit) = graph
+                .work_units
+                .iter_mut()
+                .find(|unit| unit.work_unit_id == command.work_unit_id)
+            {
+                unit.state = OperationState::Ready;
+            }
+
+            let objective_id = snapshot.objective_id.clone().ok_or_else(|| {
+                ControlPlaneError::new(ControlPlaneErrorKind::InvalidTransition, "snapshot missing objective")
             })?;
-        let approval = snapshot
-            .pending_approvals
-            .iter()
-            .find(|approval| approval.approval_id == approval_id.as_str())
-            .cloned()
-            .ok_or_else(|| {
-                ControlPlaneError::new(ControlPlaneErrorKind::PolicyBlocked, "approval request was not found")
-            })?;
-        if approval.plan_revision != command.plan_revision {
-            return Err(ControlPlaneError::new(
-                ControlPlaneErrorKind::PolicyBlocked,
-                "approval request does not match the current plan revision",
-            ));
-        }
-        snapshot.pending_approvals.retain(|approval| approval.approval_id != approval_id.as_str());
-        store.repository.save_events_and_snapshot(&[], &snapshot)?;
-        store.sessions.insert(snapshot.session_id.clone(), snapshot.clone());
+            let run_id = snapshot
+                .recent_events
+                .iter()
+                .rev()
+                .find(|event| event.graph_id.as_ref().is_some_and(|event_graph_id| event_graph_id == &graph_id))
+                .map(|event| event.run_id.clone())
+                .unwrap_or_else(|| store.id("run-approval", now_ms, RunId::new));
+            let pending_approvals = snapshot
+                .pending_approvals
+                .into_iter()
+                .filter(|pending| pending.approval_id != approval_id.as_str())
+                .collect::<Vec<_>>();
+            let event = store.record_event(
+                &command.session_id,
+                &objective_id,
+                command.plan_revision,
+                Some(graph.graph_id.clone()),
+                Some(command.work_unit_id.clone()),
+                &run_id,
+                now_ms,
+                RuntimeEventPayload::ApprovalResolved {
+                    approval_id,
+                    decision: ApprovalDecision::Approve,
+                },
+            );
+            let snapshot = store.save_snapshot(
+                command.session_id.clone(),
+                Some(objective_id),
+                Some(graph),
+                command.plan_revision,
+                Vec::new(),
+                pending_approvals,
+                std::slice::from_ref(&event),
+                None,
+            )?;
+            (event, snapshot)
+        };
+        self.journal.publish_events(std::slice::from_ref(&event));
         Ok(snapshot)
     }
 
@@ -467,6 +545,7 @@ fn request_fingerprint(utterance: &str) -> String {
 mod tests {
     use super::*;
     use crate::apple::models::AppleMailMessage;
+    use crate::control_plane::authorization::approval_binding_for_work_unit;
     use std::thread;
     use std::time::{Duration, Instant};
 
@@ -497,6 +576,78 @@ mod tests {
             }
             assert!(start.elapsed() < Duration::from_secs(2));
             thread::sleep(Duration::from_millis(5));
+        }
+    }
+
+    fn approval_unit() -> WorkUnit {
+        let mut input = Metadata::new();
+        input.insert("target".to_string(), "alex@example.com".to_string());
+        input.insert("body".to_string(), "Follow up draft.".to_string());
+        WorkUnit {
+            work_unit_id: WorkUnitId::new("send-approval"),
+            kind: WorkUnitKind::PureSynthesis,
+            capability_id: "mail.send".to_string(),
+            title: "Send approved message".to_string(),
+            dependencies: Vec::new(),
+            join_policy: JoinPolicy::AllSucceeded,
+            execution_policy: ExecutionPolicy {
+                timeout_ms: 1_000,
+                approval_requirement: ApprovalRequirement::ExplicitUserApproval,
+                side_effect_class: SideEffectClass::ExternalConsequential,
+                retry_policy: RetryPolicy {
+                    max_attempts: 1,
+                    retry_idempotent_only: true,
+                },
+                idempotency_key: None,
+                supports_cancellation: false,
+            },
+            input,
+            state: OperationState::AwaitingApproval,
+        }
+    }
+
+    fn approval_graph(unit: WorkUnit) -> TaskGraph {
+        TaskGraph {
+            graph_id: TaskGraphId::new("approval-graph"),
+            session_id: SessionId::new("approval-session"),
+            objective_id: ObjectiveId::new("approval-objective"),
+            plan_revision: 3,
+            work_units: vec![unit],
+            created_at_ms: 1,
+        }
+    }
+
+    fn approval_request(graph: &TaskGraph, unit: &WorkUnit) -> ApprovalRequest {
+        let expected_effect = "Send one prepared message.".to_string();
+        let data_disclosure = "Message body leaves Adaptive Surface through mail.".to_string();
+        let expires_at_ms = 100;
+        ApprovalRequest {
+            approval_id: "approval-once".to_string(),
+            session_id: graph.session_id.to_string(),
+            operation_id: unit.work_unit_id.to_string(),
+            plan_id: graph.graph_id.to_string(),
+            plan_revision: graph.plan_revision,
+            capability_id: unit.capability_id.clone(),
+            commitment_tier: CommitmentTier::Commit,
+            actor: ApprovalActor::User,
+            target: "alex@example.com".to_string(),
+            scope: "single prepared message".to_string(),
+            expected_effect: expected_effect.clone(),
+            data_disclosure: data_disclosure.clone(),
+            reversibility: "not reliably reversible".to_string(),
+            reason: "External write requires one-time approval.".to_string(),
+            side_effect_class: Some(SideEffectClass::ExternalConsequential),
+            preview: unit.input.clone(),
+            expires_at_ms,
+            binding: Some(approval_binding_for_work_unit(
+                "approval-once",
+                graph,
+                unit,
+                expires_at_ms,
+                &expected_effect,
+                &data_disclosure,
+                Some(1),
+            )),
         }
     }
 
@@ -566,6 +717,53 @@ mod tests {
         let lifecycle_json = serde_json::to_value(lifecycle).expect("payload should serialize");
         assert_eq!(lifecycle_json["data"]["workUnitId"], "unit-1");
         assert!(lifecycle_json["data"].get("work_unit_id").is_none());
+    }
+
+    #[test]
+    fn approval_command_consumes_exact_approval_once() {
+        let service = ControlPlaneService::with_fixture_mail(Vec::new());
+        let unit = approval_unit();
+        let graph = approval_graph(unit.clone());
+        let approval = approval_request(&graph, &unit);
+        {
+            let mut store = service.journal.lock_store().expect("journal lock should work");
+            store
+                .save_snapshot(
+                    graph.session_id.clone(),
+                    Some(graph.objective_id.clone()),
+                    Some(graph.clone()),
+                    graph.plan_revision,
+                    Vec::new(),
+                    vec![approval],
+                    &[],
+                    None,
+                )
+                .expect("approval snapshot should persist");
+        }
+
+        let command = OperationCommand {
+            session_id: graph.session_id.clone(),
+            work_unit_id: unit.work_unit_id.clone(),
+            plan_revision: graph.plan_revision,
+            approval_id: Some(ApprovalId::new("approval-once")),
+            now_ms: Some(50),
+        };
+        let approved = service
+            .approve_operation(command.clone())
+            .expect("exact approval should be consumed");
+        assert!(approved.pending_approvals.is_empty());
+        let approved_unit = approved
+            .task_graphs
+            .iter()
+            .find(|candidate| candidate.graph_id == graph.graph_id)
+            .and_then(|candidate| candidate.work_units.iter().find(|candidate| candidate.work_unit_id == unit.work_unit_id))
+            .expect("approved unit should exist");
+        assert_eq!(approved_unit.state, OperationState::Ready);
+
+        let replay = service
+            .approve_operation(command)
+            .expect_err("consumed approval must not replay");
+        assert_eq!(replay.kind, ControlPlaneErrorKind::PolicyBlocked);
     }
 
     #[test]
@@ -673,6 +871,7 @@ mod tests {
                 SchedulerConfig {
                     max_concurrency: 2,
                     poll_interval_ms: 1,
+                    ..SchedulerConfig::default()
                 },
             )
             .expect("service should initialize");
@@ -697,6 +896,7 @@ mod tests {
             SchedulerConfig {
                 max_concurrency: 2,
                 poll_interval_ms: 1,
+                ..SchedulerConfig::default()
             },
         )
         .expect("service should replay");
@@ -732,6 +932,7 @@ mod tests {
                 SchedulerConfig {
                     max_concurrency: 2,
                     poll_interval_ms: 1,
+                    ..SchedulerConfig::default()
                 },
             )
             .expect("service should initialize");
@@ -755,6 +956,7 @@ mod tests {
             SchedulerConfig {
                 max_concurrency: 2,
                 poll_interval_ms: 1,
+                ..SchedulerConfig::default()
             },
         )
         .expect("service should replay");
@@ -866,6 +1068,7 @@ mod tests {
             SchedulerConfig {
                 max_concurrency: 2,
                 poll_interval_ms: 1,
+                ..SchedulerConfig::default()
             },
         )
         .expect("service should reconcile interrupted request");

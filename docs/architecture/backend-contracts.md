@@ -47,6 +47,10 @@ The deterministic resolver supports local fallback behavior without a cloud mode
 
 `TargetBinding` links an intent to a declared capability and source reference. Unknown or unavailable capabilities return `CapabilityUnavailable`.
 
+The live scheduler path also exposes `SemanticCapabilityDescriptor`, which now
+declares operation kind, read/write class, side-effect class, reversibility, and
+required permissions so policy can evaluate a work unit before dispatch.
+
 ## Delegation and Activity
 
 `DelegationPlan` and `DelegatedOperation` represent bounded increments, not large autonomous plans. Each operation has a correlation ID, timeout, retry policy, state, and idempotency key when safe.
@@ -75,7 +79,12 @@ timestamp, and a safe diagnostic. This is the restart-safe deduplication record.
 
 ## Approval, Artifacts, and Receipts
 
-`ApprovalRequest` names the target, scope, expected effect, data disclosure, reversibility, preview, expiry, and exact plan revision.
+`ApprovalRequest` names the target, scope, expected effect, data disclosure,
+reversibility, redacted preview, expiry, capability, side-effect class, reason,
+and exact plan revision. New approval records include `ApprovalBinding`, which
+ties a one-time approval to the current operation, plan revision, capability,
+target binding, normalized input, expected effect, disclosure summary, expiry,
+and context snapshot revision.
 
 `NormalizedArtifact` distinguishes derived interpretation from source material and committed results.
 

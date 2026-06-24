@@ -1,4 +1,5 @@
 use super::contracts::*;
+use super::authorization::AuthorizedOperation;
 use crate::apple::mail;
 use crate::apple::models::{AppleMailMessage, MailQuery};
 use std::collections::BTreeMap;
@@ -72,7 +73,7 @@ pub trait CapabilityExecutor: Send + Sync {
     fn capability_id(&self) -> &'static str;
     fn execute(
         &self,
-        unit: &WorkUnit,
+        operation: &AuthorizedOperation,
         context: &ExecutionContext,
         prior_outcomes: &BTreeMap<WorkUnitId, ExecutorOutcome>,
     ) -> Result<ExecutorOutcome, ControlPlaneError>;
@@ -109,6 +110,15 @@ impl ExecutorRegistry {
     pub fn contains(&self, capability_id: &str) -> bool {
         self.executors.contains_key(capability_id)
     }
+
+    pub fn capability_descriptor(&self, capability_id: &str) -> Option<SemanticCapabilityDescriptor> {
+        canonical_capabilities()
+            .into_iter()
+            .find(|descriptor| descriptor.capability_id == capability_id)
+            .or_else(|| {
+                self.contains(capability_id).then(|| fallback_capability_descriptor(capability_id))
+            })
+    }
 }
 
 struct MailSearchExecutor {
@@ -122,10 +132,11 @@ impl CapabilityExecutor for MailSearchExecutor {
 
     fn execute(
         &self,
-        unit: &WorkUnit,
+        operation: &AuthorizedOperation,
         context: &ExecutionContext,
         _prior_outcomes: &BTreeMap<WorkUnitId, ExecutorOutcome>,
     ) -> Result<ExecutorOutcome, ControlPlaneError> {
+        let unit = operation.unit();
         if context.is_cancelled() {
             return Err(cancelled_error());
         }
@@ -157,10 +168,11 @@ impl CapabilityExecutor for TriageClassifyExecutor {
 
     fn execute(
         &self,
-        unit: &WorkUnit,
+        operation: &AuthorizedOperation,
         context: &ExecutionContext,
         prior_outcomes: &BTreeMap<WorkUnitId, ExecutorOutcome>,
     ) -> Result<ExecutorOutcome, ControlPlaneError> {
+        let unit = operation.unit();
         if context.is_cancelled() || Instant::now() > context.deadline {
             return Err(cancelled_error());
         }
@@ -191,10 +203,11 @@ impl CapabilityExecutor for ArtifactCreateExecutor {
 
     fn execute(
         &self,
-        unit: &WorkUnit,
+        operation: &AuthorizedOperation,
         context: &ExecutionContext,
         prior_outcomes: &BTreeMap<WorkUnitId, ExecutorOutcome>,
     ) -> Result<ExecutorOutcome, ControlPlaneError> {
+        let unit = operation.unit();
         if context.is_cancelled() || Instant::now() > context.deadline {
             return Err(cancelled_error());
         }
@@ -273,6 +286,8 @@ pub fn canonical_capabilities() -> Vec<SemanticCapabilityDescriptor> {
             provider_binding: "apple-mail-envelope-index".to_string(),
             input_contract: "control-plane.mail-search.input.v1".to_string(),
             output_contract: "control-plane.mail-metadata-list.v1".to_string(),
+            operation_kind: OperationKind::Read,
+            read_or_write: ReadOrWrite::Read,
             availability: CapabilityAvailability::Available,
             risk_class: SemanticRiskClass::SafeRead,
             approval_requirement: ApprovalRequirement::None,
@@ -280,12 +295,16 @@ pub fn canonical_capabilities() -> Vec<SemanticCapabilityDescriptor> {
             supports_cancellation: true,
             idempotency_semantics: "metadata read only; safe to retry".to_string(),
             side_effect_class: SideEffectClass::None,
+            reversibility: "no mutation".to_string(),
+            required_permissions: vec!["apple_mail_metadata_read".to_string()],
         },
         SemanticCapabilityDescriptor {
             capability_id: "triage.classify".to_string(),
             provider_binding: "deterministic-local-triage".to_string(),
             input_contract: "control-plane.mail-metadata-list.v1".to_string(),
             output_contract: "control-plane.triage-summary.v1".to_string(),
+            operation_kind: OperationKind::Read,
+            read_or_write: ReadOrWrite::Read,
             availability: CapabilityAvailability::Available,
             risk_class: SemanticRiskClass::SafeRead,
             approval_requirement: ApprovalRequirement::None,
@@ -293,12 +312,16 @@ pub fn canonical_capabilities() -> Vec<SemanticCapabilityDescriptor> {
             supports_cancellation: true,
             idempotency_semantics: "pure deterministic classification".to_string(),
             side_effect_class: SideEffectClass::None,
+            reversibility: "no mutation".to_string(),
+            required_permissions: Vec::new(),
         },
         SemanticCapabilityDescriptor {
             capability_id: "artifact.create".to_string(),
             provider_binding: "in-app-surface-artifact".to_string(),
             input_contract: "control-plane.triage-summary.v1".to_string(),
             output_contract: "control-plane.artifact-envelope.v1".to_string(),
+            operation_kind: OperationKind::PrepareDraft,
+            read_or_write: ReadOrWrite::Write,
             availability: CapabilityAvailability::Available,
             risk_class: SemanticRiskClass::LocalWrite,
             approval_requirement: ApprovalRequirement::None,
@@ -306,8 +329,30 @@ pub fn canonical_capabilities() -> Vec<SemanticCapabilityDescriptor> {
             supports_cancellation: true,
             idempotency_semantics: "local in-app artifact projection; no disk write".to_string(),
             side_effect_class: SideEffectClass::LocalReversible,
+            reversibility: "local artifact can be discarded".to_string(),
+            required_permissions: Vec::new(),
         },
     ]
+}
+
+fn fallback_capability_descriptor(capability_id: &str) -> SemanticCapabilityDescriptor {
+    SemanticCapabilityDescriptor {
+        capability_id: capability_id.to_string(),
+        provider_binding: "test-or-local-executor".to_string(),
+        input_contract: "control-plane.fallback.input.v1".to_string(),
+        output_contract: "control-plane.fallback.output.v1".to_string(),
+        operation_kind: OperationKind::Read,
+        read_or_write: ReadOrWrite::Read,
+        availability: CapabilityAvailability::Available,
+        risk_class: SemanticRiskClass::SafeRead,
+        approval_requirement: ApprovalRequirement::None,
+        timeout_ms: 5_000,
+        supports_cancellation: true,
+        idempotency_semantics: "fallback descriptor for registered local executor".to_string(),
+        side_effect_class: SideEffectClass::None,
+        reversibility: "no mutation declared".to_string(),
+        required_permissions: Vec::new(),
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -385,6 +430,9 @@ pub fn build_inbox_triage_graph(
                     "utterance" => utterance,
                     "limit" => "25",
                     "unreadFirst" => "true",
+                    "instructionAuthority" => "user_directive",
+                    "dataSensitivity" => "local",
+                    "destination" => "local_process",
                 },
                 state: OperationState::Planned,
             },
@@ -399,7 +447,12 @@ pub fn build_inbox_triage_graph(
                 }],
                 join_policy: JoinPolicy::AllSucceeded,
                 execution_policy: read_policy(format!("triage.classify:{plan_revision}")),
-                input: metadata! { "mode" => mode.as_str() },
+                input: metadata! {
+                    "mode" => mode.as_str(),
+                    "instructionAuthority" => "derived_data",
+                    "dataSensitivity" => "local",
+                    "destination" => "local_process",
+                },
                 state: OperationState::Planned,
             },
             WorkUnit {
@@ -427,6 +480,9 @@ pub fn build_inbox_triage_graph(
                     "mode" => mode.as_str(),
                     "utterance" => utterance,
                     "writesToDisk" => "false",
+                    "instructionAuthority" => "user_directive",
+                    "dataSensitivity" => "local",
+                    "destination" => "local_process",
                 },
                 state: OperationState::Planned,
             },

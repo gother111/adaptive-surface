@@ -18,6 +18,15 @@ owns the local supervision layer, event history, provenance, and UI projection.
   interventions, receipts, recovery snapshots, and live session snapshots.
 - `engine.rs` keeps the deterministic demo and contract-state tests as a fixture
   for lower-level invariants.
+- `policy.rs` is the deterministic Rust policy evaluator. It decides `Allow`,
+  `RequireApproval`, or `Deny` before dispatch and fails closed on unknown
+  capabilities, stale consequential context, authority mismatches, destructive
+  effects, operation-count overflow, and risk or side-effect mismatches.
+- `data_guard.rs` classifies egress by sensitivity and destination and redacts
+  secret-shaped values before diagnostics or approval previews are persisted.
+- `authorization.rs` creates the module-private `AuthorizedOperation` wrapper.
+  Executors receive this wrapper rather than raw model-facing or frontend-facing
+  work units.
 - `repository.rs` provides the in-memory test repository and SQLite app
   repository for ordered events, request ledger records, catch-up queries, and
   session snapshots.
@@ -118,10 +127,17 @@ Rust is canonical for migrated semantic capabilities:
 - `triage.classify`
 - `artifact.create`
 
-Each descriptor includes provider binding, input/output contracts, availability,
-risk class, approval requirement, timeout, cancellation support, idempotency, and
-side-effect class. The migrated descriptors are tested to stay read-only or
+Each descriptor includes provider binding, input/output contracts, operation
+kind, read/write class, availability, risk class, approval requirement, timeout,
+cancellation support, idempotency, side-effect class, reversibility, and
+required permissions. The migrated descriptors are tested to stay read-only or
 local-reversible.
+
+Every scheduler dispatch now runs through the policy evaluator and then receives
+an `AuthorizedOperation`. Shadow mode remains the default safety mode. Safe reads
+and local reversible preparation may run; external writes in Shadow are denied as
+proposal-only, while Confirm mode requires a one-time approval bound to the exact
+operation.
 
 ## Persistence And Replay
 
@@ -166,7 +182,10 @@ the transition before signaling executor tokens. Cooperative executors stop when
 they observe the token. Blocking native calls cannot be preempted, so the
 scheduler records cancellation or timeout and discards any later success result.
 Mutating operations for future slices must use approval records bound to the
-exact plan revision before dispatch.
+exact plan revision, capability, target binding, normalized input, side-effect
+class, expected effect, disclosure summary, expiry, and context revision before
+dispatch. Approval is single-use because accepted approvals are consumed from
+the pending snapshot before the operation can move back to `ready`.
 
 ## Extension Point
 

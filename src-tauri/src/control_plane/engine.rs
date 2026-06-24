@@ -1,4 +1,5 @@
 use super::contracts::*;
+use super::data_guard::redact_metadata_values;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::Path;
@@ -658,12 +659,17 @@ fn apply_policy(
         if requires_approval {
             operation.state = OperationState::AwaitingApproval;
             plan.approval_requirements.push(operation.operation_id.clone());
+            let approval_id = ids.id("approval");
+            let expected_effect = "External mail adapter would send the prepared content."
+                .to_string();
+            let data_disclosure = "Prepared summary and addressed message content would leave the app through the mail provider.".to_string();
             approval_requests.push(ApprovalRequest {
-                approval_id: ids.id("approval"),
+                approval_id: approval_id.clone(),
                 session_id: plan.session_id.clone(),
                 operation_id: operation.operation_id.clone(),
                 plan_id: plan.plan_id.clone(),
                 plan_revision: plan.revision,
+                capability_id: operation.capability_id.clone(),
                 commitment_tier: intent.commitment.clone(),
                 actor: ApprovalActor::User,
                 target: operation.target_binding.app_or_service.clone(),
@@ -672,17 +678,50 @@ fn apply_policy(
                     .object_reference
                     .clone()
                     .unwrap_or_else(|| "current bounded context".to_string()),
-                expected_effect: "External mail adapter would send the prepared content."
-                    .to_string(),
-                data_disclosure: "Prepared summary and addressed message content would leave the app through the mail provider.".to_string(),
+                expected_effect: expected_effect.clone(),
+                data_disclosure: data_disclosure.clone(),
                 reversibility: descriptor.reversibility.clone(),
-                preview: operation.normalized_input.clone(),
+                reason: "External consequential operation requires one-time approval.".to_string(),
+                side_effect_class: Some(descriptor.side_effect_class.clone()),
+                preview: redact_metadata_values(&operation.normalized_input),
                 expires_at_ms: now_ms.saturating_add(APPROVAL_TTL_MS),
+                binding: Some(ApprovalBinding {
+                    approval_id,
+                    operation_id: operation.operation_id.clone(),
+                    plan_id: plan.plan_id.clone(),
+                    plan_revision: plan.revision,
+                    capability_id: operation.capability_id.clone(),
+                    target_binding: operation_target_binding(operation),
+                    normalized_input: redact_metadata_values(&operation.normalized_input),
+                    side_effect_class: descriptor.side_effect_class.clone(),
+                    expected_effect,
+                    data_disclosure,
+                    expires_at_ms: now_ms.saturating_add(APPROVAL_TTL_MS),
+                    context_snapshot_revision: None,
+                }),
             });
         }
     }
 
     Ok(approval_requests)
+}
+
+fn operation_target_binding(operation: &DelegatedOperation) -> Metadata {
+    let mut target = Metadata::new();
+    target.insert("targetId".to_string(), operation.target_binding.target_id.clone());
+    target.insert(
+        "sourceSystem".to_string(),
+        operation.target_binding.source_system.clone(),
+    );
+    target.insert(
+        "appOrService".to_string(),
+        operation.target_binding.app_or_service.clone(),
+    );
+    target.insert("capabilityId".to_string(), operation.capability_id.clone());
+    if let Some(object_reference) = &operation.target_binding.object_reference {
+        target.insert("objectReference".to_string(), object_reference.clone());
+    }
+    target
 }
 
 fn dispatch_ready_reads(

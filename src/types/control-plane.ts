@@ -1,6 +1,9 @@
 export type ControlPlaneSensitivity = "local" | "sensitive" | "restricted" | "external_shareable";
 export type ControlPlaneFreshnessState = "fresh" | "stale" | "unknown";
 export type CommitmentTier = "observe" | "prepare" | "propose" | "commit";
+export type SideEffectClass = "none" | "local_reversible" | "external_consequential" | "destructive" | "unknown";
+export type DataEgressDisposition = "allow" | "require_approval" | "deny";
+export type PolicyDisposition = "allow" | "require_approval" | "deny";
 export type OperationState =
   | "planned"
   | "awaiting_approval"
@@ -175,12 +178,28 @@ export interface ActivityEvent {
   provenance: Provenance;
 }
 
+export interface ApprovalBinding {
+  approvalId: string;
+  operationId: string;
+  planId: string;
+  planRevision: number;
+  capabilityId: string;
+  targetBinding: Record<string, string>;
+  normalizedInput: Record<string, string>;
+  sideEffectClass: SideEffectClass;
+  expectedEffect: string;
+  dataDisclosure: string;
+  expiresAtMs: number;
+  contextSnapshotRevision?: number | null;
+}
+
 export interface ApprovalRequest {
   approvalId: string;
   sessionId: string;
   operationId: string;
   planId: string;
   planRevision: number;
+  capabilityId?: string;
   commitmentTier: CommitmentTier;
   actor: string;
   target: string;
@@ -188,8 +207,11 @@ export interface ApprovalRequest {
   expectedEffect: string;
   dataDisclosure: string;
   reversibility: string;
+  reason?: string;
+  sideEffectClass?: SideEffectClass | null;
   preview: Record<string, string>;
   expiresAtMs: number;
+  binding?: ApprovalBinding | null;
 }
 
 export interface NormalizedArtifact {
@@ -421,13 +443,17 @@ export interface SemanticCapabilityDescriptor {
   providerBinding: string;
   inputContract: string;
   outputContract: string;
+  operationKind: string;
+  readOrWrite: "read" | "write";
   availability: string;
   riskClass: SemanticRiskClass;
   approvalRequirement: ApprovalRequirement;
   timeoutMs: number;
   supportsCancellation: boolean;
   idempotencySemantics: string;
-  sideEffectClass: string;
+  sideEffectClass: SideEffectClass;
+  reversibility: string;
+  requiredPermissions: string[];
 }
 
 export interface SubmitObjectiveInput {

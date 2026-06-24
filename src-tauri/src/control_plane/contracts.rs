@@ -49,6 +49,106 @@ pub enum Sensitivity {
     ExternalShareable,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SafetyMode {
+    #[default]
+    Shadow,
+    Confirm,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InstructionAuthority {
+    SystemPolicy,
+    #[default]
+    UserDirective,
+    ExternalContent,
+    DerivedData,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DestinationClass {
+    #[default]
+    LocalProcess,
+    LocalProvider,
+    CloudModel,
+    ExternalConnector,
+    NativeApplication,
+    DiagnosticLog,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DataEgressDisposition {
+    Allow,
+    RequireApproval,
+    Deny,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PolicyDisposition {
+    Allow,
+    RequireApproval,
+    Deny,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PolicyReasonCode {
+    SafeReadAllowed,
+    LocalPreparationAllowed,
+    ExternalWriteRequiresApproval,
+    ShadowExternalWritePreviewOnly,
+    DestructiveDenied,
+    UnknownSideEffectDenied,
+    UnknownCapability,
+    CapabilityUnavailable,
+    CapabilityMismatch,
+    OperationLimitExceeded,
+    OperationOutsideScope,
+    RiskSideEffectMismatch,
+    StaleContext,
+    ExternalContentNoAuthority,
+    DataEgressDenied,
+    DataEgressRequiresApproval,
+    MissingTargetBinding,
+    RequiredPermissionUnavailable,
+    PolicyInputsMissing,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SafetyConfig {
+    pub mode: SafetyMode,
+    pub max_operations: usize,
+    pub context_revision_current: bool,
+}
+
+impl Default for SafetyConfig {
+    fn default() -> Self {
+        Self {
+            mode: SafetyMode::Shadow,
+            max_operations: 3,
+            context_revision_current: true,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PolicyDecision {
+    pub disposition: PolicyDisposition,
+    pub reason_codes: Vec<PolicyReasonCode>,
+    pub explanation: String,
+    pub effective_commitment_ceiling: CommitmentTier,
+    pub approval_required: bool,
+    pub data_egress: DataEgressDisposition,
+    pub replanning_required: bool,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FreshnessState {
@@ -428,6 +528,8 @@ pub struct ApprovalRequest {
     pub operation_id: String,
     pub plan_id: String,
     pub plan_revision: u64,
+    #[serde(default)]
+    pub capability_id: String,
     pub commitment_tier: CommitmentTier,
     pub actor: ApprovalActor,
     pub target: String,
@@ -435,8 +537,31 @@ pub struct ApprovalRequest {
     pub expected_effect: String,
     pub data_disclosure: String,
     pub reversibility: String,
+    #[serde(default)]
+    pub reason: String,
+    #[serde(default)]
+    pub side_effect_class: Option<SideEffectClass>,
     pub preview: Metadata,
     pub expires_at_ms: u64,
+    #[serde(default)]
+    pub binding: Option<ApprovalBinding>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApprovalBinding {
+    pub approval_id: String,
+    pub operation_id: String,
+    pub plan_id: String,
+    pub plan_revision: u64,
+    pub capability_id: String,
+    pub target_binding: Metadata,
+    pub normalized_input: Metadata,
+    pub side_effect_class: SideEffectClass,
+    pub expected_effect: String,
+    pub data_disclosure: String,
+    pub expires_at_ms: u64,
+    pub context_snapshot_revision: Option<u64>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -803,6 +928,8 @@ pub struct SemanticCapabilityDescriptor {
     pub provider_binding: String,
     pub input_contract: String,
     pub output_contract: String,
+    pub operation_kind: OperationKind,
+    pub read_or_write: ReadOrWrite,
     pub availability: CapabilityAvailability,
     pub risk_class: SemanticRiskClass,
     pub approval_requirement: ApprovalRequirement,
@@ -810,6 +937,8 @@ pub struct SemanticCapabilityDescriptor {
     pub supports_cancellation: bool,
     pub idempotency_semantics: String,
     pub side_effect_class: SideEffectClass,
+    pub reversibility: String,
+    pub required_permissions: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

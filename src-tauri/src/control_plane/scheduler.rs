@@ -1,4 +1,6 @@
+use super::authorization::authorize_for_dispatch;
 use super::contracts::*;
+use super::data_guard::redact_sensitive_diagnostic;
 use super::executors::{ExecutorOutcome, ExecutorRegistry};
 use super::journal::{epoch_ms, RuntimeJournal};
 use super::repository::RequestStatusUpdate;
@@ -12,6 +14,7 @@ use std::time::{Duration, Instant};
 pub struct SchedulerConfig {
     pub max_concurrency: usize,
     pub poll_interval_ms: u64,
+    pub safety_config: SafetyConfig,
 }
 
 impl Default for SchedulerConfig {
@@ -19,6 +22,7 @@ impl Default for SchedulerConfig {
         Self {
             max_concurrency: 2,
             poll_interval_ms: 20,
+            safety_config: SafetyConfig::default(),
         }
     }
 }
@@ -182,12 +186,6 @@ impl TaskScheduler {
                 return Err(ControlPlaneError::new(
                     ControlPlaneErrorKind::InvalidTransition,
                     "work-unit timeout must be greater than zero",
-                ));
-            }
-            if unit.execution_policy.approval_requirement != ApprovalRequirement::None {
-                return Err(ControlPlaneError::new(
-                    ControlPlaneErrorKind::PolicyBlocked,
-                    "approval-gated work units are not supported by the scheduler yet",
                 ));
             }
             if unit.execution_policy.retry_policy.max_attempts != 1 {
@@ -379,6 +377,39 @@ impl TaskScheduler {
             return Ok(());
         }
 
+        let descriptor = self.registry.capability_descriptor(&unit.capability_id);
+        let authorized = match authorize_for_dispatch(
+            &self.config.safety_config,
+            graph,
+            unit.clone(),
+            descriptor.as_ref(),
+        ) {
+            Ok(authorized) => authorized,
+            Err(error) => {
+                let failed_snapshot = self.commit_lifecycle(
+                    &run.session_id,
+                    &run.objective_id,
+                    &run.graph_id,
+                    &run.run_id,
+                    run.plan_revision,
+                    &unit.work_unit_id,
+                    OperationState::Failed,
+                    100,
+                    &error.message,
+                    now_ms,
+                )?;
+                if snapshot_has_unit_state(
+                    &failed_snapshot,
+                    &run.graph_id,
+                    &unit.work_unit_id,
+                    &OperationState::Failed,
+                ) {
+                    set_local_state(graph, &unit.work_unit_id, OperationState::Failed);
+                }
+                return Ok(());
+            }
+        };
+
         let running_snapshot = self.commit_lifecycle(
             &run.session_id,
             &run.objective_id,
@@ -417,7 +448,7 @@ impl TaskScheduler {
         let work_unit_id = unit.work_unit_id.clone();
         let running_work_unit_id = unit.work_unit_id.clone();
         thread::spawn(move || {
-            let outcome = executor.execute(&unit, &context, &prior_outcomes);
+            let outcome = executor.execute(&authorized, &context, &prior_outcomes);
             let _ = sender.send(WorkerResult {
                 work_unit_id,
                 outcome,
@@ -665,7 +696,7 @@ impl TaskScheduler {
                     work_unit_id: work_unit_id.clone(),
                     state,
                     progress,
-                    message: message.to_string(),
+                    message: redact_sensitive_diagnostic(message),
                 },
             );
             snapshot = store.save_snapshot(
@@ -988,6 +1019,7 @@ fn visit_cycle(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::control_plane::authorization::AuthorizedOperation;
     use crate::control_plane::executors::{
         CapabilityExecutor, ExecutionContext, ExecutorOutcome, ExecutorRegistry,
     };
@@ -1075,10 +1107,11 @@ mod tests {
 
         fn execute(
             &self,
-            unit: &WorkUnit,
+            operation: &AuthorizedOperation,
             _context: &ExecutionContext,
             _prior_outcomes: &BTreeMap<WorkUnitId, ExecutorOutcome>,
         ) -> Result<ExecutorOutcome, ControlPlaneError> {
+            let unit = operation.unit();
             self.harness.record_start(unit.work_unit_id.as_str());
             self.harness.wait_release();
             Ok(ExecutorOutcome::TriageSummary(crate::control_plane::executors::TriageSummary {
@@ -1098,7 +1131,7 @@ mod tests {
 
         fn execute(
             &self,
-            _unit: &WorkUnit,
+            _operation: &AuthorizedOperation,
             context: &ExecutionContext,
             _prior_outcomes: &BTreeMap<WorkUnitId, ExecutorOutcome>,
         ) -> Result<ExecutorOutcome, ControlPlaneError> {
@@ -1108,6 +1141,26 @@ mod tests {
             Err(ControlPlaneError::new(
                 ControlPlaneErrorKind::InvalidTransition,
                 "test executor observed cancellation",
+            ))
+        }
+    }
+
+    struct SecretFailingExecutor;
+
+    impl CapabilityExecutor for SecretFailingExecutor {
+        fn capability_id(&self) -> &'static str {
+            "test.secret"
+        }
+
+        fn execute(
+            &self,
+            _operation: &AuthorizedOperation,
+            _context: &ExecutionContext,
+            _prior_outcomes: &BTreeMap<WorkUnitId, ExecutorOutcome>,
+        ) -> Result<ExecutorOutcome, ControlPlaneError> {
+            Err(ControlPlaneError::new(
+                ControlPlaneErrorKind::ExecutorFailed,
+                "provider returned token sk-proj-secret-value",
             ))
         }
     }
@@ -1128,6 +1181,7 @@ mod tests {
             SchedulerConfig {
                 max_concurrency: 2,
                 poll_interval_ms: 1,
+                ..SchedulerConfig::default()
             },
         );
         (journal, scheduler)
@@ -1267,14 +1321,14 @@ mod tests {
     }
 
     #[test]
-    fn graph_validation_rejects_unsupported_approval_and_retry_policies() {
+    fn graph_validation_allows_approval_gates_but_rejects_retry_policies() {
         let harness = Arc::new(Harness::default());
         let (_journal, scheduler) = scheduler_with_executor(Arc::new(BlockingExecutor { harness }));
         let mut approval_required = unit("a", "test.block", Vec::new(), 500);
         approval_required.execution_policy.approval_requirement = ApprovalRequirement::ExplicitUserApproval;
-        let approval_error = scheduler
+        scheduler
             .validate_graph(&graph(vec![approval_required]))
-            .expect_err("approval-gated unit should fail until scheduler supports approvals");
+            .expect("approval-gated units are validated before policy decides dispatch");
 
         let mut retrying = unit("b", "test.block", Vec::new(), 500);
         retrying.execution_policy.retry_policy.max_attempts = 2;
@@ -1282,7 +1336,6 @@ mod tests {
             .validate_graph(&graph(vec![retrying]))
             .expect_err("retrying unit should fail until retry execution is implemented");
 
-        assert_eq!(approval_error.kind, ControlPlaneErrorKind::PolicyBlocked);
         assert_eq!(retry_error.kind, ControlPlaneErrorKind::InvalidTransition);
     }
 
@@ -1406,5 +1459,18 @@ mod tests {
                 ..
             }
         )));
+    }
+
+    #[test]
+    fn raw_secret_values_do_not_appear_in_journal_events() {
+        let (journal, scheduler) = scheduler_with_executor(Arc::new(SecretFailingExecutor));
+        let graph = graph(vec![unit("a", "test.secret", Vec::new(), 500)]);
+        persist_graph(&journal, &graph);
+        scheduler.enqueue(run_for(&graph)).expect("run should enqueue");
+        let snapshot = wait_terminal(&journal, &graph.session_id);
+        let json = serde_json::to_string(&snapshot.recent_events).expect("events should serialize");
+
+        assert!(!json.contains("sk-proj-secret-value"));
+        assert!(json.contains("[REDACTED_SECRET]"));
     }
 }
